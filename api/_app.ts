@@ -970,17 +970,17 @@ Respond STRICTLY with a valid JSON array:
   }
 });
 
-// Mount router on both `/api` AND root `/` for universal compatibility across local Express and Vercel Serverless
+// Mount router strictly on `/api`
 app.use('/api', router);
-app.use(router);
 
-// Universal JSON 404 handler (prevents Vercel/Express from returning HTML)
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ success: false, error: 'Endpoint not found.' });
+// Universal JSON 404 handler strictly for `/api/*` routes (leaves all non-API routes for Vite/SPA)
+app.use('/api/*', (_req: Request, res: Response) => {
+  res.status(404).json({ success: false, error: 'API endpoint not found.' });
 });
 
-// Universal JSON error handler (prevents Express from returning HTML stack traces)
-app.use((err: any, _req: Request, res: Response, _next: any) => {
+// Universal JSON error handler
+app.use((err: any, _req: Request, res: Response, next: any) => {
+  if (res.headersSent) return next(err);
   console.error('Express uncaught error:', err);
   res.status(500).json({ success: false, error: err?.message || 'Internal Server Error' });
 });

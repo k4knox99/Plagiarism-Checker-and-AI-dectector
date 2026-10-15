@@ -1,7 +1,6 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { jsPDF } from 'jspdf';
 import { FixerStyle } from '../types';
-import { AI_CLICHE_PATTERNS } from '../../api/_app';
 
 export interface SurgeonSentence {
   id: string;
@@ -34,6 +33,24 @@ export interface SurgeonDocumentStats {
   currentSimilarityScore: number;
   wordCount: number;
 }
+
+export const AI_CLICHE_PATTERNS = [
+  { phrase: "delve", regex: /\bdelve\b|\bdelving\b/gi, replacement: "explore, examine, analyze", reason: "Overused hallmark AI vocabulary" },
+  { phrase: "testament to", regex: /\btestament to\b/gi, replacement: "evidence of, reflects", reason: "Formulaic rhetorical cliché" },
+  { phrase: "crucial role", regex: /\bcrucial role\b/gi, replacement: "significant impact, key part", reason: "Standard AI corporate phrasing" },
+  { phrase: "tapestry of", regex: /\btapestry of\b/gi, replacement: "blend of, array of, combination", reason: "Stereotypical LLM metaphor" },
+  { phrase: "it is worth noting", regex: /\bit is worth noting that\b|\bit's worth noting\b/gi, replacement: "notably, keep in mind", reason: "Passive AI discourse marker" },
+  { phrase: "in summary", regex: /\bin summary,\b|\bin conclusion,\b/gi, replacement: "ultimately, overall", reason: "Formulaic concluding trope" },
+  { phrase: "navigating the landscape", regex: /\bnavigat(e|ing) the landscape\b/gi, replacement: "handling this space, addressing issues", reason: "Common corporate AI filler" },
+  { phrase: "seamlessly", regex: /\bseamlessly\b/gi, replacement: "smoothly, directly, cleanly", reason: "Overused AI transition adverb" },
+  { phrase: "beacon of", regex: /\bbeacon of\b/gi, replacement: "symbol of, model for", reason: "Hyperbolic AI metaphor" },
+  { phrase: "foster a", regex: /\bfoster(ing)? a\b/gi, replacement: "build, encourage, develop", reason: "Frequent institutional LLM cliché" },
+  { phrase: "moreover / furthermore", regex: /\b(moreover|furthermore),\b/gi, replacement: "also, beyond that, in addition", reason: "Mechanical syntactic connector" },
+  { phrase: "pivotal", regex: /\bpivotal\b/gi, replacement: "critical, decisive, major", reason: "High-frequency AI adjective" },
+  { phrase: "multifaceted", regex: /\bmultifaceted\b/gi, replacement: "complex, diverse, layered", reason: "Common synthetic vocabulary" },
+  { phrase: "intertwined", regex: /\bintertwined\b/gi, replacement: "linked, connected", reason: "Frequent synthetic metaphor" },
+  { phrase: "vital importance", regex: /\bvital importance\b/gi, replacement: "great importance, essential", reason: "Formulaic emphasis phrase" }
+];
 
 /**
  * Common AI sentence patterns and robotic boilerplate templates
