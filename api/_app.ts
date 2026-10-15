@@ -24,6 +24,24 @@ function getAIClient(): GoogleGenAI | null {
   });
 }
 
+// Enterprise Model Fallback: Prioritize Gemini 2.5 Pro with Gemini 2.5 Flash fallback
+async function generateWithFallback(ai: GoogleGenAI, contents: string, config: any) {
+  try {
+    return await ai.models.generateContent({
+      model: 'gemini-2.5-pro',
+      contents,
+      config
+    });
+  } catch (err: any) {
+    console.warn('Gemini 2.5 Pro unavailable or rate-limited, invoking Gemini 2.5 Flash fallback:', err?.message || err);
+    return await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents,
+      config
+    });
+  }
+}
+
 // In-memory cache to save quota on repeated texts
 const scanCache = new Map<string, { timestamp: number; data: any }>();
 const CACHE_TTL = 1000 * 60 * 30; // 30 minutes
@@ -277,13 +295,9 @@ ${text.trim().slice(0, 15000)}
     let resultJson: any = null;
 
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          temperature: 0.1,
-        }
+      const response = await generateWithFallback(ai, prompt, {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
       });
 
       const rawText = response.text?.trim() || '';
@@ -375,13 +389,25 @@ ${text.trim().slice(0, 10000)}
     let groundingSources: Array<{ title: string; url: string }> = [];
 
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }],
-        }
-      });
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-pro',
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+          }
+        });
+      } catch (proErr: any) {
+        console.warn('Gemini 2.5 Pro search grounding unavailable, trying Gemini 2.5 Flash:', proErr?.message);
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+          }
+        });
+      }
 
       const candidate = response.candidates?.[0];
       const groundingMetadata = candidate?.groundingMetadata;
@@ -411,11 +437,11 @@ ${text.trim().slice(0, 10000)}
       console.warn('Search tool quota or connection limited, using standard model evaluation:', searchErr?.message || searchErr);
       
       try {
-        const fallbackRes = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: `Audit this text for plagiarism, famous quotes, and textbook definitions:\n"""${text.slice(0, 5000)}"""\nReturn JSON: {"similarityScore": number, "verdict": string, "summary": string, "matchedSources": [], "flaggedPassages": []}`,
-          config: { responseMimeType: 'application/json' }
-        });
+        const fallbackRes = await generateWithFallback(
+          ai,
+          `Audit this text for plagiarism, famous quotes, and textbook definitions:\n"""${text.slice(0, 5000)}"""\nReturn JSON: {"similarityScore": number, "verdict": string, "summary": string, "matchedSources": [], "flaggedPassages": []}`,
+          { responseMimeType: 'application/json' }
+        );
         resultJson = JSON.parse(fallbackRes.text || '{}');
       } catch {
         resultJson = {
@@ -532,13 +558,9 @@ ${text.trim().slice(0, 14000)}
 """`;
 
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: unifiedPrompt,
-          config: {
-            responseMimeType: 'application/json',
-            temperature: 0.1,
-          }
+        const response = await generateWithFallback(ai, unifiedPrompt, {
+          responseMimeType: 'application/json',
+          temperature: 0.1,
         });
 
         const parsed = JSON.parse(response.text || '{}');
@@ -685,13 +707,9 @@ ${text.trim()}
 """`;
 
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          temperature: 0.7,
-        }
+      const response = await generateWithFallback(ai, prompt, {
+        responseMimeType: 'application/json',
+        temperature: 0.7,
       });
 
       const parsed = JSON.parse(response.text || '{}');
@@ -766,13 +784,9 @@ Return ONLY a JSON object:
 }`;
 
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          temperature: 0.4
-        }
+      const response = await generateWithFallback(ai, prompt, {
+        responseMimeType: 'application/json',
+        temperature: 0.4
       });
 
       const parsed = JSON.parse(response.text || '{}');
