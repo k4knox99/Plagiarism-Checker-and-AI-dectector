@@ -1,15 +1,39 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { Float, OrbitControls, PerspectiveCamera, Html } from '@react-three/drei';
 import * as THREE from 'three';
+import { 
+  Activity, 
+  Layers, 
+  Zap, 
+  RotateCcw, 
+  Eye, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Sparkles,
+  Gauge,
+  BarChart2
+} from 'lucide-react';
+import { SentenceAnalysis } from '../types';
 
 export type Scanner3DStatus = 'idle' | 'scanning' | 'completed';
+export type Scanner3DMode = 'radar' | 'core' | 'cadence';
 
 interface ThreeCoreScannerProps {
   status: Scanner3DStatus;
   authenticityScore?: number;
+  aiScore?: number;
+  metrics?: {
+    perplexityScore?: number;
+    burstinessScore?: number;
+    repetitionScore?: number;
+    syntacticUniformity?: number;
+    clicheCount?: number;
+  };
+  sentenceAnalysis?: SentenceAnalysis[];
+  onSelectSentence?: (sentence: SentenceAnalysis) => void;
+  onTriggerScan?: () => void;
   className?: string;
-  showSplineAlternative?: boolean;
 }
 
 // 1. Quantum Gyroscope Rings (3 Concentric Orthogonal Rings)
@@ -18,7 +42,7 @@ function GyroscopeRings({ status }: { status: Scanner3DStatus }) {
   const ring2Ref = useRef<THREE.Mesh>(null);
   const ring3Ref = useRef<THREE.Mesh>(null);
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     const speedMult = status === 'scanning' ? 4.5 : status === 'completed' ? 0.8 : 1.2;
 
     if (ring1Ref.current) {
@@ -39,7 +63,6 @@ function GyroscopeRings({ status }: { status: Scanner3DStatus }) {
 
   return (
     <group>
-      {/* Outer Ring */}
       <mesh ref={ring1Ref}>
         <torusGeometry args={[2.0, 0.035, 16, 100]} />
         <meshStandardMaterial
@@ -51,7 +74,6 @@ function GyroscopeRings({ status }: { status: Scanner3DStatus }) {
         />
       </mesh>
 
-      {/* Middle Ring */}
       <mesh ref={ring2Ref}>
         <torusGeometry args={[1.6, 0.03, 16, 100]} />
         <meshStandardMaterial
@@ -63,7 +85,6 @@ function GyroscopeRings({ status }: { status: Scanner3DStatus }) {
         />
       </mesh>
 
-      {/* Inner Ring */}
       <mesh ref={ring3Ref}>
         <torusGeometry args={[1.2, 0.025, 16, 80]} />
         <meshStandardMaterial
@@ -79,7 +100,15 @@ function GyroscopeRings({ status }: { status: Scanner3DStatus }) {
 }
 
 // 2. Neural Polyhedral Core with Internal Emissive Pulse
-function NeuralCore({ status, score }: { status: Scanner3DStatus; score?: number }) {
+function NeuralCore({ 
+  status, 
+  score, 
+  onClick 
+}: { 
+  status: Scanner3DStatus; 
+  score?: number; 
+  onClick?: () => void 
+}) {
   const coreRef = useRef<THREE.Mesh>(null);
   const wireRef = useRef<THREE.Mesh>(null);
 
@@ -109,8 +138,7 @@ function NeuralCore({ status, score }: { status: Scanner3DStatus; score?: number
   }, [status, score]);
 
   return (
-    <group>
-      {/* Faceted Core */}
+    <group onClick={onClick}>
       <mesh ref={coreRef}>
         <icosahedronGeometry args={[0.65, 1]} />
         <meshStandardMaterial
@@ -123,7 +151,6 @@ function NeuralCore({ status, score }: { status: Scanner3DStatus; score?: number
         />
       </mesh>
 
-      {/* Holographic Wireframe Cage */}
       <mesh ref={wireRef}>
         <icosahedronGeometry args={[0.78, 2]} />
         <meshBasicMaterial
@@ -159,7 +186,6 @@ function LaserScannerBeam({ status }: { status: Scanner3DStatus }) {
 
   return (
     <group ref={beamRef} visible={status !== 'idle'}>
-      {/* Laser line disc */}
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.1, 2.2, 64]} />
         <meshBasicMaterial
@@ -170,7 +196,6 @@ function LaserScannerBeam({ status }: { status: Scanner3DStatus }) {
         />
       </mesh>
 
-      {/* Center sharp laser beam */}
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.0, 2.25, 4]} />
         <meshBasicMaterial
@@ -184,75 +209,236 @@ function LaserScannerBeam({ status }: { status: Scanner3DStatus }) {
   );
 }
 
-// 4. Orbital Quantum Particle Field
-function OrbitalParticles({ status }: { status: Scanner3DStatus }) {
-  const pointsRef = useRef<THREE.Points>(null);
-
-  const [positions, count] = useMemo(() => {
-    const particleCount = 180;
-    const pos = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount; i++) {
-      const radius = 1.3 + Math.random() * 1.5;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(Math.random() * 2 - 1);
-      pos[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-      pos[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-      pos[i * 3 + 2] = radius * Math.cos(phi);
-    }
-    return [pos, particleCount];
-  }, []);
+// 4. Interactive 3D Stylometric Metric Nodes
+function StylometryNodes({
+  metrics,
+  onHoverNode
+}: {
+  metrics?: {
+    perplexityScore?: number;
+    burstinessScore?: number;
+    syntacticUniformity?: number;
+    clicheCount?: number;
+  };
+  onHoverNode: (info: { title: string; score: string; status: string; desc: string } | null) => void;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
 
   useFrame((_state, delta) => {
-    if (!pointsRef.current) return;
-    const speed = status === 'scanning' ? 1.5 : 0.3;
-    pointsRef.current.rotation.y += delta * speed;
-    pointsRef.current.rotation.x += delta * (speed * 0.5);
+    if (groupRef.current) {
+      groupRef.current.rotation.y += delta * 0.4;
+    }
   });
 
-  const particleColor = status === 'scanning' ? '#a78bfa' : status === 'completed' ? '#6ee7b7' : '#93c5fd';
+  const nodes = [
+    {
+      pos: [1.8, 0.4, 0] as [number, number, number],
+      color: '#818cf8',
+      title: 'Perplexity Score',
+      score: `${metrics?.perplexityScore ?? 14}/100`,
+      status: (metrics?.perplexityScore ?? 14) < 40 ? 'AI Predictable' : 'Human Lexical Variety',
+      desc: 'Lexical predictability index. AI text has low perplexity (<30).'
+    },
+    {
+      pos: [-1.8, -0.3, 0] as [number, number, number],
+      color: '#34d399',
+      title: 'Burstiness Variance',
+      score: `${metrics?.burstinessScore ?? 16}/100`,
+      status: (metrics?.burstinessScore ?? 16) < 35 ? 'Uniform AI Cadence' : 'Dynamic Human Rhythm',
+      desc: 'Standard deviation of sentence lengths. Humans alternate short and long clauses.'
+    },
+    {
+      pos: [0, 1.7, 0.5] as [number, number, number],
+      color: '#f59e0b',
+      title: 'Syntactic Uniformity',
+      score: `${metrics?.syntacticUniformity ?? 88}%`,
+      status: (metrics?.syntacticUniformity ?? 88) > 60 ? 'Mechanical Balance' : 'Organic Variation',
+      desc: 'Monotony score of syntactic tree clause structures.'
+    },
+    {
+      pos: [0, -1.7, -0.5] as [number, number, number],
+      color: '#f43f5e',
+      title: 'AI Clichés & Tropes',
+      score: `${metrics?.clicheCount ?? 4} found`,
+      status: (metrics?.clicheCount ?? 4) > 2 ? 'Robotic Buzzwords' : 'Natural Phrasing',
+      desc: 'Formulas like "delve into", "a testament to", and "crucial role".'
+    }
+  ];
 
   return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[positions, 3]}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.035}
-        color={particleColor}
+    <group ref={groupRef}>
+      {nodes.map((node, i) => (
+        <group key={i} position={node.pos}>
+          <mesh
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              onHoverNode({
+                title: node.title,
+                score: node.score,
+                status: node.status,
+                desc: node.desc
+              });
+            }}
+            onPointerOut={() => onHoverNode(null)}
+          >
+            <sphereGeometry args={[0.22, 24, 24]} />
+            <meshStandardMaterial
+              color={node.color}
+              emissive={node.color}
+              emissiveIntensity={0.8}
+              roughness={0.2}
+              metalness={0.8}
+            />
+          </mesh>
+          {/* Pulsing beacon glow ring */}
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.25, 0.32, 24]} />
+            <meshBasicMaterial color={node.color} transparent opacity={0.6} side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// 5. Interactive 3D Sentence Orbital Beads
+function SentenceOrbitBeads({
+  sentences = [],
+  onSelect
+}: {
+  sentences?: SentenceAnalysis[];
+  onSelect?: (s: SentenceAnalysis) => void;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((_state, delta) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y -= delta * 0.25;
+    }
+  });
+
+  const beadData = useMemo(() => {
+    const count = Math.min(sentences.length, 24);
+    if (count === 0) return [];
+
+    return sentences.slice(0, count).map((s, idx) => {
+      const angle = (idx / count) * Math.PI * 2;
+      const radius = 2.4;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const y = Math.sin(angle * 3) * 0.3;
+
+      const color = s.aiProbability >= 65 ? '#ef4444' : s.aiProbability >= 35 ? '#f59e0b' : '#10b981';
+
+      return { x, y, z, color, sentence: s, idx };
+    });
+  }, [sentences]);
+
+  if (beadData.length === 0) return null;
+
+  return (
+    <group ref={groupRef}>
+      {beadData.map((b) => (
+        <group key={b.idx} position={[b.x, b.y, b.z]}>
+          <mesh
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onSelect) onSelect(b.sentence);
+            }}
+          >
+            <sphereGeometry args={[0.12, 16, 16]} />
+            <meshStandardMaterial
+              color={b.color}
+              emissive={b.color}
+              emissiveIntensity={0.9}
+              roughness={0.3}
+              metalness={0.7}
+            />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// 6. Cadence Waveform (3D sinusoidal undulating burstiness mesh)
+function CadenceWaveform({ status }: { status: Scanner3DStatus }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame(({ clock }) => {
+    if (!meshRef.current) return;
+    const t = clock.getElapsedTime();
+    const pos = (meshRef.current.geometry.attributes.position as THREE.BufferAttribute);
+    if (!pos) return;
+
+    for (let i = 0; i < pos.count; i++) {
+      const u = pos.getX(i);
+      const wave = Math.sin(u * 3 + t * 2.5) * Math.cos(u * 1.5 + t) * (status === 'scanning' ? 0.6 : 0.35);
+      pos.setY(i, wave);
+    }
+    pos.needsUpdate = true;
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, -0.2, 0]}>
+      <planeGeometry args={[4.2, 1.8, 48, 12]} />
+      <meshBasicMaterial
+        color={status === 'completed' ? '#34d399' : '#818cf8'}
+        wireframe={true}
         transparent={true}
-        opacity={status === 'scanning' ? 0.9 : 0.55}
-        sizeAttenuation={true}
+        opacity={0.75}
       />
-    </points>
+    </mesh>
   );
 }
 
 export const ThreeCoreScanner: React.FC<ThreeCoreScannerProps> = ({
   status,
   authenticityScore,
-  className = 'h-64 sm:h-72 w-full',
-  showSplineAlternative = false
+  aiScore,
+  metrics,
+  sentenceAnalysis = [],
+  onSelectSentence,
+  onTriggerScan,
+  className = 'h-72 sm:h-80 w-full'
 }) => {
+  const [mode, setMode] = useState<Scanner3DMode>('radar');
+  const [activeTooltip, setActiveTooltip] = useState<{
+    title: string;
+    score: string;
+    status: string;
+    desc: string;
+  } | null>(null);
+
+  const flaggedCount = sentenceAnalysis.filter(s => s.aiProbability >= 65).length;
+
   return (
-    <div className={`relative rounded-2xl overflow-hidden bg-zinc-950/80 border border-zinc-800/80 shadow-2xl flex flex-col items-center justify-center ${className}`}>
+    <div className={`relative rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800 shadow-2xl flex flex-col items-center justify-center ${className}`}>
       {/* 3D Canvas Viewport */}
       <div className="absolute inset-0">
         <Canvas gl={{ antialias: true, alpha: true }}>
           <PerspectiveCamera makeDefault position={[0, 0, 5.2]} fov={45} />
-          <ambientLight intensity={0.4} />
+          <ambientLight intensity={0.5} />
           <pointLight position={[5, 5, 5]} intensity={1.5} color="#818cf8" />
           <pointLight position={[-5, -5, -5]} intensity={0.8} color="#34d399" />
           <directionalLight position={[0, 4, 3]} intensity={1.2} />
 
-          <Float speed={status === 'scanning' ? 3.0 : 1.5} rotationIntensity={0.6} floatIntensity={0.5}>
+          <Float speed={status === 'scanning' ? 3.0 : 1.2} rotationIntensity={0.5} floatIntensity={0.4}>
             <group>
-              <GyroscopeRings status={status} />
-              <NeuralCore status={status} score={authenticityScore} />
-              <LaserScannerBeam status={status} />
-              <OrbitalParticles status={status} />
+              {mode === 'cadence' ? (
+                <>
+                  <CadenceWaveform status={status} />
+                  <NeuralCore status={status} score={authenticityScore} onClick={onTriggerScan} />
+                </>
+              ) : (
+                <>
+                  <GyroscopeRings status={status} />
+                  <NeuralCore status={status} score={authenticityScore} onClick={onTriggerScan} />
+                  <LaserScannerBeam status={status} />
+                  <StylometryNodes metrics={metrics} onHoverNode={setActiveTooltip} />
+                  <SentenceOrbitBeads sentences={sentenceAnalysis} onSelect={onSelectSentence} />
+                </>
+              )}
             </group>
           </Float>
 
@@ -267,25 +453,89 @@ export const ThreeCoreScanner: React.FC<ThreeCoreScannerProps> = ({
         </Canvas>
       </div>
 
-      {/* Minimal Status HUD Overlay (Collapsible & Unobtrusive) */}
-      <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between pointer-events-none z-10 text-[11px] font-mono">
-        <div className="flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-zinc-800/80 text-zinc-300">
-          <span className={`w-2 h-2 rounded-full ${
-            status === 'scanning'
-              ? 'bg-indigo-400'
-              : status === 'completed'
-              ? 'bg-emerald-400'
-              : 'bg-zinc-500'
-          }`} />
-          <span className="font-semibold uppercase tracking-wider">
-            {status === 'scanning' ? 'Optical Laser Scanning...' : status === 'completed' ? 'Forensic Convergence Confirmed' : 'Neural Core: Standby'}
-          </span>
+      {/* Top 3D Control Bar & Mode Selector */}
+      <div className="absolute top-3 left-4 right-4 flex items-center justify-between z-20 pointer-events-auto">
+        <div className="flex items-center gap-1 bg-zinc-900/90 backdrop-blur-md p-1 rounded-xl border border-zinc-800 text-xs">
+          <button
+            onClick={() => setMode('radar')}
+            className={`px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1.5 ${
+              mode === 'radar' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Gauge className="w-3.5 h-3.5" />
+            <span>Forensic Radar</span>
+          </button>
+          <button
+            onClick={() => setMode('cadence')}
+            className={`px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1.5 ${
+              mode === 'cadence' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span>Cadence Wave</span>
+          </button>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-zinc-800/80 text-zinc-400">
-          <span>Three.js WebGL Core</span>
+        {/* 1-Click Re-Scan or Calibrate Action Button */}
+        {onTriggerScan && (
+          <button
+            onClick={onTriggerScan}
+            disabled={status === 'scanning'}
+            className="px-3 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 backdrop-blur-md border border-zinc-700/80 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 shadow transition transform active:scale-95 disabled:opacity-50"
+            title="Click to trigger deep diagnostic scan"
+          >
+            <Zap className={`w-3.5 h-3.5 ${status === 'scanning' ? 'text-indigo-400 animate-spin' : 'text-amber-400'}`} />
+            <span>{status === 'scanning' ? 'Scanning...' : 'Calibrate 3D Core'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Interactive Tooltip HUD (when hovering 3D nodes) */}
+      {activeTooltip && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 pointer-events-none p-3 rounded-xl bg-zinc-900/95 border border-indigo-500/40 shadow-2xl backdrop-blur-md max-w-xs text-center animate-in fade-in zoom-in-95">
+          <div className="text-xs font-bold text-white flex items-center justify-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <span>{activeTooltip.title}</span>
+          </div>
+          <div className="text-base font-bold font-mono text-indigo-400 my-0.5">
+            {activeTooltip.score}
+          </div>
+          <div className="text-[11px] font-semibold text-emerald-400 mb-1">
+            {activeTooltip.status}
+          </div>
+          <p className="text-[10px] text-zinc-400 leading-tight">
+            {activeTooltip.desc}
+          </p>
+        </div>
+      )}
+
+      {/* Bottom Telemetry Readout HUD */}
+      <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between pointer-events-none z-10 text-[11px] font-mono">
+        <div className="flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-800 text-zinc-300">
+          <span className={`w-2 h-2 rounded-full ${
+            status === 'scanning' ? 'bg-indigo-400 animate-pulse' : status === 'completed' ? 'bg-emerald-400' : 'bg-zinc-500'
+          }`} />
+          <span className="font-semibold uppercase tracking-wider">
+            {status === 'scanning' ? 'Forensic Laser Sweep Active' : status === 'completed' ? 'Convergence Verified' : 'Neural Core: Standby'}
+          </span>
+          {authenticityScore !== undefined && (
+            <>
+              <span className="text-zinc-600">|</span>
+              <span className="text-emerald-400 font-bold">{authenticityScore}% Authentic</span>
+            </>
+          )}
+        </div>
+
+        <div className="hidden sm:flex items-center gap-3 bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-800 text-zinc-400">
+          <span>{sentenceAnalysis.length} Sentences</span>
+          {flaggedCount > 0 && (
+            <>
+              <span>·</span>
+              <span className="text-rose-400 font-bold">{flaggedCount} AI Flags</span>
+            </>
+          )}
           <span>·</span>
-          <span>60 FPS Reactive</span>
+          <span>Interactive 3D Sensor</span>
         </div>
       </div>
     </div>

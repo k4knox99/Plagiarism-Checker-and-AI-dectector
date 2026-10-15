@@ -47,6 +47,7 @@ import { ThreeCoreScanner, Scanner3DStatus } from './components/ThreeCoreScanner
 import { PerspectiveTiltCard } from './components/PerspectiveTiltCard';
 import { TechnicalLinguisticModal } from './components/TechnicalLinguisticModal';
 import { EnterpriseAuthModal } from './components/EnterpriseAuthModal';
+import { WordCountGoal } from './components/WordCountGoal';
 
 function VeritasAIWorkspace() {
   const { session, incrementQuotaUsage } = useAuth();
@@ -99,10 +100,30 @@ function VeritasAIWorkspace() {
     }
   }, [history]);
 
+  // Word Count Goal State
+  const [wordGoal, setWordGoal] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('veritas_word_goal');
+      return saved ? parseInt(saved, 10) : 500;
+    } catch {
+      return 500;
+    }
+  });
+
+  const handleSetWordGoal = (newGoal: number) => {
+    setWordGoal(newGoal);
+    try {
+      localStorage.setItem('veritas_word_goal', newGoal.toString());
+    } catch (e) {
+      console.warn('Could not save word goal to localStorage:', e);
+    }
+  };
+
   // Derived input metrics
   const wordCount = inputText.trim() ? inputText.trim().split(/\s+/).length : 0;
   const charCount = inputText.length;
   const sentenceCount = inputText.trim() ? inputText.split(/(?<=[.?!])\s+/).filter(Boolean).length : 0;
+  const paragraphCount = inputText.trim() ? inputText.split(/\n\s*\n/).filter(p => p.trim().length > 0).length : 0;
   const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
   // Compute live statistical linguistics & 5-gram shingles
@@ -278,6 +299,41 @@ function VeritasAIWorkspace() {
     }
   };
 
+  // Replace entire paragraph with humanized version
+  const handleApplyParagraphRewrite = async (originalParagraph: string, rewrittenParagraph: string) => {
+    const updated = inputText.replace(originalParagraph, rewrittenParagraph);
+    setInputText(updated);
+
+    if (activeReport) {
+      const updatedSentences = activeReport.aiAnalysis.sentenceAnalysis.map(s => {
+        if (originalParagraph.toLowerCase().includes(s.sentence.trim().slice(0, 25).toLowerCase())) {
+          return {
+            ...s,
+            aiProbability: 4,
+            category: 'human' as const,
+            reasons: ['Paragraph humanized with Gemini 4 Argon cadence re-engineering']
+          };
+        }
+        return s;
+      });
+
+      const newAiScore = Math.round(
+        updatedSentences.reduce((acc, s) => acc + s.aiProbability, 0) / (updatedSentences.length || 1)
+      );
+
+      setActiveReport({
+        ...activeReport,
+        compositeAuthenticity: Math.max(0, 100 - newAiScore),
+        originalText: updated,
+        aiAnalysis: {
+          ...activeReport.aiAnalysis,
+          overallAiScore: newAiScore,
+          sentenceAnalysis: updatedSentences
+        }
+      });
+    }
+  };
+
   // Document processing for .docx, .doc, .txt, .md
   const processUploadedFile = async (file: File) => {
     setIsParsingFile(true);
@@ -392,6 +448,11 @@ function VeritasAIWorkspace() {
             <ThreeCoreScanner
               status={scannerStatus}
               authenticityScore={activeReport?.compositeAuthenticity}
+              aiScore={activeReport?.aiAnalysis.overallAiScore}
+              metrics={activeReport?.aiAnalysis.metrics}
+              sentenceAnalysis={activeReport?.aiAnalysis.sentenceAnalysis}
+              onSelectSentence={(s) => setInspectedSentence(s)}
+              onTriggerScan={() => handleRunScan()}
             />
           </div>
         )}
@@ -419,7 +480,17 @@ function VeritasAIWorkspace() {
         {/* Primary Editor & 3D Interactive Card Workspace Container */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column (Editor & Controls with Interactive 3D Perspective Tilt) */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-6 space-y-4">
+            {/* Word Count Goal Tracker */}
+            <WordCountGoal
+              currentWords={wordCount}
+              currentChars={charCount}
+              currentSentences={sentenceCount}
+              currentParagraphs={paragraphCount}
+              goal={wordGoal}
+              onSetGoal={handleSetWordGoal}
+            />
+
             <PerspectiveTiltCard maxTilt={5}>
               <div 
                 onDragOver={handleDragOver}
@@ -748,8 +819,10 @@ function VeritasAIWorkspace() {
                 <SentenceHeatmap
                   sentenceAnalysis={activeReport.aiAnalysis.sentenceAnalysis}
                   flaggedPassages={activeReport.plagiarismAnalysis.flaggedPassages}
+                  originalText={inputText}
                   onSelectSentence={(s) => setInspectedSentence(s)}
                   onApplySingleRewrite={handleApplySingleRewrite}
+                  onApplyParagraphRewrite={handleApplyParagraphRewrite}
                 />
               )}
 
