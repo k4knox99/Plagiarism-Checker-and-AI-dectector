@@ -1,0 +1,8 @@
+{
+  "name": "Remix VeritasAI - Plagiarism \u0026 AI Detector \u0026 Fixer",
+  "description": "Comprehensive plagiarism checker, AI content detector, and smart humanizer fixer to verify originality and rewrite flagged text with natural human cadence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
