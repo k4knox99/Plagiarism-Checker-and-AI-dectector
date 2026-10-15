@@ -16,6 +16,7 @@ import {
 import { ScannerMode } from '../types';
 import { SAMPLE_TEXTS, SampleText } from '../data/samples';
 import { useAuth } from '../context/AuthContext';
+import { getCurrentUser } from '../utils/authStorage';
 
 interface HeaderProps {
   currentMode: ScannerMode;
@@ -242,11 +243,13 @@ export const Header: React.FC<HeaderProps> = ({
               title="Sign in or start 7-Day Free Trial"
             >
               <Fingerprint className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="font-mono text-[11px] hidden sm:inline">
-                {isAuthenticated ? session.tier : 'Sign In'}
-              </span>
-              <span className="font-mono text-[10px] text-zinc-500">
-                {session.maskedToken.slice(-6)}
+              <span className="text-[11px] font-medium hidden sm:inline">
+                {(() => {
+                  const user = getCurrentUser();
+                  if (!user) return 'Sign In';
+                  if (user.role === 'admin') return 'Admin Portal';
+                  return `${user.name.split(' ')[0]} (${user.plan === 'trial' ? 'Free Trial' : user.plan})`;
+                })()}
               </span>
             </button>
           </div>
