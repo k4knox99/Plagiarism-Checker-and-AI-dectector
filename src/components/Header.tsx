@@ -5,15 +5,13 @@ import {
   FileSearch, 
   Wand2, 
   History, 
-  Award, 
   BookOpen, 
   Layers,
   FileDown,
   Binary,
   Fingerprint,
-  User,
-  LogOut,
-  ChevronDown
+  Home,
+  LayoutDashboard
 } from 'lucide-react';
 import { ScannerMode } from '../types';
 import { SAMPLE_TEXTS, SampleText } from '../data/samples';
@@ -25,7 +23,6 @@ interface HeaderProps {
   onSelectSample: (sample: SampleText) => void;
   onOpenHistory: () => void;
   onOpenCertificate: () => void;
-  onOpenDeploy?: () => void;
   onOpenLinguistics: () => void;
   onExportPDF: () => void;
   onOpenAuth: () => void;
@@ -33,6 +30,8 @@ interface HeaderProps {
   historyCount: number;
   is3DCoreVisible: boolean;
   onToggle3DCore: () => void;
+  activeView?: 'landing' | 'workspace';
+  onToggleView?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -41,14 +40,15 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectSample,
   onOpenHistory,
   onOpenCertificate,
-  onOpenDeploy,
   onOpenLinguistics,
   onExportPDF,
   onOpenAuth,
   hasActiveReport,
   historyCount,
   is3DCoreVisible,
-  onToggle3DCore
+  onToggle3DCore,
+  activeView = 'workspace',
+  onToggleView
 }) => {
   const { session, isAuthenticated } = useAuth();
 
@@ -58,16 +58,23 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-16 gap-3">
           {/* Logo & Branding */}
           <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 shadow-md shadow-indigo-500/20 shrink-0">
+            <div 
+              onClick={onToggleView}
+              className="cursor-pointer relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 shadow-md shadow-indigo-500/20 shrink-0 hover:opacity-90 transition"
+              title="Click to toggle 3D Landing Page"
+            >
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight text-white font-mono">
+                <span 
+                  onClick={onToggleView}
+                  className="font-extrabold text-lg tracking-tight text-white font-mono cursor-pointer"
+                >
                   Veritas<span className="text-indigo-400">AI</span>
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-zinc-700/80 font-semibold uppercase tracking-wider hidden sm:inline-block">
-                  Enterprise NLP
+                  Argon Core
                 </span>
               </div>
               <p className="text-[11px] text-zinc-400 hidden xl:block">
@@ -80,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
           <nav className="hidden lg:flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-zinc-800">
             <button
               onClick={() => onSelectMode('comprehensive')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 currentMode === 'comprehensive'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
@@ -91,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             <button
               onClick={() => onSelectMode('ai')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 currentMode === 'ai'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
@@ -102,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             <button
               onClick={() => onSelectMode('plagiarism')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 currentMode === 'plagiarism'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
@@ -113,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             <button
               onClick={() => onSelectMode('fixer')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 currentMode === 'fixer'
                   ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
                   : 'text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10'
@@ -126,7 +133,28 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Header Actions & Technical Controls */}
           <div className="flex items-center gap-2">
-            {/* 3D Core View Toggle */}
+            {/* View Switcher: 3D Landing Page vs Workspace */}
+            {onToggleView && (
+              <button
+                onClick={onToggleView}
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-indigo-300 border border-zinc-800 text-xs font-medium flex items-center gap-1.5 transition"
+                title={activeView === 'landing' ? 'Open Workspace' : 'View 3D Hero Landing'}
+              >
+                {activeView === 'landing' ? (
+                  <>
+                    <LayoutDashboard className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="hidden sm:inline">Workspace</span>
+                  </>
+                ) : (
+                  <>
+                    <Home className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="hidden sm:inline">3D Hero</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* 3D Core View Toggle in Workspace */}
             <button
               onClick={onToggle3DCore}
               className={`px-2.5 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition ${
@@ -159,7 +187,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
               <div className="absolute right-0 top-full mt-1.5 w-64 p-2 bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-50 space-y-1">
                 <span className="text-[10px] uppercase font-bold text-zinc-400 px-2 py-1 block font-mono">
-                  Standard Corpus Samples
+                  Benchmark Corpus Samples
                 </span>
                 {SAMPLE_TEXTS.map((sample) => (
                   <button
@@ -203,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Production Confidential Session Pill */}
+            {/* Confidential Session Pill */}
             <button
               onClick={onOpenAuth}
               className={`px-3 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition ${
@@ -211,11 +239,11 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-zinc-600'
                   : 'bg-zinc-900/60 text-zinc-300 border-zinc-800 hover:border-zinc-700'
               }`}
-              title="Confidential Session Context"
+              title="Sign in or start 7-Day Free Trial"
             >
               <Fingerprint className="w-3.5 h-3.5 text-indigo-400" />
               <span className="font-mono text-[11px] hidden sm:inline">
-                {isAuthenticated ? session.tier : 'Session'}
+                {isAuthenticated ? session.tier : 'Sign In'}
               </span>
               <span className="font-mono text-[10px] text-zinc-500">
                 {session.maskedToken.slice(-6)}

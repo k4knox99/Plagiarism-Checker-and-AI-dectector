@@ -47,6 +47,10 @@ export interface MatchedSource {
   matchedExcerpt?: string;
   studentExcerpt?: string;
   citationFormatted?: CitationFormat;
+  id?: string;
+  similarityPercentage?: number;
+  matchedWordCount?: number;
+  publishDate?: string;
 }
 
 export interface FlaggedPassage {
@@ -55,6 +59,9 @@ export interface FlaggedPassage {
   matchedSourceTitle?: string;
   matchedSourceUrl?: string;
   recommendation?: string;
+  similarityPercentage?: number;
+  charStart?: number;
+  charEnd?: number;
 }
 
 export interface PlagiarismResult {
@@ -89,10 +96,16 @@ export interface HumanizeChange {
 
 export interface HumanizeResult {
   rewrittenText: string;
-  summaryOfImprovements: string;
-  predictedAiScore: number;
-  predictedSimilarityScore: number;
-  changes: HumanizeChange[];
+  summaryOfImprovements?: string;
+  predictedAiScore?: number;
+  predictedSimilarityScore?: number;
+  changes?: HumanizeChange[];
+  beforeAiScore?: number;
+  afterAiScore?: number;
+  burstinessDelta?: number;
+  clichesRemoved?: number;
+  perplexityGain?: number;
+  improvements?: string[];
 }
 
 export type ScannerMode = 'comprehensive' | 'ai' | 'plagiarism' | 'fixer';

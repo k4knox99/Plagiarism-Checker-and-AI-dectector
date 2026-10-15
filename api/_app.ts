@@ -828,4 +828,15 @@ router.post('/fix/cite', async (req: Request, res: Response) => {
 app.use('/api', router);
 app.use(router);
 
+// Universal JSON 404 handler (prevents Vercel/Express from returning HTML)
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({ success: false, error: 'Endpoint not found.' });
+});
+
+// Universal JSON error handler (prevents Express from returning HTML stack traces)
+app.use((err: any, _req: Request, res: Response, _next: any) => {
+  console.error('Express uncaught error:', err);
+  res.status(500).json({ success: false, error: err?.message || 'Internal Server Error' });
+});
+
 export default app;
