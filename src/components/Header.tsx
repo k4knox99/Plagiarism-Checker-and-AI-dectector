@@ -11,7 +11,8 @@ import {
   Binary,
   Fingerprint,
   Home,
-  LayoutDashboard
+  LayoutDashboard,
+  FileCheck2
 } from 'lucide-react';
 import { ScannerMode } from '../types';
 import { SAMPLE_TEXTS, SampleText } from '../data/samples';
@@ -129,6 +130,19 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Wand2 className="w-3.5 h-3.5" />
               <span>Humanizer Fixer</span>
+            </button>
+            <button
+              onClick={() => onSelectMode('surgeon')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                currentMode === 'surgeon'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm ring-1 ring-emerald-400/50'
+                  : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+              }`}
+              title="Format-Preserving Word (.docx) & PDF (.pdf) Auto-Surgeon"
+            >
+              <FileCheck2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Doc Surgeon (.docx / .pdf)</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-emerald-500/25 text-emerald-300 font-mono font-bold">NEW</span>
             </button>
           </nav>
 
@@ -288,6 +302,14 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             Fixer Studio
+          </button>
+          <button
+            onClick={() => onSelectMode('surgeon')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap ${
+              currentMode === 'surgeon' ? 'bg-emerald-600 text-white font-semibold' : 'text-emerald-400'
+            }`}
+          >
+            Doc Surgeon
           </button>
         </div>
       </div>

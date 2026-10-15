@@ -13,6 +13,7 @@ import {
   Binary,
   RotateCw,
   FileCheck,
+  FileCheck2,
   CheckCircle2,
   Lock,
   ArrowRight,
@@ -55,6 +56,7 @@ import { PerspectiveTiltCard } from './components/PerspectiveTiltCard';
 import { TechnicalLinguisticModal } from './components/TechnicalLinguisticModal';
 import { AuthModal } from './components/AuthModal';
 import { WordCountGoal } from './components/WordCountGoal';
+import { DocSurgeonStudio } from './components/DocSurgeonStudio';
 
 function VeritasAIWorkspace() {
   const { session, incrementQuotaUsage } = useAuth();
@@ -249,7 +251,7 @@ function VeritasAIWorkspace() {
         }
       } else {
         // Deterministic Client-Side Gemini 4 Argon Forensic Engine Fallback
-        const fallbackScanMode = effectiveMode === 'fixer' ? 'comprehensive' : effectiveMode;
+        const fallbackScanMode: 'comprehensive' | 'ai' | 'plagiarism' = (effectiveMode === 'fixer' || effectiveMode === 'surgeon') ? 'comprehensive' : effectiveMode;
         report = runClientSideScan(textToScan, fallbackScanMode);
       }
 
@@ -258,7 +260,7 @@ function VeritasAIWorkspace() {
       incrementQuotaUsage();
     } catch (err: any) {
       console.warn('Network scan exception, switching smoothly to client engine:', err);
-      const fallbackScanMode = effectiveMode === 'fixer' ? 'comprehensive' : effectiveMode;
+      const fallbackScanMode: 'comprehensive' | 'ai' | 'plagiarism' = (effectiveMode === 'fixer' || effectiveMode === 'surgeon') ? 'comprehensive' : effectiveMode;
       const fallbackReport = runClientSideScan(textToScan, fallbackScanMode);
       setActiveReport(fallbackReport);
       setHistory(prev => [fallbackReport, ...prev.filter(h => h.originalText !== fallbackReport.originalText)].slice(0, 20));
@@ -369,7 +371,7 @@ function VeritasAIWorkspace() {
     }
   };
 
-  // Document processing for .docx, .doc, .txt, .md
+  // Document processing for .docx, .doc, .pdf, .txt, .md
   const processUploadedFile = async (file: File) => {
     setIsParsingFile(true);
     try {
@@ -377,7 +379,7 @@ function VeritasAIWorkspace() {
       if (cleanText && cleanText.trim().length > 0) {
         setInputText(cleanText);
         setUploadedFileName(file.name);
-        handleRunScan(cleanText, mode);
+        handleRunScan(cleanText, mode === 'surgeon' ? 'comprehensive' : mode);
       }
     } catch (err: any) {
       console.error('Error parsing uploaded document:', err);
@@ -629,8 +631,8 @@ function VeritasAIWorkspace() {
                   {isDragging && (
                     <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950/95 rounded-2xl backdrop-blur-sm border-2 border-dashed border-indigo-500 pointer-events-none animate-in fade-in">
                       <Upload className="w-10 h-10 text-indigo-400 animate-bounce mb-2" />
-                      <span className="text-sm font-bold text-white">Drop Word Document (.docx) or Text file here</span>
-                      <span className="text-xs text-zinc-400 mt-1">Automatic text extraction and formatting</span>
+                      <span className="text-sm font-bold text-white">Drop Word Document (.docx), PDF (.pdf), or Text file here</span>
+                      <span className="text-xs text-zinc-400 mt-1">Automatic text extraction and format-preserving surgery</span>
                     </div>
                   )}
 
@@ -650,17 +652,26 @@ function VeritasAIWorkspace() {
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileUpload}
-                        accept=".docx,.doc,.txt,.md"
+                        accept=".docx,.doc,.pdf,.txt,.md"
                         className="hidden"
                       />
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isParsingFile}
                         className="px-2.5 py-1 rounded-lg bg-zinc-850 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/80 text-[11px] font-medium flex items-center gap-1.5 transition"
-                        title="Upload .docx, .doc, .txt, or .md"
+                        title="Upload .docx, .doc, .pdf, .txt, or .md"
                       >
                         <Upload className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>{isParsingFile ? 'Extracting...' : 'Upload Doc'}</span>
+                        <span>{isParsingFile ? 'Extracting...' : 'Upload Doc / PDF'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setMode('surgeon')}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium flex items-center gap-1.5 transition"
+                        title="Launch Format-Preserving Word & PDF Surgeon"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Doc Surgeon</span>
                       </button>
 
                       <button
@@ -809,8 +820,17 @@ function VeritasAIWorkspace() {
             </div>
           </div>
 
-          {/* Mode-Specific Workspaces: Fixer Studio OR Heatmap & Sources */}
-          {mode === 'fixer' ? (
+          {/* Mode-Specific Workspaces: Doc Surgeon Studio OR Fixer Studio OR Heatmap & Sources */}
+          {mode === 'surgeon' ? (
+            <DocSurgeonStudio
+              initialText={inputText}
+              onSendToWorkspace={(text: string) => {
+                setInputText(text);
+                setMode('comprehensive');
+                handleRunScan(text, 'comprehensive');
+              }}
+            />
+          ) : mode === 'fixer' ? (
             <HumanizerFixerStudio
               originalText={inputText}
               initialAiScore={activeReport?.aiAnalysis.overallAiScore || 85}
@@ -849,27 +869,34 @@ function VeritasAIWorkspace() {
                   <div className="space-y-1">
                     <h3 className="text-base font-bold text-white flex items-center gap-2">
                       <Wand2 className="w-5 h-5 text-indigo-400" />
-                      <span>Neural Humanizer Studio &amp; Executive PDF Export</span>
+                      <span>Neural Humanizer Studio &amp; Format-Preserving Doc Surgeon</span>
                     </h3>
                     <p className="text-xs text-zinc-300">
-                      Re-engineer syntactic cadence with Gemini, view sentence burstiness, or export an official cryptographic audit PDF.
+                      Re-engineer cadence with Gemini, surgically repair flagged Word (.docx) &amp; PDF (.pdf) files without distorting format, or export an official audit PDF.
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                      onClick={() => setMode('surgeon')}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-emerald-900/30"
+                    >
+                      <FileCheck2 className="w-4 h-4 text-emerald-200" />
+                      <span>Doc Surgeon (.docx / .pdf)</span>
+                    </button>
                     <button
                       onClick={handleExportPDF}
-                      className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow shadow-indigo-600/30"
+                      className="px-3.5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-semibold flex items-center gap-1.5 transition"
                     >
                       <FileDown className="w-4 h-4" />
-                      <span>Export Audit PDF</span>
+                      <span>Audit PDF</span>
                     </button>
                     <button
                       onClick={() => setMode('fixer')}
                       className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:opacity-95 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-indigo-600/25"
                     >
                       <Sparkles className="w-4 h-4 text-amber-300" />
-                      <span>Launch Humanizer Studio</span>
+                      <span>Humanizer Studio</span>
                     </button>
                   </div>
                 </div>

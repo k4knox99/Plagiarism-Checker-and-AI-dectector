@@ -108,7 +108,7 @@ export interface HumanizeResult {
   improvements?: string[];
 }
 
-export type ScannerMode = 'comprehensive' | 'ai' | 'plagiarism' | 'fixer';
+export type ScannerMode = 'comprehensive' | 'ai' | 'plagiarism' | 'fixer' | 'surgeon';
 export type FixerStyle = 'academic' | 'conversational' | 'professional' | 'creative' | 'stealth';
 
 // SaaS Subscription & Auth Types

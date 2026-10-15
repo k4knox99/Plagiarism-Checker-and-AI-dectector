@@ -202,7 +202,7 @@ function HeroOrbitalToolNodes({
       mode: 'ai' as ScannerMode,
       title: 'AI Detector',
       badge: 'Stylometry',
-      angle: Math.PI * 0.5,
+      angle: (1 / 5) * Math.PI * 2,
       icon: '🤖',
       color: 'border-rose-500/60 bg-rose-950/80 text-rose-200'
     },
@@ -210,7 +210,7 @@ function HeroOrbitalToolNodes({
       mode: 'plagiarism' as ScannerMode,
       title: 'Plagiarism Audit',
       badge: '5-Gram Shingles',
-      angle: Math.PI,
+      angle: (2 / 5) * Math.PI * 2,
       icon: '🔍',
       color: 'border-purple-500/60 bg-purple-950/80 text-purple-200'
     },
@@ -218,16 +218,24 @@ function HeroOrbitalToolNodes({
       mode: 'fixer' as ScannerMode,
       title: 'Humanizer Fixer',
       badge: '<5% AI Cadence',
-      angle: Math.PI * 1.5,
+      angle: (3 / 5) * Math.PI * 2,
       icon: '✨',
       color: 'border-emerald-500/60 bg-emerald-950/80 text-emerald-200'
+    },
+    {
+      mode: 'surgeon' as ScannerMode,
+      title: 'Doc Surgeon',
+      badge: 'Word (.docx) & PDF',
+      angle: (4 / 5) * Math.PI * 2,
+      icon: '📑',
+      color: 'border-teal-500/60 bg-teal-950/80 text-teal-200'
     }
   ];
 
   return (
     <group>
       {tools.map((t, i) => {
-        const radius = 2.7;
+        const radius = 2.8;
         const x = Math.cos(t.angle) * radius;
         const y = Math.sin(t.angle) * 0.5;
         const z = Math.sin(t.angle) * radius;
@@ -409,9 +417,9 @@ export const ThreeCoreScanner: React.FC<ThreeCoreScannerProps> = ({
       {isDragOver && (
         <div className="absolute inset-0 z-40 bg-zinc-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-indigo-500 animate-in fade-in">
           <Upload className="w-12 h-12 text-indigo-400 animate-bounce mb-3" />
-          <h4 className="text-base font-bold text-white">Drop Document Directly onto 3D Core</h4>
+          <h4 className="text-base font-bold text-white">Drop Word or PDF Directly onto 3D Core</h4>
           <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-            Drop .docx, .txt, or .md to instantly parse text and trigger automated forensic scan.
+            Drop .docx, .pdf, .txt, or .md to instantly parse text or trigger format-preserving surgery.
           </p>
         </div>
       )}
