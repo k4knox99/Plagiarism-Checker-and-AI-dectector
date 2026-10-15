@@ -481,83 +481,185 @@ function VeritasAIWorkspace() {
 
       {/* 1. INTERACTIVE 3D HERO LANDING PAGE VIEW */}
       {activeView === 'landing' && (
-        <section className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 animate-in fade-in duration-300">
+        <section className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16 animate-in fade-in duration-300">
           {/* Hero Banner Headline */}
-          <div className="text-center max-w-3xl mx-auto space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Next-Gen Gemini 4 Argon Stylometry Architecture</span>
+          <div className="text-center max-w-4xl mx-auto space-y-5">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-semibold shadow-inner">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>VeritasAI Enterprise · Forensic Stylometry &amp; Format-Preserving Surgeon</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-              Enterprise AI Content Detector &amp; <span className="bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">Technical Plagiarism Audit</span>
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
+              Forensic AI Detection &amp; Plagiarism Audit.{' '}
+              <span className="block mt-1 bg-gradient-to-r from-indigo-400 via-purple-300 to-emerald-300 bg-clip-text text-transparent">
+                Humanize Without Changing Format.
+              </span>
             </h1>
 
-            <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-2xl mx-auto">
-              Inspect lexical predictability, burstiness variance, and 5-gram shingle fingerprinting in real-time. Click any orbiting 3D node below to enter that tool instantly.
+            <p className="text-sm sm:text-base text-zinc-300 leading-relaxed max-w-3xl mx-auto">
+              Upload original Word (<span className="text-white font-semibold">.docx</span>) or PDF (<span className="text-white font-semibold">.pdf</span>) documents. Our surgical engine identifies only AI clichés and plagiarized passages, rewriting them to sound 100% human while preserving your original formatting, headings, bullet points, and authentic text.
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {/* Primary Action Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
               <button
                 onClick={() => setActiveView('workspace')}
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:opacity-95 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-indigo-600/30 transition transform active:scale-95"
               >
-                <span>Launch Forensic Workspace</span>
+                <span>Launch Full Workspace</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
+
+              <button
+                onClick={() => {
+                  setMode('surgeon');
+                  setActiveView('workspace');
+                }}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-emerald-900/30 transition transform active:scale-95"
+              >
+                <FileCheck2 className="w-4 h-4 text-emerald-200" />
+                <span>Doc Surgeon (.docx &amp; .pdf)</span>
+              </button>
+
               <button
                 onClick={() => setIsAuthOpen(true)}
-                className="px-6 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 font-semibold text-xs sm:text-sm flex items-center gap-2 transition"
+                className="px-5 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-700/80 text-zinc-200 font-semibold text-xs sm:text-sm flex items-center gap-2 transition"
               >
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Start 7-Day Free Trial</span>
+                <span>Start Free Trial</span>
               </button>
+            </div>
+
+            {/* Trust Badges Strip */}
+            <div className="pt-4 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-xs text-zinc-400 font-medium">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                100% Format Preservation Guarantee
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                &lt; 5% Target AI Risk Threshold
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                Zero Document Retention Policy
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                Cryptographic PDF Audit Certificates
+              </span>
             </div>
           </div>
 
-          {/* Interactive 3D Hero Viewport with Orbiting Tools */}
-          <div className="relative">
-            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-xl opacity-70 pointer-events-none" />
-            <ThreeCoreScanner
-              variant="hero"
-              status={scannerStatus}
-              authenticityScore={activeReport?.compositeAuthenticity}
-              aiScore={activeReport?.aiAnalysis.overallAiScore}
-              metrics={activeReport?.aiAnalysis.metrics}
-              onSelectMode={(m) => setMode(m)}
-              onLaunchWorkspace={() => setActiveView('workspace')}
-            />
+          {/* Interactive 3D Hero Viewport with Orbiting Tool Satellites */}
+          <div className="relative space-y-3">
+            <div className="flex items-center justify-between px-2 text-xs text-zinc-400">
+              <span className="font-mono text-[11px] text-zinc-400">
+                Interactive Quantum Core · Click any orbital node to launch that workspace
+              </span>
+              <span className="font-mono text-[11px] text-indigo-400 hidden sm:inline">
+                Drag &amp; Drop .docx or .pdf directly onto canvas
+              </span>
+            </div>
+
+            <div className="relative">
+              <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-teal-500/20 blur-xl opacity-70 pointer-events-none" />
+              <ThreeCoreScanner
+                variant="hero"
+                status={scannerStatus}
+                authenticityScore={activeReport?.compositeAuthenticity}
+                aiScore={activeReport?.aiAnalysis.overallAiScore}
+                metrics={activeReport?.aiAnalysis.metrics}
+                onSelectMode={(m) => setMode(m)}
+                onLaunchWorkspace={() => setActiveView('workspace')}
+                onFileDrop={processUploadedFile}
+              />
+            </div>
           </div>
 
-          {/* 3 Core Value Pillars */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+          {/* 3-Step Walkthrough: How Format-Preserving Surgery Works */}
+          <div className="p-8 rounded-3xl bg-zinc-900/40 border border-zinc-800/80 space-y-6">
+            <div className="text-center max-w-xl mx-auto space-y-1">
+              <span className="text-xs font-mono font-semibold text-indigo-400 uppercase tracking-wider">
+                Precision Workflow
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                How Format-Preserving Document Surgery Works
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+              <div className="p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800 space-y-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-xs font-mono font-bold text-indigo-400">
+                  01
+                </div>
+                <h3 className="text-sm font-bold text-white">Upload Original Word or PDF</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Ingests <span className="text-zinc-200">.docx</span> or <span className="text-zinc-200">.pdf</span> files. The engine maps headings, paragraph indentation, margins, and bullet structures.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800 space-y-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xs font-mono font-bold text-amber-400">
+                  02
+                </div>
+                <h3 className="text-sm font-bold text-white">Surgical Forensic Flagging</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Detects statistical perplexity, burstiness uniformity, and plagiarism shingles. Authentic human sentences are locked and kept 100% untouched.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800 space-y-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xs font-mono font-bold text-emerald-400">
+                  03
+                </div>
+                <h3 className="text-sm font-bold text-white">Export Clean Document</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Rewrites only flagged sentences below 5% AI risk, then exports back to Word (<span className="text-zinc-200">.docx</span>) or PDF (<span className="text-zinc-200">.pdf</span>) with zero format distortion.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 Core Pillars Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+                <FileCheck2 className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-white">Format-Preserving Surgeon</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Repairs flagged segments inside Word and PDF files without altering headings, fonts, bullet lists, or layout margins.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition space-y-3">
               <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                 <Layers className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Statistical Stylometrics</h3>
+              <h3 className="text-sm font-bold text-white">Statistical Stylometrics</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Evaluates perplexity token entropy, sentence-length variance, and coefficient of variation without relying on black-box heuristics.
+                Evaluates perplexity entropy, sentence burstiness, and coefficient of variation without relying on black-box heuristics.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition space-y-3">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
                 <FileSearch className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">5-Gram Rabin-Karp Shingles</h3>
+              <h3 className="text-sm font-bold text-white">5-Gram Plagiarism Audit</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Matches syntactic shingles against indexed web and academic corpora to accurately distinguish direct plagiarism from common phrases.
+                Matches syntactic shingles against academic and web corpora with automated APA, MLA, and Chicago citation generation.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition space-y-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <Wand2 className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Gemini 4 Argon Humanizer</h3>
+              <h3 className="text-sm font-bold text-white">Neural Cadence Humanizer</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Re-architects cadence across 5 personas, strips formulaic LLM clichés, and lowers AI probability below 5% with 100% factual fidelity.
+                Transforms robotic cadence across 5 persona styles, eliminates LLM clichés, and lowers AI risk below 5% with zero hallucination.
               </p>
             </div>
           </div>

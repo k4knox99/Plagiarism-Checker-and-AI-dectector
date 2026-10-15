@@ -22,13 +22,12 @@ export const AI_CLICHES = [
 ];
 
 /**
- * Split text into sentences supporting English and Unicode / Burmese (။, ၊)
+ * Split text into sentences supporting standard punctuation (. ? !) and double newlines
  */
 export function splitSentences(text: string): string[] {
   if (!text || text.trim().length === 0) return [];
   
-  // Handles English (. ? !) as well as Burmese Section terminator (။) and comma (၊) or double newlines
-  const raw = text.split(/(?<=[.?!။])\s+|\n{2,}/);
+  const raw = text.split(/(?<=[.?!])\s+|\n{2,}/);
   const result: string[] = [];
 
   for (const seg of raw) {

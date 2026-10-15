@@ -363,15 +363,20 @@ export async function exportDocumentAsWordDocx(
     const runs: TextRun[] = [];
 
     block.sentences.forEach((sent, idx) => {
-      const textToUse = sent.isApplied && sent.isFlagged ? sent.fixedText : sent.originalText;
+      let textToUse = sent.isApplied && sent.isFlagged ? sent.fixedText : sent.originalText;
+      // If Word bullet, strip leading bullet character so Word does not double-render
+      if (block.type === 'bullet' && idx === 0) {
+        textToUse = textToUse.replace(/^[•\-\*]\s+/, '');
+      }
       const spacer = idx < block.sentences.length - 1 ? ' ' : '';
 
       runs.push(
         new TextRun({
           text: textToUse + spacer,
           font: 'Calibri',
-          size: block.type === 'heading' ? 28 : 22,
-          bold: block.type === 'heading'
+          size: block.type === 'heading' ? (block.level === 1 ? 32 : 26) : 22,
+          bold: block.type === 'heading',
+          color: '1E293B'
         })
       );
     });
@@ -381,7 +386,7 @@ export async function exportDocumentAsWordDocx(
         new Paragraph({
           children: runs,
           heading: block.level === 1 ? HeadingLevel.HEADING_1 : HeadingLevel.HEADING_2,
-          spacing: { before: 240, after: 120 }
+          spacing: { before: 280, after: 120 }
         })
       );
     } else if (block.type === 'bullet') {
@@ -389,7 +394,7 @@ export async function exportDocumentAsWordDocx(
         new Paragraph({
           children: runs,
           bullet: { level: 0 },
-          spacing: { after: 100 }
+          spacing: { after: 120 }
         })
       );
     } else {
@@ -486,8 +491,10 @@ export function exportDocumentAsFormattedPdf(
       doc.setFontSize(10);
       doc.setTextColor(51, 65, 85);
 
-      const bulletPrefix = block.type === 'bullet' ? '• ' : '';
-      const splitLines = doc.splitTextToSize(bulletPrefix + textContent, contentWidth);
+      const isBullet = block.type === 'bullet';
+      const cleanText = isBullet ? textContent.replace(/^[•\-\*]\s+/, '') : textContent;
+      const bulletPrefix = isBullet ? '• ' : '';
+      const splitLines = doc.splitTextToSize(bulletPrefix + cleanText, isBullet ? contentWidth - 4 : contentWidth);
 
       // Check if lines overflow page
       splitLines.forEach((line: string) => {
@@ -495,7 +502,7 @@ export function exportDocumentAsFormattedPdf(
           doc.addPage();
           currentY = 25;
         }
-        doc.text(line, margin, currentY);
+        doc.text(line, isBullet ? margin + 4 : margin, currentY);
         currentY += 5.2;
       });
 

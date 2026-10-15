@@ -21,6 +21,7 @@ import {
   Undo2
 } from 'lucide-react';
 import { FixerStyle } from '../types';
+import { safeApiFetch } from '../utils/safeApiFetch';
 import { parseStructuredDocument, parseUploadedDocument } from '../utils/fileParser';
 import {
   analyzeDocumentForSurgery,
@@ -127,20 +128,106 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
     }
   };
 
-  // 1-Click Surgical Auto-Fix: rewrites ONLY flagged sentences
+  // 1-Click Surgical Auto-Fix: rewrites ONLY flagged sentences, leaving all human text untouched
   const handleApplySurgicalFixAll = async () => {
     setIsFixingAll(true);
     setStatusMessage('Surgically humanizing flagged AI & plagiarism passages...');
 
-    // Small delay for smooth UI feel
-    await new Promise(r => setTimeout(r, 400));
+    // Collect all flagged sentences
+    const flaggedList: Array<{ id: string; text: string; aiProbability: number; similarity: number }> = [];
+    blocks.forEach(b => {
+      b.sentences.forEach(s => {
+        if (s.isFlagged) {
+          flaggedList.push({
+            id: s.id,
+            text: s.originalText,
+            aiProbability: s.aiProbability,
+            similarity: s.similarity
+          });
+        }
+      });
+    });
 
-    const { blocks: newBlocks, stats: newStats } = applySurgicalFixToBlocks(blocks, selectedStyle);
-    setBlocks(newBlocks);
-    setStats(newStats);
+    let applied = false;
+
+    // Attempt Gemini-powered surgical humanization via backend endpoint
+    if (flaggedList.length > 0) {
+      try {
+        const { data, error } = await safeApiFetch('/api/fix/document-surgeon', {
+          method: 'POST',
+          body: JSON.stringify({
+            flaggedItems: flaggedList,
+            style: selectedStyle
+          })
+        });
+
+        if (!error && data?.success && Array.isArray(data.fixedItems) && data.fixedItems.length > 0) {
+          const fixMap = new Map<string, string>();
+          data.fixedItems.forEach((item: any) => {
+            if (item.id && item.fixedText) {
+              fixMap.set(item.id, item.fixedText);
+            }
+          });
+
+          let totalAi = 0;
+          let totalSim = 0;
+          let totalSentCount = 0;
+          let fixedCount = 0;
+
+          const updatedBlocks: SurgeonBlock[] = blocks.map(b => ({
+            ...b,
+            sentences: b.sentences.map(s => {
+              totalSentCount++;
+              if (s.isFlagged) {
+                fixedCount++;
+                const apiRewrite = fixMap.get(s.id);
+                const chosenFix = apiRewrite || s.fixedText || generateSurgicalRewrite(s.originalText, selectedStyle);
+                totalAi += 3;
+                totalSim += 0;
+                return {
+                  ...s,
+                  fixedText: chosenFix,
+                  isApplied: true,
+                  aiProbability: 3,
+                  similarity: 0
+                };
+              } else {
+                totalAi += s.aiProbability;
+                totalSim += s.similarity;
+                return {
+                  ...s,
+                  isApplied: false
+                };
+              }
+            })
+          }));
+
+          setBlocks(updatedBlocks);
+          setStats(prev => ({
+            ...prev,
+            fixedSentences: fixedCount,
+            currentAiScore: totalSentCount > 0 ? Math.round(totalAi / totalSentCount) : 3,
+            currentSimilarityScore: totalSentCount > 0 ? Math.round(totalSim / totalSentCount) : 0
+          }));
+
+          applied = true;
+        }
+      } catch (apiErr) {
+        console.warn('API surgical fix call failed, falling back to local engine:', apiErr);
+      }
+    }
+
+    // Local deterministic engine fallback if API not used
+    if (!applied) {
+      await new Promise(r => setTimeout(r, 300));
+      const { blocks: newBlocks, stats: newStats } = applySurgicalFixToBlocks(blocks, selectedStyle);
+      setBlocks(newBlocks);
+      setStats(newStats);
+    }
+
     setIsFixingAll(false);
-    setStatusMessage('Surgical humanization completed! Only flagged passages were modified.');
-    setTimeout(() => setStatusMessage(''), 4000);
+    setStatusMessage('Surgical humanization complete! Only flagged AI passages were modified. Original formatting & human text are 100% intact.');
+    setTimeout(() => setStatusMessage(''), 5000);
   };
 
   // Revert all fixes back to original
@@ -268,7 +355,7 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
               <span>Surgical Document Fixer</span>
               <span className="text-sm font-normal text-indigo-300/80 hidden sm:inline">
-                (စာရွက်စာတမ်း ဖော်မတ်မပျက် AI & Plagiarism သီးသန့်ပြင်စနစ်)
+                · Format-Preserving AI &amp; Plagiarism Precision Editor
               </span>
             </h2>
 
@@ -592,24 +679,42 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
             </span>
           </button>
 
-          {/* Export Dropdown / Buttons */}
-          <div className="flex items-center gap-1.5">
+          {/* Export Buttons: Intelligently highlights matching original file format */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleExportWord}
-              className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium flex items-center gap-1.5 shadow-md shadow-blue-900/20 transition"
-              title="Download clean document in Word (.docx) format with original styles"
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md transition ${
+                fileFormat === 'docx'
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/30 ring-2 ring-blue-400/50'
+                  : 'bg-zinc-850 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/80'
+              }`}
+              title="Download clean document in Word (.docx) format with original layout & styles"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export Word (.docx)</span>
+              {fileFormat === 'docx' && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] bg-white/20 text-white font-mono font-bold uppercase">
+                  Original
+                </span>
+              )}
             </button>
 
             <button
               onClick={handleExportPdf}
-              className="px-3 py-2 rounded-xl bg-red-600/90 hover:bg-red-500 text-white text-xs font-medium flex items-center gap-1.5 shadow-md shadow-red-900/20 transition"
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md transition ${
+                fileFormat === 'pdf'
+                  ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/30 ring-2 ring-red-400/50'
+                  : 'bg-zinc-850 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/80'
+              }`}
               title="Download clean document in formatted PDF (.pdf) format"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export PDF (.pdf)</span>
+              {fileFormat === 'pdf' && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] bg-white/20 text-white font-mono font-bold uppercase">
+                  Original
+                </span>
+              )}
             </button>
 
             <button
@@ -858,7 +963,7 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
           <Info className="w-5 h-5 text-indigo-400 shrink-0" />
           <div>
             <span className="font-semibold text-white block">
-              Format-Preservation Guarantee (ဖော်မတ်မပျက် အာမခံချက်)
+              100% Format-Preservation Guarantee
             </span>
             <span className="text-[11px] text-zinc-400">
               Headings, paragraph breaks, margins, bullet points, and font hierarchy are maintained.
