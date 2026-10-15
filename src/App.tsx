@@ -20,7 +20,8 @@ import {
   HelpCircle,
   Zap,
   Info,
-  FileCheck
+  FileCheck,
+  Lock
 } from 'lucide-react';
 
 import { 
@@ -28,11 +29,22 @@ import {
   ComprehensiveReport, 
   SentenceAnalysis, 
   AIDetectionResult, 
-  PlagiarismResult 
+  PlagiarismResult,
+  User,
+  DBSBankSettings
 } from './types';
 import { SAMPLE_TEXTS, SampleText } from './data/samples';
 import { SAMPLE_REPORTS } from './data/sampleReports';
 import { parseUploadedDocument, extractTextFromRawDocxString } from './utils/fileParser';
+import { 
+  getCurrentUser, 
+  setCurrentUser as persistCurrentUser, 
+  isSubscriptionActive, 
+  getRemainingDays, 
+  getDBSBankSettings,
+  getPaymentSubmissions 
+} from './utils/authStorage';
+
 import { Header } from './components/Header';
 import { ScoreGauge } from './components/ScoreGauge';
 import { MetricsGrid } from './components/MetricsGrid';
@@ -43,9 +55,29 @@ import { HumanizerFixerStudio } from './components/HumanizerFixerStudio';
 import { CertificateReportModal } from './components/CertificateReportModal';
 import { ScanHistoryDrawer } from './components/ScanHistoryDrawer';
 import { VercelDeployModal } from './components/VercelDeployModal';
+import { AuthModal } from './components/AuthModal';
+import { PricingUpgradeModal } from './components/PricingUpgradeModal';
+import { DBSCheckoutModal } from './components/DBSCheckoutModal';
+import { AdminDashboardModal } from './components/AdminDashboardModal';
+import { PaywallBanner } from './components/PaywallBanner';
 
 export default function App() {
-  // Primary state: initialized with Sample 1 and its pre-computed rich report
+  // SaaS User & Subscription State
+  const [currentUser, setCurrentUser] = useState<User | null>(() => getCurrentUser());
+  const [bankSettings, setBankSettings] = useState<DBSBankSettings>(() => getDBSBankSettings());
+  
+  // SaaS Modals State
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authInitialMode, setAuthInitialMode] = useState<'signin' | 'signup'>('signin');
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<'3_months' | '6_months' | '1_year'>('6_months');
+  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(() => {
+    return getPaymentSubmissions().filter(p => p.status === 'pending').length;
+  });
+
+  // Primary Workspace state
   const [inputText, setInputText] = useState<string>(SAMPLE_TEXTS[0].content);
   const [mode, setMode] = useState<ScannerMode>('comprehensive');
   const [isScanning, setIsScanning] = useState<boolean>(false);
@@ -80,6 +112,11 @@ export default function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Derived Access & Subscription status
+  const isAccessAllowed = isSubscriptionActive(currentUser);
+  const remainingDays = getRemainingDays(currentUser);
+  const isExpired = Boolean(currentUser && currentUser.plan !== 'lifetime' && (remainingDays <= 0 || currentUser.plan === 'expired'));
+
   // Save history on changes
   useEffect(() => {
     try {
@@ -95,7 +132,7 @@ export default function App() {
   const sentenceCount = inputText.trim() ? inputText.split(/(?<=[.?!])\s+/).filter(Boolean).length : 0;
   const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
-  // Switch to a sample: instantly load its cached baseline without burning Gemini API quota
+  // Switch to a sample: instantly load its cached baseline
   const handleLoadSample = (sample: SampleText) => {
     setInputText(sample.content);
     setUploadedFileName(null);
@@ -106,8 +143,19 @@ export default function App() {
     }
   };
 
-  // Run Scan Handler
+  // Run Scan Handler with Subscription Paywall Gate
   const handleRunScan = async (overrideText?: string, targetMode?: ScannerMode) => {
+    // Paywall Check
+    if (!isAccessAllowed) {
+      if (!currentUser) {
+        setAuthInitialMode('signup');
+        setIsAuthModalOpen(true);
+      } else {
+        setIsUpgradeModalOpen(true);
+      }
+      return;
+    }
+
     const textToScan = (overrideText ?? inputText).trim();
     const effectiveMode = targetMode ?? mode;
 
@@ -203,14 +251,13 @@ export default function App() {
           originalText: textToScan
         };
       } else {
-        // Comprehensive mode
         report = {
           compositeAuthenticity: data.compositeAuthenticity,
           aiAnalysis: data.aiAnalysis,
           plagiarismAnalysis: data.plagiarismAnalysis,
           localMetrics: data.localMetrics,
-          scannedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-          originalText: textToScan
+          scannedAt: data.scannedAt,
+          originalText: data.originalText
         };
       }
 
@@ -218,24 +265,24 @@ export default function App() {
       setHistory(prev => [report, ...prev.filter(h => h.originalText !== report.originalText)].slice(0, 20));
     } catch (err: any) {
       console.error('Scan error:', err);
-      alert('Failed to complete scan: ' + (err.message || 'Server error.'));
+      alert('Scan error: ' + (err.message || 'Server error occurred during scan.'));
     } finally {
       setIsScanning(false);
       setScanStep('');
     }
   };
 
-  // Handle single sentence inline replacement
-  const handleApplySingleRewrite = (originalSentence: string, replacement: string) => {
-    const updated = inputText.replace(originalSentence, replacement);
+  // Replace single sentence with rewritten version
+  const handleApplySingleRewrite = (originalSentence: string, rewrittenSentence: string) => {
+    const updated = inputText.replace(originalSentence, rewrittenSentence);
     setInputText(updated);
 
     if (activeReport) {
       const updatedSentences = activeReport.aiAnalysis.sentenceAnalysis.map(s => {
-        if (s.sentence === originalSentence) {
+        if (s.sentence.trim() === originalSentence.trim()) {
           return {
             ...s,
-            sentence: replacement,
+            sentence: rewrittenSentence,
             aiProbability: 5,
             category: 'human' as const,
             reasons: ['Humanized and naturalized']
@@ -255,7 +302,7 @@ export default function App() {
     }
   };
 
-  // Robust document processing for .docx, .doc, .txt, .md
+  // Document processing for .docx, .doc, .txt, .md
   const processUploadedFile = async (file: File) => {
     setIsParsingFile(true);
     try {
@@ -302,7 +349,7 @@ export default function App() {
     }
   };
 
-  // Textarea input change: check if user pasted raw Word ZIP bytes (starts with PK\x03\x04)
+  // Textarea input change: check if user pasted raw Word ZIP bytes
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     if (val.startsWith('PK\x03\x04') || val.includes('[Content_Types].xml')) {
@@ -332,9 +379,39 @@ export default function App() {
     }
   };
 
+  // SaaS Auth handlers
+  const handleAuthSuccess = (user: User) => {
+    setCurrentUser(user);
+    persistCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    persistCurrentUser(null);
+  };
+
+  const handleSelectUpgradePlan = (planId: '3_months' | '6_months' | '1_year') => {
+    setSelectedPlanForCheckout(planId);
+    setIsUpgradeModalOpen(false);
+    setIsCheckoutModalOpen(true);
+  };
+
+  const handlePaymentSubmitted = () => {
+    const freshUser = getCurrentUser();
+    setCurrentUser(freshUser);
+    setPendingApprovalsCount(getPaymentSubmissions().filter(p => p.status === 'pending').length);
+  };
+
+  const handleRefreshAdminData = () => {
+    const freshUser = getCurrentUser();
+    setCurrentUser(freshUser);
+    setBankSettings(getDBSBankSettings());
+    setPendingApprovalsCount(getPaymentSubmissions().filter(p => p.status === 'pending').length);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Navigation Bar */}
+      {/* Top Navigation Bar with SaaS User Profile & Trial Countdown */}
       <Header
         currentMode={mode}
         onSelectMode={(m) => setMode(m)}
@@ -344,6 +421,16 @@ export default function App() {
         onOpenDeploy={() => setIsDeployOpen(true)}
         hasActiveReport={Boolean(activeReport)}
         historyCount={history.length}
+        user={currentUser}
+        remainingTrialDays={remainingDays}
+        onOpenAuth={(initial) => {
+          setAuthInitialMode(initial || 'signin');
+          setIsAuthModalOpen(true);
+        }}
+        onOpenUpgrade={() => setIsUpgradeModalOpen(true)}
+        onOpenAdmin={() => setIsAdminDashboardOpen(true)}
+        onLogout={handleLogout}
+        pendingApprovalsCount={pendingApprovalsCount}
       />
 
       {/* Main Workspace Area */}
@@ -367,6 +454,18 @@ export default function App() {
             ))}
           </div>
         </div>
+
+        {/* Paywall Banner when Access is not active */}
+        {!isAccessAllowed && (
+          <PaywallBanner
+            user={currentUser}
+            onOpenUpgrade={() => setIsUpgradeModalOpen(true)}
+            onOpenAuth={() => {
+              setAuthInitialMode('signup');
+              setIsAuthModalOpen(true);
+            }}
+          />
+        )}
 
         {/* Primary Editor Workspace Container */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -421,41 +520,40 @@ export default function App() {
                     ) : (
                       <Upload className="w-3.5 h-3.5" />
                     )}
+                    <span className="hidden sm:inline font-medium">Upload File</span>
                   </button>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".docx,.doc,.txt,.md,.text"
+                    accept=".docx,.doc,.txt,.md,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
-                  {inputText && (
-                    <button
-                      onClick={() => {
-                        setInputText('');
-                        setUploadedFileName(null);
-                      }}
-                      className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-900/50 hover:text-rose-300 text-slate-400 transition"
-                      title="Clear text"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      setInputText('');
+                      setUploadedFileName(null);
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-rose-400 transition"
+                    title="Clear text"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
-              {/* Active Uploaded Document Badge if present */}
+              {/* Uploaded Document Banner */}
               {uploadedFileName && (
-                <div className="mt-2.5 p-2 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-between text-xs text-indigo-200">
+                <div className="mt-2.5 p-2 px-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between text-xs text-indigo-300">
                   <div className="flex items-center gap-2 truncate">
-                    <FileCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="truncate font-medium">Extracted from: <strong>{uploadedFileName}</strong></span>
+                    <FileCheck className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <span className="font-semibold truncate">Loaded: {uploadedFileName}</span>
                   </div>
                   <button
                     onClick={() => setUploadedFileName(null)}
-                    className="text-[10px] text-slate-400 hover:text-white ml-2 underline"
+                    className="text-slate-400 hover:text-white text-xs ml-2"
                   >
-                    Dismiss
+                    ✕
                   </button>
                 </div>
               )}
@@ -501,12 +599,21 @@ export default function App() {
                   <button
                     onClick={() => handleRunScan()}
                     disabled={isScanning || !inputText.trim()}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold tracking-wide flex items-center gap-2 shadow-lg shadow-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition transform active:scale-95"
+                    className={`px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide flex items-center gap-2 shadow-lg transition transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      !isAccessAllowed
+                        ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
+                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-600/30'
+                    }`}
                   >
                     {isScanning ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
                         <span>Analyzing...</span>
+                      </>
+                    ) : !isAccessAllowed ? (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        <span>Upgrade Plan to Scan</span>
                       </>
                     ) : (
                       <>
@@ -518,7 +625,7 @@ export default function App() {
                             ? 'Check AI Probability'
                             : mode === 'plagiarism'
                             ? 'Check Plagiarism'
-                            : 'Scan & Load in Fixer'}
+                            : 'Run Scan'}
                         </span>
                       </>
                     )}
@@ -578,74 +685,44 @@ export default function App() {
                 {/* AI Summary Banner */}
                 <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Linguistic Forensic Assessment</span>
-                    </h4>
-                    <span className="text-[11px] font-mono text-slate-400">
-                      Confidence: <strong className="text-white">{activeReport.aiAnalysis.confidence}</strong>
+                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                      Forensic Verdict Summary
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Audit Scanned: {activeReport.scannedAt}
                     </span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed">
                     {activeReport.aiAnalysis.overallSummary}
                   </p>
                 </div>
-
-                {/* Detected Clichés Pill Drawer */}
-                {activeReport.aiAnalysis.flaggedCliches && activeReport.aiAnalysis.flaggedCliches.length > 0 && (
-                  <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-rose-400 flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        Flagged AI Clichés & Stereotypical Tropes ({activeReport.aiAnalysis.flaggedCliches.length})
-                      </span>
-                      <span className="text-[10px] text-slate-500">Click to replace</span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {activeReport.aiAnalysis.flaggedCliches.map((cliche, idx) => (
-                        <div
-                          key={idx}
-                          className="px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2 group"
-                        >
-                          <span className="font-semibold font-mono">"{cliche.wordOrPhrase}"</span>
-                          <span className="text-[10px] text-slate-400">({cliche.count}x)</span>
-                          <span className="text-[10px] text-slate-500">→</span>
-                          <span className="text-[11px] text-emerald-400 font-medium">{cliche.alternative}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
-              <div className="p-12 text-center rounded-2xl bg-slate-900/40 border border-dashed border-slate-800 flex flex-col items-center justify-center space-y-3 h-full">
-                <ShieldCheck className="w-12 h-12 text-indigo-400/40" />
-                <h3 className="text-sm font-semibold text-slate-300">Awaiting Analysis</h3>
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-12 text-center flex flex-col items-center justify-center space-y-3 min-h-[400px]">
+                <FileSearch className="w-12 h-12 text-slate-600" />
+                <h3 className="text-base font-semibold text-slate-300">No Document Scanned Yet</h3>
                 <p className="text-xs text-slate-500 max-w-sm">
-                  Click "Run Full Deep Scan" to generate forensic stylometry metrics, web plagiarism citations, and sentence heatmaps.
+                  Paste your text in the editor or choose one of the pre-configured sample essays above to inspect the audit results.
                 </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Secondary Dedicated Tabs / Detailed Sections */}
+        {/* Mode-Specific Workspaces: Fixer Studio OR Heatmap & Sources */}
         {mode === 'fixer' ? (
           <HumanizerFixerStudio
             originalText={inputText}
-            initialAiScore={activeReport?.aiAnalysis.overallAiScore ?? 85}
-            onApplyFixedTextToMain={(newText) => {
-              setInputText(newText);
-              handleRunScan(newText, 'comprehensive');
-            }}
-            onRequestReScan={(text) => handleRunScan(text, 'comprehensive')}
+            initialAiScore={activeReport?.aiAnalysis.overallAiScore || 85}
+            onApplyFixedTextToMain={(newText: string) => setInputText(newText)}
+            onRequestReScan={(newText: string) => handleRunScan(newText, 'comprehensive')}
           />
         ) : (
           activeReport && (
-            <div className="space-y-6 pt-2">
-              {/* 1. Sentence-by-Sentence Heatmap */}
-              {(mode === 'comprehensive' || mode === 'ai') && activeReport.aiAnalysis.sentenceAnalysis.length > 0 && (
+            <div className="space-y-6">
+              {/* 1. Sentence-by-Sentence AI Heatmap */}
+              {(mode === 'comprehensive' || mode === 'ai') && (
                 <SentenceHeatmap
                   sentenceAnalysis={activeReport.aiAnalysis.sentenceAnalysis}
                   flaggedPassages={activeReport.plagiarismAnalysis.flaggedPassages}
@@ -734,19 +811,55 @@ export default function App() {
         onClose={() => setIsDeployOpen(false)}
       />
 
+      {/* SaaS Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
+        initialMode={authInitialMode}
+      />
+
+      {/* SaaS Pricing & DBS Upgrade Modal */}
+      <PricingUpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        onSelectPlan={handleSelectUpgradePlan}
+        settings={bankSettings}
+        isExpired={isExpired}
+      />
+
+      {/* DBS Bank / PayNow Checkout & Proof Modal */}
+      <DBSCheckoutModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        user={currentUser}
+        planId={selectedPlanForCheckout}
+        settings={bankSettings}
+        onPaymentSubmitted={handlePaymentSubmitted}
+      />
+
+      {/* Admin Management Dashboard Modal */}
+      <AdminDashboardModal
+        isOpen={isAdminDashboardOpen}
+        onClose={() => setIsAdminDashboardOpen(false)}
+        bankSettings={bankSettings}
+        onSettingsUpdated={(updated) => setBankSettings(updated)}
+        onDataChanged={handleRefreshAdminData}
+      />
+
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-400 font-mono">VeritasAI Integrity</span>
-            <span>· Dual AI Stylometry & Web Grounding Engine</span>
+            <span>· Dual AI Stylometry &amp; Web Grounding Engine</span>
           </div>
           <div className="flex items-center gap-4 text-slate-400 text-[11px]">
-            <span>Search Grounded</span>
+            <span>DBS PayNow Verified</span>
             <span>·</span>
             <span>Academic Integrity Standards</span>
             <span>·</span>
-            <span>Zero Data Storage Retention</span>
+            <span>Singapore SaaS Operations</span>
           </div>
         </div>
       </footer>

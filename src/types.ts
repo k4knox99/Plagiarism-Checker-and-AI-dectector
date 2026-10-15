@@ -97,3 +97,50 @@ export interface HumanizeResult {
 
 export type ScannerMode = 'comprehensive' | 'ai' | 'plagiarism' | 'fixer';
 export type FixerStyle = 'academic' | 'conversational' | 'professional' | 'creative' | 'stealth';
+
+// SaaS Subscription & Auth Types
+export type SubscriptionPlanId = 'trial' | '3_months' | '6_months' | '1_year' | 'lifetime' | 'expired';
+export type UserAccountStatus = 'active' | 'pending_payment' | 'blocked';
+export type UserRole = 'user' | 'admin';
+
+export interface User {
+  id: string;
+  email: string;
+  password?: string;
+  name: string;
+  role: UserRole;
+  plan: SubscriptionPlanId;
+  status: UserAccountStatus;
+  registeredAt: string;
+  subscriptionExpiresAt: string;
+  pendingPaymentPlan?: SubscriptionPlanId;
+}
+
+export interface DBSBankSettings {
+  accountHolderName: string;
+  bankName: string;
+  accountNumber: string;
+  payNowNumber: string;
+  qrCodeUrl: string;
+  prices: {
+    '3_months': number;
+    '6_months': number;
+    '1_year': number;
+  };
+  instructions: string;
+}
+
+export interface PaymentSubmission {
+  id: string;
+  userId: string;
+  userEmail: string;
+  planId: '3_months' | '6_months' | '1_year';
+  planName: string;
+  amountSGD: number;
+  transactionRef: string;
+  receiptImageUrl: string;
+  submittedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+  adminNote?: string;
+  reviewedAt?: string;
+}
