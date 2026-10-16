@@ -15,6 +15,7 @@ import {
 import { SentenceAnalysis, FlaggedPassage } from '../types';
 import { safeApiFetch } from '../utils/safeApiFetch';
 import { runClientSideSentenceRewrite, runClientSideHumanize } from '../utils/clientForensicEngine';
+import { PixelSparkle, PixelBandAid, PixelShield } from './PixelStickers';
 
 interface SentenceHeatmapProps {
   sentenceAnalysis: SentenceAnalysis[];
@@ -213,31 +214,31 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
   const plagCount = flaggedPassages.length;
 
   return (
-    <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-5 shadow-xl space-y-4 relative">
+    <div className="rounded-3xl bg-zinc-950 border-2 border-black p-5 sm:p-6 shadow-[5px_5px_0px_#000000] space-y-4 relative">
       {/* Header & Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-zinc-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b-2 border-zinc-800">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <div className="p-2 rounded-xl bg-zinc-900 border-2 border-black shadow-[2px_2px_0px_#000] text-indigo-400">
               <Eye className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-semibold text-white">
+            <h3 className="text-base sm:text-lg font-bold font-pixel text-white">
               Interactive Stylometric Heatmap &amp; Paragraph Fixer
             </h3>
           </div>
-          <p className="text-xs text-zinc-400 mt-1">
-            Click any sentence to open its dedicated inspection popover with Before/After Mini-Diff and 1-Click Fix.
+          <p className="text-xs text-zinc-400 mt-1 font-pixel">
+            Click any sentence to open its dedicated inspection popover with Mini-Diff and 1-Click Fix.
           </p>
         </div>
 
         {/* View Mode & Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 font-pixel">
           {/* View Mode Switcher */}
-          <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-xs font-semibold">
+          <div className="flex items-center bg-zinc-900 p-1 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-bold">
             <button
               onClick={() => setViewMode('paragraphs')}
               className={`px-3 py-1 rounded-lg transition ${
-                viewMode === 'paragraphs' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                viewMode === 'paragraphs' ? 'bg-indigo-600 text-white border border-black' : 'text-zinc-400 hover:text-white'
               }`}
             >
               Paragraph View
@@ -245,7 +246,7 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
             <button
               onClick={() => setViewMode('flow')}
               className={`px-3 py-1 rounded-lg transition ${
-                viewMode === 'flow' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                viewMode === 'flow' ? 'bg-indigo-600 text-white border border-black' : 'text-zinc-400 hover:text-white'
               }`}
             >
               Continuous Flow
@@ -253,20 +254,20 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-xs">
+          <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] text-xs">
             <button
               onClick={() => setFilter('all')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition ${
-                filter === 'all' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${
+                filter === 'all' ? 'bg-zinc-800 text-white border border-black' : 'text-zinc-400 hover:text-white'
               }`}
             >
               All ({sentenceAnalysis.length})
             </button>
             <button
               onClick={() => setFilter('ai')}
-              className={`px-2 py-1 rounded-lg font-medium transition ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${
                 filter === 'ai'
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                  ? 'bg-rose-500 text-black border border-black shadow-[1px_1px_0px_#000]'
                   : 'text-rose-400 hover:text-rose-300'
               }`}
             >
@@ -274,9 +275,9 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
             </button>
             <button
               onClick={() => setFilter('mixed')}
-              className={`px-2 py-1 rounded-lg font-medium transition ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${
                 filter === 'mixed'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  ? 'bg-amber-500 text-black border border-black shadow-[1px_1px_0px_#000]'
                   : 'text-amber-400 hover:text-amber-300'
               }`}
             >
@@ -285,9 +286,9 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
             {plagCount > 0 && (
               <button
                 onClick={() => setFilter('plagiarism')}
-                className={`px-2 py-1 rounded-lg font-medium transition ${
+                className={`px-2.5 py-1 rounded-lg font-bold transition ${
                   filter === 'plagiarism'
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                    ? 'bg-purple-500 text-white border border-black shadow-[1px_1px_0px_#000]'
                     : 'text-purple-400 hover:text-purple-300'
                 }`}
               >
@@ -296,9 +297,9 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
             )}
             <button
               onClick={() => setFilter('human')}
-              className={`px-2 py-1 rounded-lg font-medium transition ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${
                 filter === 'human'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                  ? 'bg-emerald-500 text-black border border-black shadow-[1px_1px_0px_#000]'
                   : 'text-emerald-400 hover:text-emerald-300'
               }`}
             >
@@ -309,7 +310,7 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
       </div>
 
       {/* Main Reading Surface */}
-      <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 max-h-[520px] overflow-y-auto space-y-4 custom-scrollbar">
+      <div className="p-4 rounded-2xl bg-zinc-900 border-2 border-black shadow-[3px_3px_0px_#000] max-h-[520px] overflow-y-auto space-y-4 custom-scrollbar">
         {paragraphs.map((para) => {
           const visibleSentences = para.sentences.filter(item => {
             if (filter === 'all') return true;
@@ -328,31 +329,31 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
           return (
             <div
               key={para.index}
-              className={`rounded-xl p-4 transition-all ${
+              className={`rounded-2xl p-4 transition-all ${
                 viewMode === 'paragraphs'
-                  ? 'bg-zinc-900/60 border border-zinc-800/90 shadow-md space-y-3'
+                  ? 'bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] space-y-3'
                   : 'space-y-1'
               }`}
             >
               {/* Paragraph Header Row */}
               {viewMode === 'paragraphs' && (
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-zinc-800/70 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b-2 border-zinc-800 text-xs font-pixel">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-zinc-300">
+                    <span className="font-bold text-white">
                       Paragraph {para.index + 1}
                     </span>
                     <span className="text-zinc-500">·</span>
-                    <span className="text-zinc-400 font-mono">
+                    <span className="text-zinc-400">
                       {para.text.split(/\s+/).filter(Boolean).length} words
                     </span>
                     <span className="text-zinc-500">·</span>
                     <span
-                      className={`font-mono px-2 py-0.5 rounded text-[11px] font-bold ${
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold border border-black ${
                         para.avgAi >= 65
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          ? 'bg-rose-500 text-black'
                           : para.avgAi >= 35
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          ? 'bg-amber-500 text-black'
+                          : 'bg-emerald-500 text-black'
                       }`}
                     >
                       {para.avgAi}% Avg AI
@@ -361,7 +362,7 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
 
                   <div className="flex items-center gap-2">
                     {notice && (
-                      <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 animate-in fade-in">
+                      <span className="text-xs text-emerald-400 font-pixel font-bold flex items-center gap-1 animate-in fade-in">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         {notice}
                       </span>
@@ -371,16 +372,16 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
                       <button
                         onClick={() => handleHumanizeParagraph(para.index, para.text)}
                         disabled={isHumanizingThisPara}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition transform active:scale-95"
+                        className="pixel-btn px-3 py-1.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-pixel font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] disabled:opacity-50 disabled:cursor-not-allowed transition"
                       >
                         {isHumanizingThisPara ? (
                           <>
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-200" />
-                            <span>Humanizing Paragraph...</span>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                            <span>Humanizing...</span>
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
+                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                             <span>✨ Humanize Paragraph</span>
                           </>
                         )}
@@ -400,26 +401,26 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
                   const isHuman = item.aiProbability < 35;
                   const isSelected = activeSentence?.globalIdx === globalIdx;
 
-                  let styleClasses = 'bg-zinc-900/60 hover:bg-zinc-800/80 border border-transparent';
+                  let styleClasses = 'bg-zinc-900 hover:bg-zinc-800 border-2 border-black';
                   let badgeColor = 'text-zinc-400';
 
                   if (isHighAi) {
-                    styleClasses = 'bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/30 text-rose-100';
-                    badgeColor = 'text-rose-400 font-semibold';
+                    styleClasses = 'bg-rose-950/50 hover:bg-rose-900/60 border-2 border-rose-600 text-rose-100';
+                    badgeColor = 'text-rose-300 font-bold';
                   } else if (isMixed) {
-                    styleClasses = 'bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/30 text-amber-100';
-                    badgeColor = 'text-amber-400 font-semibold';
+                    styleClasses = 'bg-amber-950/50 hover:bg-amber-900/60 border-2 border-amber-600 text-amber-100';
+                    badgeColor = 'text-amber-300 font-bold';
                   } else if (isHuman) {
-                    styleClasses = 'bg-emerald-950/20 hover:bg-emerald-900/30 border border-emerald-500/20 text-zinc-200';
-                    badgeColor = 'text-emerald-400';
+                    styleClasses = 'bg-emerald-950/30 hover:bg-emerald-900/40 border-2 border-emerald-600 text-zinc-200';
+                    badgeColor = 'text-emerald-300';
                   }
 
                   if (plagMatch) {
-                    styleClasses += ' underline decoration-wavy decoration-purple-400/60 decoration-2 underline-offset-4';
+                    styleClasses += ' underline decoration-wavy decoration-purple-400 decoration-2 underline-offset-4';
                   }
 
                   if (isSelected) {
-                    styleClasses += ' ring-2 ring-indigo-500 bg-indigo-950/40';
+                    styleClasses += ' ring-2 ring-indigo-400 bg-indigo-950/60';
                   }
 
                   return (
@@ -434,14 +435,14 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
                           onSelectSentence(item);
                         }
                       }}
-                      className={`text-left transition-all px-2 py-1 rounded-lg inline-flex items-center flex-wrap gap-1 ${styleClasses}`}
+                      className={`text-left transition-all px-2.5 py-1 rounded-xl inline-flex items-center flex-wrap gap-1 shadow-[2px_2px_0px_#000] ${styleClasses}`}
                     >
                       <span>{item.sentence}</span>
-                      <span className={`text-[11px] font-mono px-1.5 py-0.2 rounded bg-black/60 ${badgeColor}`}>
+                      <span className={`text-[10px] font-pixel px-1.5 py-0.2 rounded bg-black/80 ${badgeColor}`}>
                         {item.aiProbability}%
                       </span>
                       {plagMatch && (
-                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                        <span className="text-[10px] font-pixel px-1.5 py-0.2 rounded bg-purple-500 text-white border border-black">
                           Match
                         </span>
                       )}
@@ -456,15 +457,15 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
 
       {/* Dedicated Sentence Inspection Popover (Rendered OUTSIDE of inline sentence spans to ensure 100% clickability) */}
       {activeSentence && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl p-5 text-xs text-zinc-200 space-y-4 pointer-events-auto"
+            className="w-full max-w-lg bg-zinc-950 border-2 border-black rounded-3xl shadow-[8px_8px_0px_#000000] p-6 text-xs text-zinc-200 space-y-4 pointer-events-auto bg-pixel-dots"
           >
             {/* Popover Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-zinc-800">
               <div className="flex items-center gap-2">
-                <span className={`text-base font-bold font-mono ${
+                <span className={`text-sm sm:text-base font-bold font-pixel ${
                   activeSentence.aiProbability >= 65
                     ? 'text-rose-400'
                     : activeSentence.aiProbability >= 35
@@ -473,58 +474,58 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
                 }`}>
                   {activeSentence.aiProbability}% AI Detection
                 </span>
-                <span className="text-zinc-500">·</span>
-                <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 font-semibold">
+                <span className="text-zinc-600">·</span>
+                <span className="text-[10px] font-pixel uppercase px-2 py-0.5 rounded-lg bg-zinc-900 border border-black text-zinc-300 font-bold shadow-[1px_1px_0px_#000]">
                   {activeSentence.category}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveSentence(null)}
-                className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800 transition"
+                className="text-zinc-400 hover:text-white p-1 rounded-xl bg-zinc-900 border border-black hover:bg-zinc-800 transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Target Sentence Display */}
-            <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-1">
-              <span className="text-[10px] uppercase font-mono font-bold text-zinc-400 block">Target Sentence:</span>
+            <div className="p-3.5 rounded-2xl bg-zinc-900 border-2 border-black shadow-[2px_2px_0px_#000] space-y-1">
+              <span className="text-[10px] font-pixel font-bold text-zinc-400 block">Target Sentence:</span>
               <p className="text-xs text-zinc-100 leading-relaxed font-sans">{activeSentence.sentence}</p>
             </div>
 
             {/* Reasons / Linguistic Diagnostic */}
             {activeSentence.reasons && activeSentence.reasons.length > 0 && (
-              <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80 text-[11px] text-zinc-300 space-y-1">
-                <span className="font-semibold text-zinc-400 block">Linguistic Diagnostic:</span>
+              <div className="p-3 rounded-2xl bg-zinc-900/70 border border-zinc-800 text-[11px] text-zinc-300 space-y-1">
+                <span className="font-pixel font-bold text-zinc-400 block text-[10px]">Linguistic Diagnostic:</span>
                 <p>{activeSentence.reasons[0]}</p>
               </div>
             )}
 
             {/* Mini Diff Preview Container */}
             {activeRewrite[activeSentence.globalIdx]?.loading ? (
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center gap-2 text-indigo-300 animate-pulse">
+              <div className="p-4 rounded-2xl bg-zinc-900 border-2 border-black flex items-center justify-center gap-2 text-indigo-300 animate-pulse">
                 <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
-                <span className="text-xs font-medium">Re-engineering cadence with Gemini 4 Argon...</span>
+                <span className="text-xs font-pixel">Re-engineering cadence with Gemini 4 Argon...</span>
               </div>
             ) : (activeRewrite[activeSentence.globalIdx]?.text || activeSentence.suggestedRewrite) ? (
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2.5">
-                <div className="text-[10px] uppercase font-mono font-bold text-zinc-400 flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-zinc-900 border-2 border-black shadow-[2px_2px_0px_#000] space-y-2.5">
+                <div className="text-[10px] font-pixel font-bold text-zinc-400 flex items-center justify-between">
                   <span>Mini-Diff Preview</span>
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span className="text-emerald-400 font-pixel font-bold flex items-center gap-1">
+                    <PixelShield size={14} />
                     &lt;5% AI Cadence Guaranteed
                   </span>
                 </div>
 
                 {/* Original Strikethrough */}
-                <div className="text-[11px] text-rose-400 line-through bg-rose-950/30 p-2.5 rounded-lg border border-rose-500/20 leading-relaxed">
+                <div className="text-[11px] text-rose-400 line-through bg-rose-950/40 p-2.5 rounded-xl border-2 border-black leading-relaxed">
                   {activeSentence.sentence}
                 </div>
 
                 {/* Rewritten Replacement */}
-                <div className="text-xs text-emerald-300 font-medium bg-emerald-950/30 p-2.5 rounded-lg border border-emerald-500/30 leading-relaxed flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-emerald-300 font-medium bg-emerald-950/40 p-2.5 rounded-xl border-2 border-black leading-relaxed flex items-start gap-2">
+                  <PixelSparkle size={18} />
                   <span>{activeRewrite[activeSentence.globalIdx]?.text || activeSentence.suggestedRewrite}</span>
                 </div>
 
@@ -537,14 +538,14 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
             ) : null}
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">
+            <div className="flex items-center gap-2 pt-2 border-t-2 border-zinc-800">
               <button
                 type="button"
                 onClick={() => handleFixSentence(activeSentence, activeSentence.globalIdx)}
                 disabled={activeRewrite[activeSentence.globalIdx]?.loading}
-                className="flex-1 py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-zinc-700"
+                className="pixel-btn flex-1 py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-pixel font-bold flex items-center justify-center gap-1.5 transition border-2 border-black shadow-[2px_2px_0px_#000]"
               >
-                <Wand2 className="w-3.5 h-3.5 text-indigo-400" />
+                <PixelBandAid size={16} />
                 <span>
                   {(activeRewrite[activeSentence.globalIdx]?.text || activeSentence.suggestedRewrite)
                     ? 'Regenerate Fix'
@@ -559,7 +560,7 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
                     activeSentence.sentence,
                     activeRewrite[activeSentence.globalIdx]?.text || activeSentence.suggestedRewrite
                   )}
-                  className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30 transition transform active:scale-95"
+                  className="pixel-btn flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-pixel font-bold flex items-center justify-center gap-1.5 transition border-2 border-black shadow-[3px_3px_0px_#000]"
                 >
                   <Check className="w-4 h-4" />
                   <span>Quick Apply to Document</span>

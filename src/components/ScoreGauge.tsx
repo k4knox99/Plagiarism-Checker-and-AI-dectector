@@ -67,7 +67,7 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({
   const strokeDashoffset = circumference - (safeScore / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md shadow-lg shadow-black/20 hover:border-slate-700/80 transition-all">
+    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000000] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#000000] transition-all">
       <div className="relative flex items-center justify-center" style={{ width: dimensions.width, height: dimensions.width }}>
         <svg
           className="transform -rotate-90"
@@ -81,7 +81,7 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({
             r={dimensions.radius}
             stroke="currentColor"
             strokeWidth={dimensions.stroke}
-            className="text-slate-800"
+            className="text-zinc-800"
             fill="transparent"
           />
           {/* Animated score indicator */}
@@ -101,19 +101,19 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({
 
         {/* Center score label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className={`font-mono font-bold tracking-tight text-white ${dimensions.text}`}>
+          <span className={`font-pixel font-bold tracking-tight text-white ${dimensions.text}`}>
             {safeScore}%
           </span>
-          <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 mt-0.5">
+          <span className="text-[10px] font-pixel uppercase font-bold tracking-wider text-zinc-400 mt-0.5">
             {type === 'ai' ? 'AI Score' : type === 'plagiarism' ? 'Match' : 'Authentic'}
           </span>
         </div>
       </div>
 
       <div className="mt-3 text-center">
-        <h4 className="text-sm font-semibold text-slate-200">{title}</h4>
-        {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
-        <div className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${badgeColor}`}>
+        <h4 className="text-xs sm:text-sm font-pixel font-bold text-zinc-200">{title}</h4>
+        {subtitle && <p className="text-[11px] text-zinc-400 mt-0.5">{subtitle}</p>}
+        <div className={`mt-2 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-pixel font-bold border-2 border-black shadow-[1px_1px_0px_#000] ${badgeColor}`}>
           {statusText}
         </div>
       </div>

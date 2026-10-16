@@ -57,6 +57,20 @@ import { TechnicalLinguisticModal } from './components/TechnicalLinguisticModal'
 import { AuthModal } from './components/AuthModal';
 import { WordCountGoal } from './components/WordCountGoal';
 import { DocSurgeonStudio } from './components/DocSurgeonStudio';
+import { 
+  PixelRobot, 
+  PixelDoc, 
+  PixelHeart, 
+  PixelSparkle, 
+  PixelSearch, 
+  PixelBandAid, 
+  PixelShield,
+  PixelFloppy,
+  PixelCrown,
+  PixelFire,
+  PixelPotion,
+  PixelStickerBadge 
+} from './components/PixelStickers';
 
 function VeritasAIWorkspace() {
   const { session, incrementQuotaUsage } = useAuth();
@@ -479,19 +493,34 @@ function VeritasAIWorkspace() {
         onToggleView={() => setActiveView(activeView === 'landing' ? 'workspace' : 'landing')}
       />
 
-      {/* 1. INTERACTIVE 3D HERO LANDING PAGE VIEW */}
+      {/* 1. INTERACTIVE 3D HERO LANDING PAGE VIEW (PixelPop Aesthetic) */}
       {activeView === 'landing' && (
-        <section className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16 animate-in fade-in duration-300">
+        <section className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16 animate-in fade-in duration-300 relative bg-pixel-dots">
+          {/* Cute Floating Pixel Stickers (PixelPop vibe) */}
+          <div className="absolute top-6 left-6 hidden xl:block pointer-events-none transform -rotate-12 animate-pulse">
+            <div className="p-2 bg-indigo-950/80 border-2 border-black shadow-[3px_3px_0px_#000] rounded-xl flex items-center gap-1.5">
+              <PixelRobot size={28} />
+              <span className="font-pixel text-[10px] text-indigo-300 font-bold">Argon AI</span>
+            </div>
+          </div>
+          <div className="absolute top-8 right-8 hidden xl:block pointer-events-none transform rotate-12">
+            <div className="p-2 bg-pink-950/80 border-2 border-black shadow-[3px_3px_0px_#000] rounded-xl flex items-center gap-1.5 animate-bounce">
+              <PixelSparkle size={26} />
+              <span className="font-pixel text-[10px] text-pink-300 font-bold">Zero AI &lt;5%</span>
+            </div>
+          </div>
+
           {/* Hero Banner Headline */}
           <div className="text-center max-w-4xl mx-auto space-y-5">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-semibold shadow-inner">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>VeritasAI Enterprise · Forensic Stylometry &amp; Format-Preserving Surgeon</span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-zinc-900 border-2 border-black text-indigo-300 text-xs font-pixel font-bold shadow-[3px_3px_0px_#000000]">
+              <PixelShield size={16} />
+              <span>VeritasAI Enterprise · Retro Stylometry &amp; Doc Surgeon</span>
+              <span className="px-1.5 py-0.2 rounded bg-pink-500 text-black font-pixel font-bold text-[9px]">POP!</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
               Forensic AI Detection &amp; Plagiarism Audit.{' '}
-              <span className="block mt-1 bg-gradient-to-r from-indigo-400 via-purple-300 to-emerald-300 bg-clip-text text-transparent">
+              <span className="block mt-1 font-pixel bg-gradient-to-r from-indigo-400 via-pink-400 to-emerald-300 bg-clip-text text-transparent">
                 Humanize Without Changing Format.
               </span>
             </h1>
@@ -500,12 +529,13 @@ function VeritasAIWorkspace() {
               Upload original Word (<span className="text-white font-semibold">.docx</span>) or PDF (<span className="text-white font-semibold">.pdf</span>) documents. Our surgical engine identifies only AI clichés and plagiarized passages, rewriting them to sound 100% human while preserving your original formatting, headings, bullet points, and authentic text.
             </p>
 
-            {/* Primary Action Buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+            {/* Primary Action Buttons (PixelPop Neo-Brutalist Sticker Buttons) */}
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
               <button
                 onClick={() => setActiveView('workspace')}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:opacity-95 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-indigo-600/30 transition transform active:scale-95"
+                className="pixel-btn px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-pixel font-bold text-xs sm:text-sm flex items-center gap-2"
               >
+                <PixelShield size={18} />
                 <span>Launch Full Workspace</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
@@ -515,38 +545,38 @@ function VeritasAIWorkspace() {
                   setMode('surgeon');
                   setActiveView('workspace');
                 }}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-emerald-900/30 transition transform active:scale-95"
+                className="pixel-btn px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-pixel font-bold text-xs sm:text-sm flex items-center gap-2"
               >
-                <FileCheck2 className="w-4 h-4 text-emerald-200" />
+                <PixelBandAid size={18} />
                 <span>Doc Surgeon (.docx &amp; .pdf)</span>
               </button>
 
               <button
                 onClick={() => setIsAuthOpen(true)}
-                className="px-5 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-700/80 text-zinc-200 font-semibold text-xs sm:text-sm flex items-center gap-2 transition"
+                className="pixel-btn px-5 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-pixel font-bold text-xs sm:text-sm flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <PixelSparkle size={18} />
                 <span>Start Free Trial</span>
               </button>
             </div>
 
-            {/* Trust Badges Strip */}
-            <div className="pt-4 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-xs text-zinc-400 font-medium">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                100% Format Preservation Guarantee
+            {/* Trust Badges Strip with Cute Pixel Stickers */}
+            <div className="pt-4 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-zinc-300 font-medium">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
+                <PixelHeart size={14} />
+                <span>100% Format Preservation</span>
               </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                &lt; 5% Target AI Risk Threshold
+              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
+                <PixelRobot size={14} />
+                <span>&lt; 5% Target AI Threshold</span>
               </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Zero Document Retention Policy
+              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
+                <PixelShield size={14} />
+                <span>Zero Document Retention</span>
               </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Cryptographic PDF Audit Certificates
+              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
+                <PixelFloppy size={14} />
+                <span>Word (.docx) &amp; PDF Exports</span>
               </span>
             </div>
           </div>
@@ -554,16 +584,17 @@ function VeritasAIWorkspace() {
           {/* Interactive 3D Hero Viewport with Orbiting Tool Satellites */}
           <div className="relative space-y-3">
             <div className="flex items-center justify-between px-2 text-xs text-zinc-400">
-              <span className="font-mono text-[11px] text-zinc-400">
-                Interactive Quantum Core · Click any orbital node to launch that workspace
+              <span className="font-pixel text-[11px] text-zinc-400 flex items-center gap-1.5">
+                <PixelRobot size={14} />
+                <span>Interactive Quantum Core · Click any orbital node to launch</span>
               </span>
-              <span className="font-mono text-[11px] text-indigo-400 hidden sm:inline">
-                Drag &amp; Drop .docx or .pdf directly onto canvas
+              <span className="font-pixel text-[11px] text-indigo-400 hidden sm:inline flex items-center gap-1">
+                <PixelDoc size={14} />
+                <span>Drop .docx or .pdf directly onto canvas</span>
               </span>
             </div>
 
-            <div className="relative">
-              <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-teal-500/20 blur-xl opacity-70 pointer-events-none" />
+            <div className="relative pixel-border rounded-3xl overflow-hidden bg-zinc-950">
               <ThreeCoreScanner
                 variant="hero"
                 status={scannerStatus}
@@ -578,42 +609,43 @@ function VeritasAIWorkspace() {
           </div>
 
           {/* 3-Step Walkthrough: How Format-Preserving Surgery Works */}
-          <div className="p-8 rounded-3xl bg-zinc-900/40 border border-zinc-800/80 space-y-6">
+          <div className="p-8 rounded-3xl bg-zinc-900/60 border-2 border-black shadow-[6px_6px_0px_#000] space-y-6">
             <div className="text-center max-w-xl mx-auto space-y-1">
-              <span className="text-xs font-mono font-semibold text-indigo-400 uppercase tracking-wider">
-                Precision Workflow
+              <span className="text-xs font-pixel font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1">
+                <PixelSparkle size={16} />
+                <span>Precision Workflow</span>
               </span>
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-bold font-pixel text-white tracking-tight">
                 How Format-Preserving Document Surgery Works
               </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-              <div className="p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800 space-y-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-xs font-mono font-bold text-indigo-400">
-                  01
+              <div className="p-5 rounded-2xl bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#000] space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                  <PixelDoc size={22} />
                 </div>
-                <h3 className="text-sm font-bold text-white">Upload Original Word or PDF</h3>
+                <h3 className="text-sm font-bold font-pixel text-white">01. Upload Word or PDF</h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
                   Ingests <span className="text-zinc-200">.docx</span> or <span className="text-zinc-200">.pdf</span> files. The engine maps headings, paragraph indentation, margins, and bullet structures.
                 </p>
               </div>
 
-              <div className="p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800 space-y-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xs font-mono font-bold text-amber-400">
-                  02
+              <div className="p-5 rounded-2xl bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#000] space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                  <PixelSearch size={22} />
                 </div>
-                <h3 className="text-sm font-bold text-white">Surgical Forensic Flagging</h3>
+                <h3 className="text-sm font-bold font-pixel text-white">02. Surgical Flagging</h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
                   Detects statistical perplexity, burstiness uniformity, and plagiarism shingles. Authentic human sentences are locked and kept 100% untouched.
                 </p>
               </div>
 
-              <div className="p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800 space-y-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xs font-mono font-bold text-emerald-400">
-                  03
+              <div className="p-5 rounded-2xl bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#000] space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                  <PixelBandAid size={22} />
                 </div>
-                <h3 className="text-sm font-bold text-white">Export Clean Document</h3>
+                <h3 className="text-sm font-bold font-pixel text-white">03. Export Clean Document</h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
                   Rewrites only flagged sentences below 5% AI risk, then exports back to Word (<span className="text-zinc-200">.docx</span>) or PDF (<span className="text-zinc-200">.pdf</span>) with zero format distortion.
                 </p>
@@ -621,43 +653,43 @@ function VeritasAIWorkspace() {
             </div>
           </div>
 
-          {/* 4 Core Pillars Grid */}
+          {/* 4 Core Pillars Grid with Pixel Stickers */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
-                <FileCheck2 className="w-5 h-5" />
+            <div className="p-6 rounded-2xl bg-zinc-900/80 border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_#000] transition space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-teal-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                <PixelBandAid size={22} />
               </div>
-              <h3 className="text-sm font-bold text-white">Format-Preserving Surgeon</h3>
+              <h3 className="text-sm font-bold font-pixel text-white">Doc Surgeon</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
                 Repairs flagged segments inside Word and PDF files without altering headings, fonts, bullet lists, or layout margins.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                <Layers className="w-5 h-5" />
+            <div className="p-6 rounded-2xl bg-zinc-900/80 border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_#000] transition space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                <PixelShield size={22} />
               </div>
-              <h3 className="text-sm font-bold text-white">Statistical Stylometrics</h3>
+              <h3 className="text-sm font-bold font-pixel text-white">Stylometrics</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
                 Evaluates perplexity entropy, sentence burstiness, and coefficient of variation without relying on black-box heuristics.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-                <FileSearch className="w-5 h-5" />
+            <div className="p-6 rounded-2xl bg-zinc-900/80 border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_#000] transition space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                <PixelSearch size={22} />
               </div>
-              <h3 className="text-sm font-bold text-white">5-Gram Plagiarism Audit</h3>
+              <h3 className="text-sm font-bold font-pixel text-white">5-Gram Audit</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
                 Matches syntactic shingles against academic and web corpora with automated APA, MLA, and Chicago citation generation.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <Wand2 className="w-5 h-5" />
+            <div className="p-6 rounded-2xl bg-zinc-900/80 border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_#000] transition space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                <PixelSparkle size={22} />
               </div>
-              <h3 className="text-sm font-bold text-white">Neural Cadence Humanizer</h3>
+              <h3 className="text-sm font-bold font-pixel text-white">Cadence Humanizer</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
                 Transforms robotic cadence across 5 persona styles, eliminates LLM clichés, and lowers AI risk below 5% with zero hallucination.
               </p>
@@ -688,20 +720,21 @@ function VeritasAIWorkspace() {
           )}
 
           {/* Sample Quick Selector Pills */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-zinc-900/50 border border-zinc-800/80">
-            <div className="flex items-center gap-2 text-xs text-zinc-400">
-              <span className="font-semibold text-zinc-300 font-mono">Benchmark Corpus Samples:</span>
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000000]">
+            <div className="flex items-center gap-2 text-xs text-zinc-300 font-pixel">
+              <PixelCrown size={14} />
+              <span>Corpus Benchmark Samples:</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {SAMPLE_TEXTS.map((sample) => (
                 <button
                   key={sample.id}
                   onClick={() => handleLoadSample(sample)}
-                  className="px-3 py-1 rounded-xl text-xs font-medium bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white transition flex items-center gap-1.5"
+                  className="pixel-btn px-3 py-1 rounded-xl text-xs font-pixel font-bold bg-zinc-900 hover:bg-zinc-850 border-2 border-black text-zinc-300 hover:text-white transition flex items-center gap-1.5 shadow-[2px_2px_0px_#000]"
                 >
                   <span>{sample.category === 'ai' ? '🤖' : sample.category === 'plagiarism' ? '🔍' : '✍️'}</span>
                   <span>{sample.title}</span>
-                  <span className="text-[10px] text-indigo-400 font-mono">({sample.badge})</span>
+                  <span className="text-[10px] text-amber-400 font-pixel">({sample.badge})</span>
                 </button>
               ))}
             </div>
@@ -725,24 +758,27 @@ function VeritasAIWorkspace() {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`relative rounded-2xl bg-zinc-900/80 backdrop-blur-xl border p-5 shadow-2xl flex flex-col h-full transition-all ${
-                    isDragging ? 'border-indigo-500 bg-indigo-950/20 ring-2 ring-indigo-500/40' : 'border-zinc-800'
+                  className={`relative rounded-3xl bg-zinc-950 border-2 border-black p-5 sm:p-6 shadow-[5px_5px_0px_#000000] flex flex-col h-full transition-all ${
+                    isDragging ? 'border-indigo-400 ring-2 ring-indigo-500/40' : ''
                   }`}
                 >
                   {/* Drag & Drop Overlay */}
                   {isDragging && (
-                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950/95 rounded-2xl backdrop-blur-sm border-2 border-dashed border-indigo-500 pointer-events-none animate-in fade-in">
-                      <Upload className="w-10 h-10 text-indigo-400 animate-bounce mb-2" />
-                      <span className="text-sm font-bold text-white">Drop Word Document (.docx), PDF (.pdf), or Text file here</span>
-                      <span className="text-xs text-zinc-400 mt-1">Automatic text extraction and format-preserving surgery</span>
+                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950/95 rounded-3xl border-2 border-dashed border-indigo-400 pointer-events-none animate-in fade-in">
+                      <PixelDoc size={36} className="animate-bounce mb-2" />
+                      <span className="text-sm font-bold font-pixel text-white">Drop Word (.docx) or PDF (.pdf) file here</span>
+                      <span className="text-xs text-zinc-400 mt-1 font-pixel">Automatic text extraction and format-preserving surgery</span>
                     </div>
                   )}
 
                   {/* Textarea Toolbar */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-800/80 text-xs text-zinc-400">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b-2 border-zinc-800 text-xs font-pixel text-zinc-400">
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold text-zinc-200">Input Document</span>
-                      <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-400">
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <PixelDoc size={16} />
+                        Input Document
+                      </span>
+                      <div className="flex items-center gap-2 font-pixel text-[11px] text-zinc-400">
                         <span>{wordCount} words</span>
                         <span>·</span>
                         <span>{charCount} chars</span>
@@ -760,25 +796,25 @@ function VeritasAIWorkspace() {
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isParsingFile}
-                        className="px-2.5 py-1 rounded-lg bg-zinc-850 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/80 text-[11px] font-medium flex items-center gap-1.5 transition"
+                        className="pixel-btn px-2.5 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white border-2 border-black text-[11px] font-pixel font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] transition"
                         title="Upload .docx, .doc, .pdf, .txt, or .md"
                       >
-                        <Upload className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>{isParsingFile ? 'Extracting...' : 'Upload Doc / PDF'}</span>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{isParsingFile ? 'Extracting...' : 'Upload Doc'}</span>
                       </button>
 
                       <button
                         onClick={() => setMode('surgeon')}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium flex items-center gap-1.5 transition"
+                        className="pixel-btn px-2.5 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black border-2 border-black text-[11px] font-pixel font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] transition"
                         title="Launch Format-Preserving Word & PDF Surgeon"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                        <PixelBandAid size={14} />
                         <span>Doc Surgeon</span>
                       </button>
 
                       <button
                         onClick={handlePasteClipboard}
-                        className="px-2.5 py-1 rounded-lg bg-zinc-850 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/80 text-[11px] font-medium flex items-center gap-1.5 transition"
+                        className="pixel-btn px-2.5 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white border-2 border-black text-[11px] font-pixel font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] transition"
                         title="Paste from clipboard"
                       >
                         <Clipboard className="w-3.5 h-3.5" />
@@ -799,8 +835,8 @@ function VeritasAIWorkspace() {
                   </div>
 
                   {uploadedFileName && (
-                    <div className="mt-2 px-3 py-1.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 text-xs flex items-center justify-between">
-                      <span className="font-mono truncate">Loaded: {uploadedFileName}</span>
+                    <div className="mt-3 px-3 py-1.5 rounded-xl bg-indigo-950/80 border-2 border-black text-indigo-300 text-xs font-pixel flex items-center justify-between">
+                      <span className="truncate">Loaded: {uploadedFileName}</span>
                       <button 
                         onClick={() => setUploadedFileName(null)}
                         className="text-indigo-400 hover:text-white text-xs ml-2"
@@ -816,14 +852,14 @@ function VeritasAIWorkspace() {
                     onChange={handleTextareaChange}
                     placeholder="Paste or write document text here to inspect AI detection, perplexity entropy, and shingle plagiarism..."
                     rows={13}
-                    className="w-full mt-3 p-3 bg-zinc-950/80 text-zinc-200 placeholder-zinc-500 rounded-xl border border-zinc-800/90 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/50 text-sm leading-relaxed resize-y font-sans transition-all"
+                    className="w-full mt-3 p-3.5 bg-zinc-900 text-zinc-200 placeholder-zinc-500 rounded-2xl border-2 border-zinc-800 focus:outline-none focus:border-indigo-400 text-sm leading-relaxed resize-y font-sans transition-all"
                   />
 
                   {/* Primary Scan Action Bar */}
-                  <div className="mt-4 pt-3 border-t border-zinc-800 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-xs text-zinc-400">
-                      <span className="font-mono text-[11px]">
-                        Mode: <strong className="text-indigo-300 uppercase">{mode}</strong>
+                  <div className="mt-4 pt-3 border-t-2 border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs font-pixel text-zinc-400">
+                      <span>
+                        Mode: <strong className="text-amber-400 uppercase">{mode}</strong>
                       </span>
                     </div>
 
@@ -831,7 +867,7 @@ function VeritasAIWorkspace() {
                       <button
                         onClick={() => handleRunScan()}
                         disabled={isScanning || wordCount < 5}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition transform active:scale-95"
+                        className="pixel-btn px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-pixel font-bold text-xs sm:text-sm flex items-center gap-2 shadow-[4px_4px_0px_#000] disabled:opacity-50 disabled:cursor-not-allowed transition"
                       >
                         {isScanning ? (
                           <>
@@ -840,7 +876,7 @@ function VeritasAIWorkspace() {
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                            <PixelSparkle size={18} />
                             <span>Run {mode === 'ai' ? 'AI Detection' : mode === 'plagiarism' ? 'Plagiarism Check' : 'Comprehensive Scan'}</span>
                           </>
                         )}
@@ -855,17 +891,18 @@ function VeritasAIWorkspace() {
             <div className="lg:col-span-6 space-y-4">
               <PerspectiveTiltCard maxTilt={5}>
                 {activeReport ? (
-                  <div className="rounded-2xl bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 p-5 shadow-2xl space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-zinc-800 text-xs">
+                  <div className="rounded-3xl bg-zinc-950 border-2 border-black p-5 sm:p-6 shadow-[5px_5px_0px_#000000] space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b-2 border-zinc-800 text-xs font-pixel">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-white font-mono uppercase tracking-wider">
+                        <PixelShield size={16} />
+                        <span className="font-bold text-white uppercase tracking-wider">
                           Forensic Telemetry
                         </span>
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                          Gemini 4 Argon Core
+                        <span className="px-2 py-0.5 rounded text-[10px] font-pixel font-bold bg-indigo-950 text-indigo-300 border border-black shadow-[1px_1px_0px_#000]">
+                          Gemini 4 Core
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-zinc-400">
+                      <span className="text-[11px] font-pixel text-zinc-400">
                         Confidence: <strong className="text-emerald-400">{activeReport.aiAnalysis.confidence}</strong>
                       </span>
                     </div>
@@ -901,20 +938,20 @@ function VeritasAIWorkspace() {
                     />
 
                     {/* Forensic Verdict Summary */}
-                    <div className="p-3.5 rounded-xl bg-zinc-950/70 border border-zinc-800 space-y-1.5 text-xs text-zinc-300">
-                      <div className="flex items-center justify-between text-zinc-400 font-mono text-[11px]">
-                        <span className="font-bold text-indigo-300 uppercase">Argon Summary:</span>
+                    <div className="p-4 rounded-2xl bg-zinc-900 border-2 border-black shadow-[3px_3px_0px_#000] space-y-1.5 text-xs text-zinc-300">
+                      <div className="flex items-center justify-between text-zinc-400 font-pixel text-[11px]">
+                        <span className="font-bold text-amber-300 uppercase">★ Verdict Summary:</span>
                         <span>Audited: {activeReport.scannedAt}</span>
                       </div>
                       <p className="leading-relaxed font-sans">{activeReport.aiAnalysis.overallSummary}</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-12 text-center flex flex-col items-center justify-center space-y-3 min-h-[400px]">
-                    <FileSearch className="w-12 h-12 text-zinc-600" />
-                    <h3 className="text-base font-semibold text-zinc-300">No Document Scanned Yet</h3>
-                    <p className="text-xs text-zinc-500 max-w-sm">
-                      Paste your text in the editor or choose one of the pre-configured sample essays above to inspect the audit results.
+                  <div className="rounded-3xl border-2 border-black bg-zinc-950 p-12 text-center flex flex-col items-center justify-center space-y-3 min-h-[400px] shadow-[4px_4px_0px_#000]">
+                    <PixelSearch size={40} />
+                    <h3 className="text-base font-bold font-pixel text-white">No Document Scanned Yet</h3>
+                    <p className="text-xs text-zinc-400 max-w-sm">
+                      Paste your text in the editor or choose one of the pre-configured sample corpus texts above to inspect the audit results.
                     </p>
                   </div>
                 )}
@@ -967,37 +1004,37 @@ function VeritasAIWorkspace() {
                 )}
 
                 {/* 3. Bottom Banner: Call-to-action to Humanize & Fix & Export */}
-                <div className="p-6 rounded-2xl bg-gradient-to-r from-zinc-900 via-indigo-950/40 to-zinc-900 border border-zinc-800 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+                <div className="p-6 sm:p-8 rounded-3xl bg-zinc-950 border-2 border-black shadow-[6px_6px_0px_#000000] flex flex-wrap items-center justify-between gap-4 bg-pixel-dots">
                   <div className="space-y-1">
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <Wand2 className="w-5 h-5 text-indigo-400" />
-                      <span>Neural Humanizer Studio &amp; Format-Preserving Doc Surgeon</span>
+                    <h3 className="text-base sm:text-lg font-bold font-pixel text-white flex items-center gap-2">
+                      <PixelBandAid size={22} />
+                      <span>Format-Preserving Doc Surgeon &amp; Humanizer Studio</span>
                     </h3>
-                    <p className="text-xs text-zinc-300">
-                      Re-engineer cadence with Gemini, surgically repair flagged Word (.docx) &amp; PDF (.pdf) files without distorting format, or export an official audit PDF.
+                    <p className="text-xs text-zinc-400">
+                      Re-engineer cadence with Gemini, surgically repair flagged Word (.docx) &amp; PDF (.pdf) files without distorting layout, or export an official forensic audit PDF.
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
                       onClick={() => setMode('surgeon')}
-                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-emerald-900/30"
+                      className="pixel-btn px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-pixel font-bold flex items-center gap-2 shadow-[3px_3px_0px_#000] transition"
                     >
-                      <FileCheck2 className="w-4 h-4 text-emerald-200" />
+                      <PixelBandAid size={16} />
                       <span>Doc Surgeon (.docx / .pdf)</span>
                     </button>
                     <button
                       onClick={handleExportPDF}
-                      className="px-3.5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-semibold flex items-center gap-1.5 transition"
+                      className="pixel-btn px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border-2 border-black text-xs font-pixel font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] transition"
                     >
                       <FileDown className="w-4 h-4" />
                       <span>Audit PDF</span>
                     </button>
                     <button
                       onClick={() => setMode('fixer')}
-                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:opacity-95 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-indigo-600/25"
+                      className="pixel-btn px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-pixel font-bold flex items-center gap-2 shadow-[3px_3px_0px_#000] transition"
                     >
-                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <PixelSparkle size={16} />
                       <span>Humanizer Studio</span>
                     </button>
                   </div>

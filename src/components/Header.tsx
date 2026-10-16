@@ -18,6 +18,15 @@ import { ScannerMode } from '../types';
 import { SAMPLE_TEXTS, SampleText } from '../data/samples';
 import { useAuth } from '../context/AuthContext';
 import { getCurrentUser } from '../utils/authStorage';
+import { 
+  PixelRobot, 
+  PixelDoc, 
+  PixelHeart, 
+  PixelSparkle, 
+  PixelSearch, 
+  PixelBandAid, 
+  PixelShield 
+} from './PixelStickers';
 
 interface HeaderProps {
   currentMode: ScannerMode;
@@ -62,87 +71,87 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-3">
             <div 
               onClick={onToggleView}
-              className="cursor-pointer relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 shadow-md shadow-indigo-500/20 shrink-0 hover:opacity-90 transition"
+              className="cursor-pointer relative flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 border-2 border-black shadow-[3px_3px_0px_#000000] shrink-0 hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#000000] transition"
               title="Click to toggle 3D Landing Page"
             >
-              <ShieldCheck className="w-5 h-5 text-white" />
+              <PixelShield size={24} />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span 
                   onClick={onToggleView}
-                  className="font-extrabold text-lg tracking-tight text-white font-mono cursor-pointer"
+                  className="font-extrabold text-lg tracking-tight text-white font-pixel cursor-pointer flex items-center gap-1"
                 >
                   Veritas<span className="text-indigo-400">AI</span>
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-zinc-700/80 font-semibold uppercase tracking-wider hidden sm:inline-block">
-                  Argon Core
+                <span className="text-[10px] font-pixel px-2 py-0.5 bg-zinc-900 text-amber-300 border-2 border-black shadow-[2px_2px_0px_#000000] font-bold uppercase tracking-wider hidden sm:inline-block">
+                  ★ PixelPop Core
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-400 hidden xl:block">
-                Statistical Stylometry &amp; Technical Plagiarism Verification
+              <p className="text-[11px] text-zinc-400 hidden xl:block font-mono">
+                Retro Stylometry &amp; Format-Preserving Document Surgeon
               </p>
             </div>
           </div>
 
-          {/* Mode Navigation Pills */}
-          <nav className="hidden lg:flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-zinc-800">
+          {/* Mode Navigation Pills with Cute Pixel Icons */}
+          <nav className="hidden lg:flex items-center gap-1.5 bg-zinc-900/90 p-1.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_#000000]">
             <button
               onClick={() => onSelectMode('comprehensive')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-pixel font-bold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 currentMode === 'comprehensive'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                  ? 'bg-indigo-600 text-white border-2 border-black shadow-[2px_2px_0px_#000000]'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
+              <PixelShield size={16} />
               <span>Deep Scan</span>
             </button>
             <button
               onClick={() => onSelectMode('ai')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-pixel font-bold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 currentMode === 'ai'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                  ? 'bg-purple-600 text-white border-2 border-black shadow-[2px_2px_0px_#000000]'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <PixelRobot size={16} />
               <span>AI Detector</span>
             </button>
             <button
               onClick={() => onSelectMode('plagiarism')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-pixel font-bold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 currentMode === 'plagiarism'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                  ? 'bg-rose-600 text-white border-2 border-black shadow-[2px_2px_0px_#000000]'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80'
               }`}
             >
-              <FileSearch className="w-3.5 h-3.5" />
+              <PixelSearch size={16} />
               <span>Plagiarism</span>
             </button>
             <button
               onClick={() => onSelectMode('fixer')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-pixel font-bold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 currentMode === 'fixer'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-2 border-black shadow-[2px_2px_0px_#000000]'
                   : 'text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10'
               }`}
             >
-              <Wand2 className="w-3.5 h-3.5" />
-              <span>Humanizer Fixer</span>
+              <PixelSparkle size={16} />
+              <span>Humanizer</span>
             </button>
             <button
               onClick={() => onSelectMode('surgeon')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-pixel font-bold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 currentMode === 'surgeon'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm ring-1 ring-emerald-400/50'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-2 border-black shadow-[2px_2px_0px_#000000]'
                   : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
               }`}
               title="Format-Preserving Word (.docx) & PDF (.pdf) Auto-Surgeon"
             >
-              <FileCheck2 className="w-3.5 h-3.5 text-emerald-400" />
+              <PixelBandAid size={16} />
               <span>Doc Surgeon (.docx / .pdf)</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-emerald-500/25 text-emerald-300 font-mono font-bold">NEW</span>
+              <span className="px-1.5 py-0.2 rounded text-[9px] bg-black text-emerald-300 font-pixel font-bold border border-emerald-400/50">NEW</span>
             </button>
           </nav>
 
@@ -152,7 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
             {onToggleView && (
               <button
                 onClick={onToggleView}
-                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-indigo-300 border border-zinc-800 text-xs font-medium flex items-center gap-1.5 transition"
+                className="pixel-btn px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-indigo-300 border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel font-bold flex items-center gap-1.5 transition"
                 title={activeView === 'landing' ? 'Open Workspace' : 'View 3D Hero Landing'}
               >
                 {activeView === 'landing' ? (
@@ -172,47 +181,47 @@ export const Header: React.FC<HeaderProps> = ({
             {/* 3D Core View Toggle in Workspace */}
             <button
               onClick={onToggle3DCore}
-              className={`px-2.5 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition ${
+              className={`pixel-btn px-2.5 py-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel font-bold flex items-center gap-1.5 transition ${
                 is3DCoreVisible
-                  ? 'bg-zinc-900 text-indigo-300 border-indigo-500/40 shadow-sm'
-                  : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                  ? 'bg-indigo-950 text-indigo-300'
+                  : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200'
               }`}
               title="Toggle 3D AI Core & Laser Scanner"
             >
-              <span className="font-mono text-[11px]">3D Core</span>
+              <span>3D Core</span>
             </button>
 
             {/* NLP Metrics Modal Trigger */}
             <button
               onClick={onOpenLinguistics}
-              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white border border-zinc-800 text-xs font-medium flex items-center gap-1.5 transition"
+              className="pixel-btn px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel font-bold flex items-center gap-1.5 transition"
               title="Statistical Linguistics & Shingles"
             >
               <Binary className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="hidden sm:inline">NLP Metrics</span>
+              <span className="hidden sm:inline">NLP</span>
             </button>
 
             {/* Quick Sample Text Picker */}
             <div className="relative group hidden sm:block">
               <button
-                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs font-medium border border-zinc-800 flex items-center gap-1.5 transition"
+                className="pixel-btn px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-pixel font-bold border-2 border-black shadow-[2px_2px_0px_#000] flex items-center gap-1.5 transition"
               >
                 <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
                 <span className="hidden md:inline">Samples</span>
               </button>
-              <div className="absolute right-0 top-full mt-1.5 w-64 p-2 bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-50 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-zinc-400 px-2 py-1 block font-mono">
-                  Benchmark Corpus Samples
+              <div className="absolute right-0 top-full mt-1.5 w-64 p-2 bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#000] rounded-2xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-50 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-amber-400 px-2 py-1 block font-pixel">
+                  ★ Corpus Benchmark Samples
                 </span>
                 {SAMPLE_TEXTS.map((sample) => (
                   <button
                     key={sample.id}
                     onClick={() => onSelectSample(sample)}
-                    className="w-full text-left p-2 rounded-xl hover:bg-zinc-800 transition text-xs space-y-0.5"
+                    className="w-full text-left p-2 rounded-xl hover:bg-zinc-900 transition text-xs space-y-0.5 border border-transparent hover:border-black"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-white">{sample.title}</span>
-                      <span className="text-[10px] font-mono text-indigo-400">{sample.badge}</span>
+                      <span className="text-[10px] font-pixel text-indigo-400">{sample.badge}</span>
                     </div>
                     <p className="text-[11px] text-zinc-400 line-clamp-1">{sample.description}</p>
                   </button>
@@ -224,7 +233,7 @@ export const Header: React.FC<HeaderProps> = ({
             {hasActiveReport && (
               <button
                 onClick={onExportPDF}
-                className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm shadow-indigo-600/30"
+                className="pixel-btn px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-pixel font-bold flex items-center gap-1.5 transition border-2 border-black shadow-[2px_2px_0px_#000]"
                 title="Export Forensic Audit PDF Report"
               >
                 <FileDown className="w-3.5 h-3.5" />
@@ -235,12 +244,12 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Audit History Trigger */}
             <button
               onClick={onOpenHistory}
-              className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs border border-zinc-800 relative transition shrink-0"
+              className="pixel-btn p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs border-2 border-black shadow-[2px_2px_0px_#000] relative transition shrink-0"
               title="Audit History"
             >
               <History className="w-4 h-4" />
               {historyCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center font-mono">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center font-pixel border border-black">
                   {historyCount}
                 </span>
               )}
@@ -249,15 +258,15 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Confidential Session Pill */}
             <button
               onClick={onOpenAuth}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition ${
+              className={`pixel-btn px-3 py-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel font-bold flex items-center gap-1.5 transition ${
                 isAuthenticated
-                  ? 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-zinc-600'
-                  : 'bg-zinc-900/60 text-zinc-300 border-zinc-800 hover:border-zinc-700'
+                  ? 'bg-zinc-900 text-zinc-200 hover:bg-zinc-850'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-black'
               }`}
               title="Sign in or start 7-Day Free Trial"
             >
-              <Fingerprint className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="text-[11px] font-medium hidden sm:inline">
+              <Fingerprint className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-pixel hidden sm:inline">
                 {(() => {
                   const user = getCurrentUser();
                   if (!user) return 'Sign In';

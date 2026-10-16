@@ -34,6 +34,17 @@ import {
   SurgeonSentence,
   SurgeonDocumentStats
 } from '../utils/docSurgeonEngine';
+import {
+  PixelBandAid,
+  PixelShield,
+  PixelDoc,
+  PixelHeart,
+  PixelRobot,
+  PixelSparkle,
+  PixelFloppy,
+  PixelCrown,
+  PixelSearch
+} from './PixelStickers';
 
 interface DocSurgeonStudioProps {
   initialText?: string;
@@ -332,38 +343,36 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-300">
       {/* Top Banner & Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/40 via-zinc-900/90 to-zinc-950 p-6 backdrop-blur-md shadow-2xl">
-        <div className="absolute -top-24 -right-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="relative overflow-hidden rounded-3xl border-2 border-black bg-zinc-950 p-6 sm:p-8 shadow-[6px_6px_0px_#000000] bg-pixel-dots">
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                <FileCheck2 className="w-3.5 h-3.5 text-indigo-400" />
-                Format-Preserving Word & PDF Surgeon
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-pixel font-bold bg-indigo-950 text-indigo-300 border-2 border-black shadow-[2px_2px_0px_#000]">
+                <PixelBandAid size={16} />
+                <span>Format-Preserving Word &amp; PDF Surgeon</span>
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                Zero Format Distortion
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-pixel font-bold bg-emerald-950 text-emerald-300 border-2 border-black shadow-[2px_2px_0px_#000]">
+                <PixelHeart size={14} />
+                <span>Zero Format Distortion</span>
               </span>
-              <span className="text-xs text-zinc-400 font-mono">
+              <span className="text-xs text-zinc-400 font-pixel">
                 {fileFormat.toUpperCase()} · {stats.wordCount} words
               </span>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold font-pixel tracking-tight text-white flex items-center gap-2">
+              <PixelCrown size={24} />
               <span>Surgical Document Fixer</span>
-              <span className="text-sm font-normal text-indigo-300/80 hidden sm:inline">
-                · Format-Preserving AI &amp; Plagiarism Precision Editor
+              <span className="text-xs font-pixel font-normal text-amber-300 hidden sm:inline">
+                · Format-Preserving Precision Editor
               </span>
             </h2>
 
             <p className="text-xs sm:text-sm text-zinc-300 max-w-3xl leading-relaxed">
               Upload <span className="font-semibold text-white">Word (.docx)</span> or{' '}
               <span className="font-semibold text-white">PDF (.pdf)</span> files. It surgically repairs{' '}
-              <span className="text-amber-400 font-medium">ONLY the sentences flagged for AI or Plagiarism</span>,
-              while leaving <span className="text-emerald-400 font-medium">100% of your genuine human writing, headings, and formatting untouched</span>!
+              <span className="text-amber-400 font-semibold">ONLY the sentences flagged for AI or Plagiarism</span>,
+              while leaving <span className="text-emerald-400 font-semibold">100% of your genuine human writing, headings, and formatting untouched</span>!
             </p>
           </div>
 
@@ -380,7 +389,7 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isProcessing}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs sm:text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition"
+              className="pixel-btn flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-pixel font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition"
             >
               <Upload className="w-4 h-4" />
               <span>{isProcessing ? 'Processing File...' : 'Upload Word / PDF'}</span>
@@ -388,10 +397,10 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
 
             <button
               onClick={handleLoadSampleDocument}
-              className="px-3.5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/80 font-medium text-xs sm:text-sm transition flex items-center gap-1.5"
+              className="pixel-btn px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-2 border-black font-pixel font-bold text-xs sm:text-sm transition flex items-center gap-1.5"
               title="Load sample academic document with flagged sections"
             >
-              <Layers className="w-4 h-4 text-zinc-400" />
+              <PixelDoc size={18} />
               <span className="hidden sm:inline">Load Sample</span>
             </button>
           </div>
@@ -408,40 +417,40 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
             setIsDragging(false);
           }}
           onDrop={handleDrop}
-          className={`mt-5 p-4 rounded-xl border-2 border-dashed transition-all flex items-center justify-between gap-4 ${
+          className={`mt-6 p-4 rounded-2xl border-2 border-dashed transition-all flex items-center justify-between gap-4 ${
             isDragging
               ? 'border-indigo-400 bg-indigo-500/20 scale-[1.01]'
-              : 'border-zinc-700/60 bg-zinc-950/40 hover:border-zinc-600'
+              : 'border-zinc-700 bg-zinc-900/90 hover:border-zinc-500'
           }`}
         >
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-zinc-800/80 text-indigo-400">
-              <FileText className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-zinc-950 border-2 border-black shadow-[2px_2px_0px_#000] text-indigo-400">
+              <PixelDoc size={24} />
             </div>
             <div>
-              <div className="text-xs sm:text-sm font-semibold text-white flex items-center gap-2">
-                <span>Active File: {fileName}</span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 font-mono uppercase">
+              <div className="text-xs sm:text-sm font-bold font-pixel text-white flex items-center gap-2">
+                <span>Active Document: {fileName}</span>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-950 text-amber-300 font-pixel uppercase border border-black">
                   {fileFormat}
                 </span>
               </div>
               <p className="text-[11px] text-zinc-400">
-                Drag and drop any <span className="text-indigo-300">.docx</span> or{' '}
-                <span className="text-indigo-300">.pdf</span> file here to inspect and surgically repair.
+                Drag and drop any <span className="text-indigo-300 font-semibold">.docx</span> or{' '}
+                <span className="text-indigo-300 font-semibold">.pdf</span> file here to inspect and surgically repair.
               </p>
             </div>
           </div>
 
           <label
             htmlFor={fileInputId}
-            className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-medium cursor-pointer transition whitespace-nowrap"
+            className="pixel-btn px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-2 border-black text-xs font-pixel font-bold cursor-pointer transition whitespace-nowrap"
           >
             Change File
           </label>
         </div>
 
         {statusMessage && (
-          <div className="mt-3 px-3.5 py-2 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-xs text-indigo-200 flex items-center gap-2 animate-in fade-in">
+          <div className="mt-3 px-3.5 py-2 rounded-xl bg-indigo-950/80 border-2 border-black text-xs text-indigo-200 font-pixel flex items-center gap-2 animate-in fade-in">
             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
             <span>{statusMessage}</span>
           </div>
@@ -451,82 +460,91 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
       {/* Forensic Telemetry Strip (Before vs After) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* Metric 1: AI Probability */}
-        <div className="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>AI Probability</span>
-            <span className="text-[10px] text-zinc-400">Threshold: &lt;5%</span>
+        <div className="p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000000] flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between text-xs font-pixel text-zinc-400">
+            <span className="flex items-center gap-1.5 text-zinc-200">
+              <PixelRobot size={16} />
+              <span>AI Probability</span>
+            </span>
+            <span className="text-[10px] text-amber-400">&lt;5% Target</span>
           </div>
-          <div className="my-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-emerald-400">
+          <div className="my-1 flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-pixel text-emerald-400">
               {stats.currentAiScore}%
             </span>
             {stats.currentAiScore < stats.originalAiScore && (
-              <span className="text-xs line-through text-red-400/80 font-mono">
+              <span className="text-xs line-through text-rose-400 font-pixel">
                 {stats.originalAiScore}%
               </span>
             )}
           </div>
-          <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+          <div className="w-full bg-zinc-900 h-2 rounded-none pixel-meter overflow-hidden">
             <div
               className={`h-full transition-all duration-500 ${
                 stats.currentAiScore <= 10
                   ? 'bg-emerald-500'
                   : stats.currentAiScore <= 40
                   ? 'bg-amber-500'
-                  : 'bg-red-500'
+                  : 'bg-rose-500'
               }`}
               style={{ width: `${Math.max(5, stats.currentAiScore)}%` }}
             />
           </div>
-          <span className="mt-2 text-[10px] text-zinc-400">
-            {stats.currentAiScore <= 5 ? 'Verified 100% Human' : 'Flagged AI detected'}
+          <span className="text-[10px] font-pixel text-zinc-400">
+            {stats.currentAiScore <= 5 ? '★ 100% Human Verified' : 'AI Markers Flagged'}
           </span>
         </div>
 
         {/* Metric 2: Plagiarism Similarity */}
-        <div className="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Plagiarism Similarity</span>
-            <span className="text-[10px] text-zinc-400">Target: 0%</span>
+        <div className="p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000000] flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between text-xs font-pixel text-zinc-400">
+            <span className="flex items-center gap-1.5 text-zinc-200">
+              <PixelSearch size={16} />
+              <span>Plagiarism</span>
+            </span>
+            <span className="text-[10px] text-emerald-400">0% Target</span>
           </div>
-          <div className="my-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-emerald-400">
+          <div className="my-1 flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-pixel text-emerald-400">
               {stats.currentSimilarityScore}%
             </span>
             {stats.currentSimilarityScore < stats.originalSimilarityScore && (
-              <span className="text-xs line-through text-red-400/80 font-mono">
+              <span className="text-xs line-through text-rose-400 font-pixel">
                 {stats.originalSimilarityScore}%
               </span>
             )}
           </div>
-          <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+          <div className="w-full bg-zinc-900 h-2 rounded-none pixel-meter overflow-hidden">
             <div
               className={`h-full transition-all duration-500 ${
-                stats.currentSimilarityScore === 0 ? 'bg-emerald-500' : 'bg-red-500'
+                stats.currentSimilarityScore === 0 ? 'bg-emerald-500' : 'bg-rose-500'
               }`}
               style={{ width: `${Math.max(4, stats.currentSimilarityScore)}%` }}
             />
           </div>
-          <span className="mt-2 text-[10px] text-zinc-400">
-            {stats.currentSimilarityScore === 0 ? 'Zero Overlap' : 'Flagged sources'}
+          <span className="text-[10px] font-pixel text-zinc-400">
+            {stats.currentSimilarityScore === 0 ? '★ Zero Shingle Matches' : 'Corpus Matches Flagged'}
           </span>
         </div>
 
         {/* Metric 3: Genuine Text Preserved */}
-        <div className="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Original Text Preserved</span>
-            <span className="text-[10px] text-emerald-400 font-mono">100% Intact</span>
+        <div className="p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000000] flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between text-xs font-pixel text-zinc-400">
+            <span className="flex items-center gap-1.5 text-zinc-200">
+              <PixelHeart size={16} />
+              <span>Human Text</span>
+            </span>
+            <span className="text-[10px] text-emerald-400">100% Intact</span>
           </div>
-          <div className="my-2">
-            <span className="text-2xl font-bold font-mono text-white">
+          <div className="my-1">
+            <span className="text-2xl font-bold font-pixel text-white">
               {stats.unflaggedSentences}{' '}
               <span className="text-xs font-normal text-zinc-400">
-                / {stats.totalSentences} sentences
+                / {stats.totalSentences} sents
               </span>
             </span>
           </div>
-          <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+          <div className="w-full bg-zinc-900 h-2 rounded-none pixel-meter overflow-hidden">
             <div
               className="h-full bg-indigo-500"
               style={{
@@ -538,28 +556,31 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
               }}
             />
           </div>
-          <span className="mt-2 text-[10px] text-zinc-400">
-            Human sentences left untouched
+          <span className="text-[10px] font-pixel text-zinc-400">
+            Original sentences untouched
           </span>
         </div>
 
         {/* Metric 4: Surgical Repairs */}
-        <div className="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Surgically Fixed</span>
-            <span className="text-[10px] text-indigo-400 font-mono">Targeted</span>
+        <div className="p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000000] flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between text-xs font-pixel text-zinc-400">
+            <span className="flex items-center gap-1.5 text-zinc-200">
+              <PixelBandAid size={16} />
+              <span>Surgically Fixed</span>
+            </span>
+            <span className="text-[10px] text-indigo-400">Targeted</span>
           </div>
-          <div className="my-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-indigo-300">
+          <div className="my-1 flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-pixel text-indigo-300">
               {stats.fixedSentences}
             </span>
-            <span className="text-xs text-zinc-400 font-mono">
+            <span className="text-xs text-zinc-400 font-pixel">
               of {stats.flaggedSentences} flagged
             </span>
           </div>
-          <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+          <div className="w-full bg-zinc-900 h-2 rounded-none pixel-meter overflow-hidden">
             <div
-              className="h-full bg-indigo-400"
+              className="h-full bg-teal-400"
               style={{
                 width: `${
                   stats.flaggedSentences > 0
@@ -569,28 +590,28 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
               }}
             />
           </div>
-          <span className="mt-2 text-[10px] text-zinc-400">
+          <span className="text-[10px] font-pixel text-zinc-400">
             {stats.fixedSentences === stats.flaggedSentences
-              ? 'All flagged segments clean'
+              ? '★ All flagged segments clean'
               : `${stats.flaggedSentences - stats.fixedSentences} remaining`}
           </span>
         </div>
       </div>
 
       {/* Main Surgical Studio Controls Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#000000]">
         {/* Left: Style & Filters */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Style selector */}
-          <div className="flex items-center gap-1.5 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
-            <Sliders className="w-3.5 h-3.5 text-zinc-400 ml-1.5" />
+          <div className="flex items-center gap-1.5 bg-zinc-900 p-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000]">
+            <Sliders className="w-3.5 h-3.5 text-zinc-400 ml-1" />
             {(['academic', 'professional', 'conversational', 'creative', 'stealth'] as FixerStyle[]).map(style => (
               <button
                 key={style}
                 onClick={() => setSelectedStyle(style)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-pixel font-bold capitalize transition ${
                   selectedStyle === style
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-indigo-600 text-white border border-black shadow-[1px_1px_0px_#000]'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -600,37 +621,37 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
           </div>
 
           {/* Filter toggle */}
-          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800 text-[11px]">
+          <div className="flex items-center gap-1 bg-zinc-900 p-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel">
             <button
               onClick={() => setFilterMode('all')}
-              className={`px-2.5 py-1 rounded-md transition ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${
                 filterMode === 'all'
-                  ? 'bg-zinc-800 text-white font-medium'
+                  ? 'bg-zinc-800 text-white border border-black'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              Full Document
+              All Sections
             </button>
             <button
               onClick={() => setFilterMode('flagged')}
-              className={`px-2.5 py-1 rounded-md transition flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1.5 ${
                 filterMode === 'flagged'
-                  ? 'bg-amber-500/20 text-amber-300 font-medium border border-amber-500/40'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-amber-500 text-black border border-black shadow-[1px_1px_0px_#000]'
+                  : 'text-amber-400 hover:text-amber-300'
               }`}
             >
-              <AlertTriangle className="w-3 h-3 text-amber-400" />
-              <span>Flagged Only ({stats.flaggedSentences})</span>
+              <AlertTriangle className="w-3 h-3" />
+              <span>Flagged ({stats.flaggedSentences})</span>
             </button>
           </div>
 
           {/* View Mode */}
-          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800 text-[11px]">
+          <div className="flex items-center gap-1 bg-zinc-900 p-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel">
             <button
               onClick={() => setViewMode('formatted')}
-              className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 ${
                 viewMode === 'formatted'
-                  ? 'bg-zinc-800 text-white font-medium'
+                  ? 'bg-zinc-800 text-white border border-black'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
               title="Show formatted document layout"
@@ -640,15 +661,15 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
             </button>
             <button
               onClick={() => setViewMode('diff')}
-              className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 ${
                 viewMode === 'diff'
-                  ? 'bg-zinc-800 text-white font-medium'
+                  ? 'bg-zinc-800 text-white border border-black'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
               title="Side-by-side Before & After Diff"
             >
               <Columns className="w-3 h-3" />
-              <span>Side-by-Side</span>
+              <span>Diff</span>
             </button>
           </div>
         </div>
@@ -658,7 +679,7 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
           {stats.fixedSentences > 0 && (
             <button
               onClick={handleRevertAll}
-              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-medium flex items-center gap-1.5 transition"
+              className="pixel-btn px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-2 border-black text-xs font-pixel font-bold flex items-center gap-1.5 transition"
               title="Revert all changes to original"
             >
               <Undo2 className="w-3.5 h-3.5" />
@@ -670,12 +691,12 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
           <button
             onClick={handleApplySurgicalFixAll}
             disabled={isFixingAll || stats.flaggedSentences === 0}
-            className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-xs sm:text-sm shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
+            className="pixel-btn flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-pixel font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition disabled:opacity-50"
             title="Surgically fix ONLY AI & Plagiarized passages without touching genuine text"
           >
-            <Sparkles className={`w-4 h-4 ${isFixingAll ? 'animate-spin' : ''}`} />
+            <PixelSparkle size={18} className={isFixingAll ? 'animate-spin' : ''} />
             <span>
-              {isFixingAll ? 'Fixing Passages...' : '⚡ Surgical Auto-Fix Flagged Only'}
+              {isFixingAll ? 'Fixing Passages...' : '⚡ Auto-Fix Flagged Only'}
             </span>
           </button>
 
@@ -683,47 +704,47 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleExportWord}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md transition ${
+              className={`pixel-btn px-3.5 py-2.5 rounded-xl text-xs font-pixel font-bold flex items-center gap-1.5 transition ${
                 fileFormat === 'docx'
-                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/30 ring-2 ring-blue-400/50'
-                  : 'bg-zinc-850 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/80'
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[3px_3px_0px_#000]'
+                  : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border-2 border-black shadow-[2px_2px_0px_#000]'
               }`}
               title="Download clean document in Word (.docx) format with original layout & styles"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export Word (.docx)</span>
+              <PixelFloppy size={16} />
+              <span>Export .docx</span>
               {fileFormat === 'docx' && (
-                <span className="px-1.5 py-0.2 rounded text-[9px] bg-white/20 text-white font-mono font-bold uppercase">
-                  Original
+                <span className="px-1.5 py-0.2 rounded text-[9px] bg-white text-black font-pixel font-bold uppercase">
+                  Match
                 </span>
               )}
             </button>
 
             <button
               onClick={handleExportPdf}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md transition ${
+              className={`pixel-btn px-3.5 py-2.5 rounded-xl text-xs font-pixel font-bold flex items-center gap-1.5 transition ${
                 fileFormat === 'pdf'
-                  ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/30 ring-2 ring-red-400/50'
-                  : 'bg-zinc-850 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/80'
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-[3px_3px_0px_#000]'
+                  : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border-2 border-black shadow-[2px_2px_0px_#000]'
               }`}
               title="Download clean document in formatted PDF (.pdf) format"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export PDF (.pdf)</span>
+              <span>Export .pdf</span>
               {fileFormat === 'pdf' && (
-                <span className="px-1.5 py-0.2 rounded text-[9px] bg-white/20 text-white font-mono font-bold uppercase">
-                  Original
+                <span className="px-1.5 py-0.2 rounded text-[9px] bg-white text-black font-pixel font-bold uppercase">
+                  Match
                 </span>
               )}
             </button>
 
             <button
               onClick={handleExportAuditCertificate}
-              className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1.5 transition hidden md:flex"
+              className="pixel-btn px-3 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-emerald-300 border-2 border-black text-xs font-pixel font-bold flex items-center gap-1.5 transition hidden md:flex"
               title="Download Official Veritas Surgical Audit Certificate"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Audit Report</span>
+              <PixelShield size={16} />
+              <span>Audit PDF</span>
             </button>
           </div>
         </div>
@@ -731,37 +752,38 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
 
       {/* Main Document Inspection & Preview Canvas */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Formatted Document Canvas (8 cols or 12 if no sentence active) */}
+        {/* Left Column: Formatted Document Canvas */}
         <div className={`${activeSentence ? 'lg:col-span-8' : 'lg:col-span-12'} space-y-4`}>
-          <div className="rounded-2xl border border-zinc-800/90 bg-zinc-950 p-6 sm:p-8 shadow-inner min-h-[500px]">
+          <div className="rounded-3xl border-2 border-black bg-zinc-950 p-6 sm:p-8 shadow-[4px_4px_0px_#000000] min-h-[500px]">
             {/* Document Header Bar */}
-            <div className="flex items-center justify-between pb-4 mb-6 border-b border-zinc-800/80 text-xs text-zinc-400">
+            <div className="flex items-center justify-between pb-4 mb-6 border-b-2 border-zinc-800 text-xs font-pixel text-zinc-400">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-zinc-200">
+                <PixelDoc size={18} />
+                <span className="font-bold text-white">
                   {fileName}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 text-[10px] font-mono">
+                <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-900 text-amber-300 font-pixel border border-black">
                   {blocks.length} sections
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-[11px]">
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Original Human (Untouched)
+              <div className="flex items-center gap-3 text-[11px] font-pixel">
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <span className="w-2.5 h-2.5 rounded-none bg-emerald-500 border border-black" />
+                  Human (Untouched)
                 </span>
-                <span className="flex items-center gap-1 text-amber-400">
-                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="flex items-center gap-1.5 text-amber-400">
+                  <span className="w-2.5 h-2.5 rounded-none bg-amber-500 border border-black" />
                   Flagged (AI / Plag)
                 </span>
-                <span className="flex items-center gap-1 text-indigo-400">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                <span className="flex items-center gap-1.5 text-teal-400">
+                  <span className="w-2.5 h-2.5 rounded-none bg-teal-400 border border-black" />
                   Surgically Fixed
                 </span>
               </div>
             </div>
 
             {/* Document Content Rendering */}
-            <div className="space-y-6 text-zinc-300 leading-relaxed text-sm sm:text-base font-serif">
+            <div className="space-y-6 text-zinc-200 leading-relaxed text-sm sm:text-base font-serif">
               {blocks.map((block, bIdx) => {
                 // Filter sentences if flagged-only mode
                 const visibleSentences =
@@ -780,8 +802,8 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
                       key={block.id}
                       className={`font-sans font-bold text-white tracking-tight ${
                         block.level === 1
-                          ? 'text-lg sm:text-xl border-b border-zinc-800/60 pb-2 pt-4'
-                          : 'text-base sm:text-lg pt-2 text-indigo-200'
+                          ? 'text-lg sm:text-xl border-b border-zinc-800 pb-2 pt-4 font-pixel text-indigo-300'
+                          : 'text-base sm:text-lg pt-2 text-teal-300 font-pixel'
                       }`}
                     >
                       {block.sentences.map(sent => (
@@ -832,19 +854,20 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
 
         {/* Right Column: Sentence Inspector Drawer (when a sentence is selected) */}
         {activeSentence && (
-          <div className="lg:col-span-4 rounded-2xl border border-zinc-800/90 bg-zinc-900/95 p-5 space-y-4 shadow-2xl backdrop-blur-md self-start sticky top-6">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <div className="lg:col-span-4 rounded-3xl border-2 border-black bg-zinc-950 p-5 space-y-4 shadow-[4px_4px_0px_#000000] self-start sticky top-6">
+            <div className="flex items-center justify-between border-b-2 border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-white">
+                <PixelSearch size={18} />
+                <span className="text-xs font-pixel font-bold text-white">
                   Sentence Inspector
                 </span>
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase font-mono ${
+                  className={`px-2 py-0.5 rounded text-[10px] font-pixel font-bold uppercase border-2 border-black shadow-[1px_1px_0px_#000] ${
                     activeSentence.isApplied
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      ? 'bg-emerald-500 text-black'
                       : activeSentence.isFlagged
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                      : 'bg-zinc-800 text-zinc-400'
+                      ? 'bg-amber-500 text-black'
+                      : 'bg-zinc-800 text-zinc-300'
                   }`}
                 >
                   {activeSentence.isApplied
@@ -856,7 +879,7 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
               </div>
               <button
                 onClick={() => setActiveSentenceId(null)}
-                className="text-zinc-400 hover:text-white text-xs px-2 py-0.5 rounded hover:bg-zinc-800"
+                className="text-zinc-400 hover:text-white font-pixel text-xs px-2 py-0.5 rounded hover:bg-zinc-800"
               >
                 ✕ Close
               </button>
@@ -864,24 +887,24 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
 
             {/* AI and Similarity Gauges for this sentence */}
             <div className="grid grid-cols-2 gap-2 text-center text-xs">
-              <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800/80">
-                <span className="text-[10px] text-zinc-400 block">AI Probability</span>
+              <div className="p-2.5 rounded-xl bg-zinc-900 border-2 border-black shadow-[2px_2px_0px_#000]">
+                <span className="text-[10px] font-pixel text-zinc-400 block">AI Score</span>
                 <span
-                  className={`text-lg font-bold font-mono ${
+                  className={`text-lg font-bold font-pixel ${
                     activeSentence.isApplied
                       ? 'text-emerald-400'
                       : activeSentence.aiProbability >= 50
-                      ? 'text-red-400'
+                      ? 'text-rose-400'
                       : 'text-zinc-200'
                   }`}
                 >
                   {activeSentence.isApplied ? '3%' : `${activeSentence.aiProbability}%`}
                 </span>
               </div>
-              <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800/80">
-                <span className="text-[10px] text-zinc-400 block">Plagiarism</span>
+              <div className="p-2.5 rounded-xl bg-zinc-900 border-2 border-black shadow-[2px_2px_0px_#000]">
+                <span className="text-[10px] font-pixel text-zinc-400 block">Plagiarism</span>
                 <span
-                  className={`text-lg font-bold font-mono ${
+                  className={`text-lg font-bold font-pixel ${
                     activeSentence.isApplied
                       ? 'text-emerald-400'
                       : activeSentence.similarity > 0
@@ -896,9 +919,9 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
 
             {/* Reasons for flagging */}
             {activeSentence.reasons.length > 0 && (
-              <div className="p-3 rounded-lg bg-amber-950/20 border border-amber-500/30 text-[11px] text-amber-200 space-y-1">
-                <span className="font-semibold block text-amber-300">Detection Reasons:</span>
-                <ul className="list-disc pl-4 space-y-0.5">
+              <div className="p-3 rounded-xl bg-amber-950/40 border-2 border-black shadow-[2px_2px_0px_#000] text-[11px] text-amber-200 space-y-1 font-pixel">
+                <span className="font-bold block text-amber-300">★ Detection Reasons:</span>
+                <ul className="list-disc pl-4 space-y-0.5 font-sans">
                   {activeSentence.reasons.map((r, i) => (
                     <li key={i}>{r}</li>
                   ))}
@@ -909,22 +932,22 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
             {/* Before vs After Comparison */}
             <div className="space-y-3 text-xs">
               <div>
-                <span className="text-[11px] font-semibold text-zinc-400 block mb-1">
-                  Original Text:
+                <span className="text-[11px] font-pixel font-bold text-zinc-400 block mb-1">
+                  Original Flagged Text:
                 </span>
-                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800/80 text-zinc-300 font-serif leading-relaxed">
+                <div className="p-3 rounded-xl bg-zinc-900 border-2 border-black text-zinc-300 font-serif leading-relaxed">
                   "{activeSentence.originalText}"
                 </div>
               </div>
 
               <div>
-                <span className="text-[11px] font-semibold text-emerald-400 flex items-center justify-between mb-1">
+                <span className="text-[11px] font-pixel font-bold text-emerald-400 flex items-center justify-between mb-1">
                   <span>Surgically Humanized:</span>
-                  <span className="text-[10px] text-zinc-400 font-mono">
-                    Target: &lt;5% AI · 0% Plag
+                  <span className="text-[10px] text-zinc-400 font-pixel">
+                    &lt;5% AI Target
                   </span>
                 </span>
-                <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/40 text-emerald-200 font-serif leading-relaxed">
+                <div className="p-3 rounded-xl bg-emerald-950/40 border-2 border-black text-emerald-200 font-serif leading-relaxed">
                   "{activeSentence.fixedText || activeSentence.originalText}"
                 </div>
               </div>
@@ -934,10 +957,10 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
             <div className="pt-2 flex items-center gap-2">
               <button
                 onClick={() => handleToggleSingleSentenceFix(activeSentence.id)}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition ${
+                className={`pixel-btn flex-1 py-2.5 px-3 rounded-xl text-xs font-pixel font-bold flex items-center justify-center gap-1.5 transition ${
                   activeSentence.isApplied
-                    ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30'
+                    ? 'bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-2 border-black'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-black'
                 }`}
               >
                 {activeSentence.isApplied ? (
@@ -957,17 +980,17 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
         )}
       </div>
 
-      {/* Explanatory Footer Card (Burmese & English) */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-xs text-zinc-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Explanatory Footer Card */}
+      <div className="rounded-2xl border-2 border-black bg-zinc-950 p-5 text-xs text-zinc-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[4px_4px_0px_#000]">
         <div className="flex items-center gap-3">
-          <Info className="w-5 h-5 text-indigo-400 shrink-0" />
+          <PixelShield size={24} className="shrink-0" />
           <div>
-            <span className="font-semibold text-white block">
+            <span className="font-pixel font-bold text-white block text-sm">
               100% Format-Preservation Guarantee
             </span>
             <span className="text-[11px] text-zinc-400">
               Headings, paragraph breaks, margins, bullet points, and font hierarchy are maintained.
-              Exported Word (.docx) and PDF (.pdf) documents are clean, professional, and ready for publication or academic submission.
+              Exported Word (.docx) and PDF (.pdf) documents are clean, professional, and ready for publication.
             </span>
           </div>
         </div>
@@ -975,9 +998,9 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
         {onSendToWorkspace && (
           <button
             onClick={() => onSendToWorkspace(currentText)}
-            className="px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1.5 shrink-0 transition"
+            className="pixel-btn px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-2 border-black text-xs font-pixel font-bold flex items-center gap-1.5 shrink-0 transition"
           >
-            <span>Open in Deep Scan Workspace</span>
+            <span>Deep Scan Workspace</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         )}
@@ -1006,15 +1029,15 @@ const SentenceSpan: React.FC<SentenceSpanProps> = ({
   return (
     <span
       onClick={onSelect}
-      className={`relative inline cursor-pointer rounded px-1 py-0.5 mx-0.5 transition-all group ${
+      className={`relative inline cursor-pointer rounded px-1.5 py-0.5 mx-0.5 transition-all group ${
         isActive
           ? 'ring-2 ring-indigo-400 z-10'
           : ''
       } ${
         isFixed
-          ? 'bg-emerald-500/15 text-emerald-200 border-b-2 border-emerald-500/70'
+          ? 'bg-emerald-500/20 text-emerald-200 border-b-2 border-emerald-400'
           : isFlagged
-          ? 'bg-amber-500/15 text-amber-200 border-b-2 border-amber-500/80 hover:bg-amber-500/25'
+          ? 'bg-amber-500/20 text-amber-200 border-b-2 border-amber-400 hover:bg-amber-500/30'
           : 'hover:bg-zinc-800/60'
       }`}
     >
@@ -1022,14 +1045,14 @@ const SentenceSpan: React.FC<SentenceSpanProps> = ({
 
       {/* Flag Badge Pill */}
       {isFlagged && (
-        <span className="inline-flex items-center gap-0.5 ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-medium bg-amber-500/25 text-amber-300 border border-amber-500/30 align-middle">
+        <span className="inline-flex items-center gap-0.5 ml-1 px-1.5 py-0.2 rounded text-[9px] font-pixel font-bold bg-amber-500 text-black border border-black shadow-[1px_1px_0px_#000] align-middle">
           {sentence.flagType === 'both' ? 'AI+PLAG' : sentence.flagType.toUpperCase()}
         </span>
       )}
 
       {isFixed && (
-        <span className="inline-flex items-center gap-0.5 ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-medium bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 align-middle">
-          FIXED &lt;5%
+        <span className="inline-flex items-center gap-0.5 ml-1 px-1.5 py-0.2 rounded text-[9px] font-pixel font-bold bg-emerald-500 text-black border border-black shadow-[1px_1px_0px_#000] align-middle">
+          ★ FIXED &lt;5%
         </span>
       )}
     </span>

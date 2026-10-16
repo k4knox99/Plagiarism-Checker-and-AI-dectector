@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Wand2, Check, RefreshCw, AlertCircle, Sparkles, Copy, ArrowRight } from 'lucide-react';
+import { X, Check, RefreshCw, Copy, ArrowRight } from 'lucide-react';
 import { SentenceAnalysis } from '../types';
+import { PixelBandAid, PixelSparkle, PixelShield, PixelRobot } from './PixelStickers';
 
 interface SentenceInspectorModalProps {
   sentence: SentenceAnalysis | null;
@@ -71,48 +72,48 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-zinc-950 border-2 border-black rounded-3xl shadow-[8px_8px_0px_#000000] overflow-hidden flex flex-col max-h-[90vh] bg-pixel-dots">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-950/60">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
-              <Wand2 className="w-5 h-5" />
+        <div className="flex items-center justify-between p-5 border-b-2 border-zinc-800 bg-zinc-900/80">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-zinc-950 border-2 border-black shadow-[2px_2px_0px_#000]">
+              <PixelBandAid size={22} />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">Sentence Stylometry Inspector</h3>
-              <p className="text-xs text-slate-400">Fix AI markers, predictable syntax, and robotic transitions</p>
+              <h3 className="text-base font-bold font-pixel text-white">Sentence Stylometry Inspector</h3>
+              <p className="text-xs text-zinc-400 font-pixel">Fix AI markers, predictable syntax, and robotic transitions</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 rounded-xl bg-zinc-950 border-2 border-black hover:bg-zinc-800 text-zinc-400 hover:text-white transition shadow-[2px_2px_0px_#000]"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content body */}
         <div className="p-5 overflow-y-auto space-y-5 custom-scrollbar">
           {/* Flagged Original Sentence Card */}
-          <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-2.5">
+          <div className="p-4 rounded-2xl bg-rose-950/30 border-2 border-black shadow-[3px_3px_0px_#000] space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5" />
+              <span className="text-xs font-bold font-pixel uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                <PixelRobot size={16} />
                 Original Flagged Sentence
               </span>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+              <span className="text-xs font-pixel px-2.5 py-0.5 rounded-lg bg-black text-rose-300 font-bold border-2 border-black shadow-[1px_1px_0px_#000]">
                 {sentence.aiProbability}% AI Probability
               </span>
             </div>
 
-            <p className="text-sm font-medium text-slate-100 leading-relaxed bg-black/30 p-3 rounded-lg border border-slate-800/80">
+            <p className="text-sm font-medium text-zinc-100 leading-relaxed bg-zinc-950 p-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000]">
               "{sentence.sentence}"
             </p>
 
             {sentence.reasons && sentence.reasons.length > 0 && (
-              <div className="space-y-1 text-xs text-slate-300">
-                <span className="font-semibold text-slate-400">Why this was flagged:</span>
-                <ul className="list-disc list-inside space-y-0.5 text-slate-300 pl-1">
+              <div className="space-y-1 text-xs text-zinc-300">
+                <span className="font-bold font-pixel text-zinc-400">Why this was flagged:</span>
+                <ul className="list-disc list-inside space-y-0.5 text-zinc-300 pl-1 font-sans">
                   {sentence.reasons.map((r, i) => (
                     <li key={i}>{r}</li>
                   ))}
@@ -124,13 +125,13 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
           {/* Suggested Fixes */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
+              <h4 className="text-xs font-bold font-pixel uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                <PixelSparkle size={16} />
                 Humanized Rewrite Options
               </h4>
               {loading && (
-                <span className="flex items-center gap-1 text-xs text-slate-400">
-                  <RefreshCw className="w-3 h-3 animate-spin text-indigo-400" />
+                <span className="flex items-center gap-1 text-xs text-zinc-400 font-pixel">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
                   Generating styled rewrites...
                 </span>
               )}
@@ -140,31 +141,32 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
               {options.map((opt, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-indigo-500/50 transition-all space-y-2.5 group"
+                  className="p-4 rounded-2xl bg-zinc-900 border-2 border-black shadow-[3px_3px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#000] transition-all space-y-2.5 group"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                    <span className="px-2.5 py-0.5 rounded-lg text-xs font-pixel font-bold bg-zinc-950 text-indigo-300 border border-black shadow-[1px_1px_0px_#000]">
                       {opt.style}
                     </span>
-                    <span className="text-[10px] text-emerald-400 font-medium">
-                      Est. AI Score: &lt;5%
+                    <span className="text-[10px] font-pixel text-emerald-400 font-bold flex items-center gap-1">
+                      <PixelShield size={12} />
+                      AI Score: &lt;5%
                     </span>
                   </div>
 
-                  <p className="text-sm text-slate-100 font-medium leading-relaxed bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                  <p className="text-sm text-zinc-100 font-medium leading-relaxed bg-zinc-950 p-3 rounded-xl border-2 border-black shadow-[1px_1px_0px_#000]">
                     "{opt.text}"
                   </p>
 
                   {opt.rationale && (
-                    <p className="text-[11px] text-slate-400 italic">
+                    <p className="text-xs text-zinc-400 italic">
                       {opt.rationale}
                     </p>
                   )}
 
-                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-800/60">
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
                     <button
                       onClick={() => handleCopy(opt.text, idx)}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 transition"
+                      className="pixel-btn px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-850 text-zinc-300 text-xs font-pixel font-bold flex items-center gap-1 border-2 border-black shadow-[2px_2px_0px_#000]"
                     >
                       {copiedIndex === idx ? (
                         <>
@@ -184,7 +186,7 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
                         onApplyRewrite(sentence.sentence, opt.text);
                         onClose();
                       }}
-                      className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition"
+                      className="pixel-btn px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-pixel font-bold flex items-center gap-1.5 border-2 border-black shadow-[3px_3px_0px_#000]"
                     >
                       <span>Replace in Document</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -197,10 +199,10 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-end">
+        <div className="p-4 border-t-2 border-zinc-800 bg-zinc-900/80 flex items-center justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
+            className="pixel-btn px-4 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-850 text-zinc-300 text-xs font-pixel font-bold border-2 border-black shadow-[2px_2px_0px_#000]"
           >
             Close
           </button>

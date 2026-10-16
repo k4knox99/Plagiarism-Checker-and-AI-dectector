@@ -427,18 +427,18 @@ export const ThreeCoreScanner: React.FC<ThreeCoreScannerProps> = ({
       {/* Top 3D Status HUD Header */}
       <div className="absolute top-3 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/80 backdrop-blur-md border border-zinc-800 text-xs font-mono">
-            <span className={`w-2 h-2 rounded-full ${
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel">
+            <span className={`w-2.5 h-2.5 rounded-full ${
               status === 'scanning' ? 'bg-indigo-400 animate-ping' : isHighAi ? 'bg-rose-400' : 'bg-emerald-400'
             }`} />
-            <span className="text-zinc-300 font-semibold uppercase tracking-wider text-[11px]">
-              {variant === 'hero' ? '3D Neural Forensics Engine' : `Reactor: ${status.toUpperCase()}`}
+            <span className="text-zinc-200 font-bold uppercase tracking-wider text-[10px]">
+              {variant === 'hero' ? '3D Stylometric Core' : `Core: ${status.toUpperCase()}`}
             </span>
           </div>
 
           {variant === 'workspace' && typeof aiScore === 'number' && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/80 backdrop-blur-md border border-zinc-800 text-xs font-mono">
-              <span className="text-zinc-400">Authenticity:</span>
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel">
+              <span className="text-zinc-400">Authentic:</span>
               <span className="font-bold text-emerald-400">{authenticityScore}%</span>
               <span className="text-zinc-600">·</span>
               <span className="text-zinc-400">AI Risk:</span>
@@ -452,7 +452,7 @@ export const ThreeCoreScanner: React.FC<ThreeCoreScannerProps> = ({
           {variant === 'hero' ? (
             <button
               onClick={onLaunchWorkspace}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition transform active:scale-95"
+              className="pixel-btn px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-pixel font-bold flex items-center gap-2 border-2 border-black shadow-[3px_3px_0px_#000] transition"
             >
               <span>Launch Workspace</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -460,19 +460,19 @@ export const ThreeCoreScanner: React.FC<ThreeCoreScannerProps> = ({
           ) : isHighAi && onOneClickHumanize ? (
             <button
               onClick={onOneClickHumanize}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition transform active:scale-95"
+              className="pixel-btn px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-pixel font-bold flex items-center gap-1.5 border-2 border-black shadow-[3px_3px_0px_#000] transition"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <Sparkles className="w-3.5 h-3.5 text-black" />
               <span>One-Click Humanize All</span>
             </button>
           ) : (
             <button
               onClick={onTriggerScan}
               disabled={status === 'scanning'}
-              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-600/30 disabled:opacity-50 transition transform active:scale-95"
+              className="pixel-btn px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-pixel font-bold flex items-center gap-1.5 border-2 border-black shadow-[2px_2px_0px_#000] disabled:opacity-50 transition"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${status === 'scanning' ? 'animate-spin' : ''}`} />
-              <span>{status === 'scanning' ? 'Scanning...' : 'Trigger 3D Re-Scan'}</span>
+              <span>{status === 'scanning' ? 'Scanning...' : 'Trigger Re-Scan'}</span>
             </button>
           )}
         </div>

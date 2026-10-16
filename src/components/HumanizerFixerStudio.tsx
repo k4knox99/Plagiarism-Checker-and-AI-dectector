@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import { 
-  Wand2, 
   RefreshCw, 
   Check, 
   Copy, 
   ArrowRight, 
   Download, 
-  Sparkles, 
-  ShieldCheck, 
-  Zap, 
-  CheckCircle2, 
-  ArrowUpRight,
-  Split, 
-  Eye 
+  CheckCircle2
 } from 'lucide-react';
 import { FixerStyle, HumanizeResult } from '../types';
 import { safeApiFetch } from '../utils/safeApiFetch';
 import { runClientSideHumanize } from '../utils/clientForensicEngine';
+import {
+  PixelSparkle,
+  PixelRobot,
+  PixelCrown,
+  PixelFire,
+  PixelPencil,
+  PixelShield
+} from './PixelStickers';
 
 interface HumanizerFixerStudioProps {
   originalText: string;
@@ -35,7 +36,7 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
   const [intensity, setIntensity] = useState<'light' | 'moderate' | 'aggressive'>('moderate');
   const [isProcessing, setIsProcessing] = useState(false);
   const [humanizeResult, setHumanizeResult] = useState<HumanizeResult | null>(null);
-  const [viewMode, setViewMode] = useState<'split' | 'output' | 'diff'>('split');
+  const [viewMode, setViewMode] = useState<'split' | 'output'>('split');
   const [copied, setCopied] = useState(false);
   const [isApplied, setIsApplied] = useState(false);
 
@@ -91,7 +92,6 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
       if (res.success && res.data?.result) {
         setHumanizeResult(res.data.result);
       } else {
-        // Deterministic Client-Side Gemini 4 Argon Humanizer
         const fallbackResult = runClientSideHumanize(originalText, style, intensity);
         setHumanizeResult(fallbackResult);
       }
@@ -132,15 +132,18 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Configuration Bar */}
-      <div className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-4 shadow-xl">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Wand2 className="w-5 h-5 text-indigo-400" />
-              <span>Gemini 4 Argon Humanizer &amp; Cadence Re-Architect</span>
+      <div className="p-6 rounded-3xl bg-zinc-950 border-2 border-black shadow-[6px_6px_0px_#000000] space-y-5 bg-pixel-dots">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-base sm:text-lg font-bold font-pixel text-white flex items-center gap-2">
+              <PixelPencil size={20} />
+              <span>Gemini 4 Argon Cadence Humanizer</span>
+              <span className="text-xs font-pixel px-2 py-0.5 rounded bg-zinc-900 text-amber-300 border border-black hidden sm:inline">
+                ★ Anti-AI Rewrite
+              </span>
             </h3>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              Re-architects cadence, swaps predictable n-grams, and removes robotic markers while preserving 100% of factual context.
+            <p className="text-xs text-zinc-400">
+              Re-architects sentence cadence, swaps predictable n-grams, and removes robotic markers while preserving 100% of facts.
             </p>
           </div>
 
@@ -148,17 +151,17 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
             <button
               onClick={handleRunHumanizer}
               disabled={isProcessing || !originalText.trim()}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs flex items-center gap-2 shadow-lg shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition transform active:scale-95"
+              className="pixel-btn px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-pixel font-bold text-xs sm:text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {isProcessing ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Humanizing &amp; Re-engineering...</span>
+                  <span>Re-architecting...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>✨ Humanize &amp; Fix with Argon</span>
+                  <PixelSparkle size={18} />
+                  <span>Humanize &amp; Fix with Argon</span>
                 </>
               )}
             </button>
@@ -167,25 +170,26 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
 
         {/* Style Persona Selectors */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+          <label className="text-xs font-bold text-zinc-300 font-pixel uppercase tracking-wider flex items-center gap-1.5">
+            <PixelCrown size={14} />
             <span>Select Writing Persona / Voice:</span>
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {styleOptions.map((opt) => (
               <button
                 key={opt.id}
                 type="button"
                 onClick={() => setStyle(opt.id)}
-                className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                className={`p-3.5 rounded-2xl border-2 border-black text-left transition-all flex flex-col justify-between ${
                   style === opt.id
-                    ? 'bg-indigo-950/40 border-indigo-500 text-white shadow-md shadow-indigo-500/10'
-                    : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                    ? 'bg-indigo-950 text-white shadow-[3px_3px_0px_#000] translate-x-[-1px] translate-y-[-1px]'
+                    : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-850 hover:text-zinc-200 shadow-[2px_2px_0px_#000]'
                 }`}
               >
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-base">{opt.icon}</span>
-                    <span className="text-xs font-bold">{opt.title}</span>
+                    <span className="text-xs font-bold font-pixel text-white">{opt.title}</span>
                   </div>
                   <p className="text-[11px] text-zinc-400 leading-snug line-clamp-2">{opt.desc}</p>
                 </div>
@@ -195,18 +199,21 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
         </div>
 
         {/* Intensity Selector */}
-        <div className="flex items-center gap-4 text-xs pt-1">
-          <span className="font-semibold text-zinc-400 font-mono">Cadence Variance Intensity:</span>
+        <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
+          <span className="font-bold text-zinc-400 font-pixel flex items-center gap-1.5">
+            <PixelFire size={14} />
+            <span>Cadence Variance Intensity:</span>
+          </span>
           <div className="flex items-center gap-2">
             {(['light', 'moderate', 'aggressive'] as const).map((lvl) => (
               <button
                 key={lvl}
                 type="button"
                 onClick={() => setIntensity(lvl)}
-                className={`px-3 py-1 rounded-lg capitalize transition text-xs font-medium ${
+                className={`px-3 py-1 rounded-lg capitalize transition text-xs font-pixel font-bold border-2 border-black ${
                   intensity === lvl
-                    ? 'bg-zinc-800 text-indigo-300 border border-indigo-500/40 font-semibold'
-                    : 'text-zinc-400 hover:text-zinc-200'
+                    ? 'bg-zinc-800 text-amber-300 shadow-[2px_2px_0px_#000]'
+                    : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 {lvl}
@@ -221,55 +228,55 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
         <div className="space-y-4">
           {/* Telemetry Delta Highlights */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-1">
-              <span className="text-[11px] font-mono text-zinc-400 uppercase">AI Score Drop</span>
+            <div className="p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] space-y-1">
+              <span className="text-[11px] font-pixel text-zinc-400 uppercase">AI Score Drop</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl font-bold font-mono text-rose-400 line-through">
+                <span className="text-xl font-bold font-pixel text-rose-400 line-through">
                   {humanizeResult.beforeAiScore}%
                 </span>
                 <ArrowRight className="w-3.5 h-3.5 text-zinc-500" />
-                <span className="text-2xl font-bold font-mono text-emerald-400">
+                <span className="text-2xl font-bold font-pixel text-emerald-400">
                   {humanizeResult.afterAiScore}%
                 </span>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-1">
-              <span className="text-[11px] font-mono text-zinc-400 uppercase">Burstiness Gain</span>
-              <div className="text-2xl font-bold font-mono text-purple-400">
+            <div className="p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] space-y-1">
+              <span className="text-[11px] font-pixel text-zinc-400 uppercase">Burstiness Gain</span>
+              <div className="text-2xl font-bold font-pixel text-purple-400">
                 +{humanizeResult.burstinessDelta}%
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-1">
-              <span className="text-[11px] font-mono text-zinc-400 uppercase">Clichés Stripped</span>
-              <div className="text-2xl font-bold font-mono text-indigo-400">
+            <div className="p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] space-y-1">
+              <span className="text-[11px] font-pixel text-zinc-400 uppercase">Tropes Stripped</span>
+              <div className="text-2xl font-bold font-pixel text-indigo-400">
                 {humanizeResult.clichesRemoved} Tropes
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-1">
-              <span className="text-[11px] font-mono text-zinc-400 uppercase">Authenticity Gain</span>
-              <div className="text-2xl font-bold font-mono text-emerald-400">
+            <div className="p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] space-y-1">
+              <span className="text-[11px] font-pixel text-zinc-400 uppercase">Authenticity Gain</span>
+              <div className="text-2xl font-bold font-pixel text-emerald-400">
                 +{humanizeResult.perplexityGain}%
               </div>
             </div>
           </div>
 
           {/* Action Bar for Humanized Output */}
-          <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#000] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-zinc-300 font-mono">View Layout:</span>
-              <div className="flex items-center bg-zinc-950 p-1 rounded-lg border border-zinc-800 text-xs">
+              <span className="text-xs font-bold text-zinc-300 font-pixel">View Layout:</span>
+              <div className="flex items-center bg-zinc-900 p-1 rounded-xl border-2 border-black shadow-[1px_1px_0px_#000] text-xs font-pixel">
                 <button
                   onClick={() => setViewMode('split')}
-                  className={`px-2.5 py-1 rounded transition ${viewMode === 'split' ? 'bg-indigo-600 text-white' : 'text-zinc-400'}`}
+                  className={`px-2.5 py-1 rounded-lg transition font-bold ${viewMode === 'split' ? 'bg-indigo-600 text-white border border-black' : 'text-zinc-400'}`}
                 >
                   Side-by-Side
                 </button>
                 <button
                   onClick={() => setViewMode('output')}
-                  className={`px-2.5 py-1 rounded transition ${viewMode === 'output' ? 'bg-indigo-600 text-white' : 'text-zinc-400'}`}
+                  className={`px-2.5 py-1 rounded-lg transition font-bold ${viewMode === 'output' ? 'bg-indigo-600 text-white border border-black' : 'text-zinc-400'}`}
                 >
                   Output Only
                 </button>
@@ -279,24 +286,24 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopy}
-                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium flex items-center gap-1.5 transition"
+                className="pixel-btn px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-pixel font-bold flex items-center gap-1.5 transition border-2 border-black shadow-[2px_2px_0px_#000]"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copied ? 'Copied!' : 'Copy Text'}</span>
               </button>
               <button
                 onClick={handleDownload}
-                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium flex items-center gap-1.5 transition"
+                className="pixel-btn px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-pixel font-bold flex items-center gap-1.5 transition border-2 border-black shadow-[2px_2px_0px_#000]"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export .txt</span>
               </button>
               <button
                 onClick={handleApplyToEditor}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-600/30 transition transform active:scale-95"
+                className="pixel-btn px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-pixel font-bold flex items-center gap-1.5 shadow-[3px_3px_0px_#000] transition"
               >
-                {isApplied ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Sparkles className="w-4 h-4 text-white" />}
-                <span>{isApplied ? 'Applied & Rescanned!' : 'Apply Humanized Text to Editor'}</span>
+                {isApplied ? <CheckCircle2 className="w-4 h-4" /> : <PixelSparkle size={16} />}
+                <span>{isApplied ? 'Applied & Rescanned!' : 'Apply to Editor'}</span>
               </button>
             </div>
           </div>
@@ -304,8 +311,8 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
           {/* Text Comparison Viewport */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {viewMode === 'split' && (
-              <div className="rounded-xl bg-zinc-950/70 border border-zinc-800 p-4 space-y-2">
-                <div className="flex items-center justify-between text-xs text-zinc-400 font-mono pb-2 border-b border-zinc-800">
+              <div className="rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] p-5 space-y-2">
+                <div className="flex items-center justify-between text-xs text-zinc-400 font-pixel pb-2 border-b-2 border-zinc-800">
                   <span>Original Document</span>
                   <span className="text-rose-400 font-bold">{humanizeResult.beforeAiScore}% AI Risk</span>
                 </div>
@@ -315,13 +322,13 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
               </div>
             )}
 
-            <div className={`rounded-xl bg-emerald-950/10 border border-emerald-500/30 p-4 space-y-2 ${viewMode === 'output' ? 'lg:col-span-2' : ''}`}>
-              <div className="flex items-center justify-between text-xs text-zinc-400 font-mono pb-2 border-b border-emerald-500/20">
+            <div className={`rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] p-5 space-y-2 ${viewMode === 'output' ? 'lg:col-span-2' : ''}`}>
+              <div className="flex items-center justify-between text-xs text-zinc-400 font-pixel pb-2 border-b-2 border-zinc-800">
                 <span className="text-emerald-300 font-bold flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <PixelSparkle size={14} />
                   Argon Humanized Output ({style.toUpperCase()})
                 </span>
-                <span className="text-emerald-400 font-bold">{humanizeResult.afterAiScore}% AI (Passing)</span>
+                <span className="text-emerald-400 font-bold">{humanizeResult.afterAiScore}% AI (Verified)</span>
               </div>
               <div className="text-xs text-zinc-100 leading-relaxed max-h-[360px] overflow-y-auto whitespace-pre-wrap font-sans">
                 {humanizeResult.rewrittenText}
