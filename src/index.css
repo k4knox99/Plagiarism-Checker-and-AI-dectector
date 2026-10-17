@@ -1,5 +1,38 @@
 @import "tailwindcss";
 
+@theme {
+  --color-olive-50: #f6f7f0;
+  --color-olive-100: #ebefdd;
+  --color-olive-200: #d7e0be;
+  --color-olive-300: #becd97;
+  --color-olive-400: #a4b872;
+  --color-olive-500: #82984e;
+  --color-olive-600: #606c38; /* Exact Olive Leaf: HEX #606C38 | RGB 96, 108, 56 */
+  --color-olive-700: #4c562c;
+  --color-olive-800: #3d4525;
+  --color-olive-900: #333a20;
+  --color-olive-950: #1b2010;
+
+  --color-olive-leaf: #606c38;
+  --color-olive-deep: #283618;
+  --color-olive-cream: #fefae0;
+  --color-olive-caramel: #dda15e;
+  --color-olive-terracotta: #bc6c25;
+
+  /* Theme overhaul: Map default indigo to Olive Leaf for complete UI coherence */
+  --color-indigo-50: #f6f7f0;
+  --color-indigo-100: #ebefdd;
+  --color-indigo-200: #d7e0be;
+  --color-indigo-300: #becd97;
+  --color-indigo-400: #a4b872;
+  --color-indigo-500: #82984e;
+  --color-indigo-600: #606c38;
+  --color-indigo-700: #4c562c;
+  --color-indigo-800: #3d4525;
+  --color-indigo-900: #333a20;
+  --color-indigo-950: #1b2010;
+}
+
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -71,6 +104,25 @@
   box-shadow: 5px 5px 0px #000000;
 }
 
+/* Pixel Corgi Character Keyframes */
+@keyframes corgi-bob {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2.5px) rotate(1deg);
+  }
+}
+
+@keyframes corgi-happy {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.04);
+  }
+}
+
 /* Custom slick dark scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -83,12 +135,12 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.3);
+  background: rgba(96, 108, 56, 0.4);
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.6);
+  background: rgba(96, 108, 56, 0.7);
 }
 
 /* Print optimizations for Certificate */

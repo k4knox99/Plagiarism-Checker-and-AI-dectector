@@ -17,6 +17,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { SentenceAnalysis, ScannerMode } from '../types';
+import { PixelCorgi, CorgiState } from './PixelCorgi';
+import { PixelShield, PixelCrown, PixelSparkle } from './PixelStickers';
 
 export type Scanner3DStatus = 'idle' | 'scanning' | 'completed';
 export type Scanner3DMode = 'radar' | 'core' | 'cadence';
@@ -24,6 +26,9 @@ export type Scanner3DMode = 'radar' | 'core' | 'cadence';
 interface ThreeCoreScannerProps {
   status: Scanner3DStatus;
   variant?: 'hero' | 'workspace';
+  hasText?: boolean;
+  isRepaired?: boolean;
+  needsFix?: boolean;
   authenticityScore?: number;
   aiScore?: number;
   metrics?: {
@@ -66,7 +71,7 @@ function GyroscopeRings({ status }: { status: Scanner3DStatus }) {
     }
   });
 
-  const ringColor = status === 'scanning' ? '#818cf8' : status === 'completed' ? '#34d399' : '#6366f1';
+  const ringColor = status === 'scanning' ? '#a4b872' : status === 'completed' ? '#34d399' : '#606C38';
 
   return (
     <group>
@@ -138,12 +143,12 @@ function CentralReactorSphere({
   const isHuman = typeof aiScore === 'number' && aiScore < 35;
 
   const coreColor = status === 'scanning'
-    ? '#6366f1'
+    ? '#606C38'
     : isHighAi
     ? '#f43f5e'
     : isHuman
     ? '#10b981'
-    : '#818cf8';
+    : '#a4b872';
 
   return (
     <group>
@@ -366,8 +371,11 @@ function SentenceOrbitingBeads({
 export const ThreeCoreScanner: React.FC<ThreeCoreScannerProps> = ({
   status,
   variant = 'workspace',
-  authenticityScore = 78,
-  aiScore = 22,
+  hasText = false,
+  isRepaired = false,
+  needsFix = false,
+  authenticityScore,
+  aiScore,
   metrics,
   sentenceAnalysis,
   onSelectSentence,
@@ -379,8 +387,10 @@ export const ThreeCoreScanner: React.FC<ThreeCoreScannerProps> = ({
   className = ''
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [activeDisplay, setActiveDisplay] = useState<'corgi' | '3d'>('corgi');
+  const [manualCorgiState, setManualCorgiState] = useState<CorgiState | null>(null);
 
-  // Drag and drop directly onto 3D Canvas
+  // Drag and drop directly onto Scanner Station
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -400,150 +410,288 @@ export const ThreeCoreScanner: React.FC<ThreeCoreScannerProps> = ({
     }
   };
 
-  const isHighAi = typeof aiScore === 'number' && aiScore >= 65;
+  // User synchronization requirements:
+  // 1. input document ထဲ စာမရှိရင် ပြေးနေမယ် (If no text in input document -> running)
+  // 2. စာထည့်ပြီး fix ရန်ရှိရင် need to fix ဆိုတဲ့ပုံကိုပြမယ် (If text needs fix -> need to fix)
+  // 3. မလိုရင် fixed ဆိုတာကိုပြမယ် (If no fix needed / authentic -> fixed)
+  // 4. ပြင်ပြီးရင် လည်း fixedဆိုတာကိုလည်းပြရန် (If repaired -> fixed)
+
+  const isHighAi = typeof aiScore === 'number' ? aiScore >= 45 : needsFix;
+
+  let autoCorgiState: CorgiState;
+  let statusMessage: string;
+  let headerStatusText: string;
+  let headerDotColor: string;
+  let rightHintText: string;
+
+  if (status === 'scanning') {
+    autoCorgiState = 'running';
+    statusMessage = 'Sniffing AI & Burstiness...';
+    headerStatusText = 'Sniffing & Scanning...';
+    headerDotColor = 'bg-amber-400 animate-ping';
+    rightHintText = '🐾 Galloping & analyzing sentence entropy...';
+  } else if (!hasText) {
+    // Rule 1: No text in input document -> Running!
+    autoCorgiState = 'running';
+    statusMessage = 'No Text in Document · Corgi Running 🏃';
+    headerStatusText = 'No Document Text · Running';
+    headerDotColor = 'bg-amber-400 animate-pulse';
+    rightHintText = '🐾 Corgi is on the run! Paste or type document text to start.';
+  } else if (isRepaired) {
+    // Rule 4: Repaired -> Fixed!
+    autoCorgiState = 'fixed';
+    statusMessage = 'Repaired & 100% Authentic! ✨';
+    headerStatusText = 'Document Repaired · Authentic';
+    headerDotColor = 'bg-[#606C38]';
+    rightHintText = '💖 Repaired & verified human cadence! Crown awarded.';
+  } else if (isHighAi) {
+    // Rule 2: Has text and needs fix -> Needs Fix!
+    autoCorgiState = 'needs_fix';
+    statusMessage = 'Needs Repair / AI Detected! ❗';
+    headerStatusText = typeof aiScore === 'number' ? `Fix Needed · AI Risk ${aiScore}%` : 'Fix Needed · AI Detected';
+    headerDotColor = 'bg-rose-500 animate-pulse';
+    rightHintText = '⚠️ High AI risk detected! Click "One-Click Humanize All" to repair.';
+  } else {
+    // Rule 3: Has text and no fix needed -> Fixed!
+    autoCorgiState = 'fixed';
+    statusMessage = 'Verified Human · No Fix Needed! ✨';
+    headerStatusText = 'Verified Human · No Fix Needed';
+    headerDotColor = 'bg-[#606C38]';
+    rightHintText = '💖 Original human cadence detected. No repair needed!';
+  }
+
+  const currentCorgiState = manualCorgiState ?? autoCorgiState;
 
   return (
     <div
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-zinc-950 via-zinc-900/90 to-zinc-950 border transition-all ${
+      className={`relative w-full rounded-2xl overflow-hidden bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#606C38] transition-all ${
         isDragOver
-          ? 'border-indigo-500 ring-4 ring-indigo-500/30'
-          : 'border-zinc-800/80 shadow-2xl'
-      } ${variant === 'hero' ? 'h-[440px] sm:h-[500px]' : 'h-[360px] sm:h-[400px]'} ${className}`}
+          ? 'border-[#82984E] ring-4 ring-[#606C38]/40'
+          : 'border-black'
+      } ${variant === 'hero' ? 'h-[240px] sm:h-[260px]' : 'h-[200px] sm:h-[220px]'} ${className}`}
     >
-      {/* 3D Drag & Drop Overlay */}
+      {/* Drag & Drop Overlay */}
       {isDragOver && (
-        <div className="absolute inset-0 z-40 bg-zinc-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-indigo-500 animate-in fade-in">
-          <Upload className="w-12 h-12 text-indigo-400 animate-bounce mb-3" />
-          <h4 className="text-base font-bold text-white">Drop Word or PDF Directly onto 3D Core</h4>
-          <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-            Drop .docx, .pdf, .txt, or .md to instantly parse text or trigger format-preserving surgery.
+        <div className="absolute inset-0 z-40 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-[#82984E] animate-in fade-in">
+          <Upload className="w-10 h-10 text-[#a4b872] animate-bounce mb-2" />
+          <h4 className="text-sm font-bold font-pixel text-white">Drop Word (.docx) or PDF Directly Here</h4>
+          <p className="text-[11px] text-zinc-400 mt-0.5">
+            Auto-inspect or perform format-preserving surgical repair.
           </p>
         </div>
       )}
 
-      {/* Top 3D Status HUD Header */}
-      <div className="absolute top-3 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel">
-            <span className={`w-2.5 h-2.5 rounded-full ${
-              status === 'scanning' ? 'bg-indigo-400 animate-ping' : isHighAi ? 'bg-rose-400' : 'bg-emerald-400'
-            }`} />
-            <span className="text-zinc-200 font-bold uppercase tracking-wider text-[10px]">
-              {variant === 'hero' ? '3D Stylometric Core' : `Core: ${status.toUpperCase()}`}
+      {/* Top Status & Telemetry HUD Header */}
+      <div className="absolute top-2.5 left-3 right-3 z-30 flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Status Badge */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-black shadow-[1.5px_1.5px_0px_#000] text-[10px] font-pixel">
+            <span className={`w-2 h-2 rounded-full ${headerDotColor}`} />
+            <span className="text-zinc-200 font-bold uppercase tracking-wider">
+              {headerStatusText}
             </span>
           </div>
 
-          {variant === 'workspace' && typeof aiScore === 'number' && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-pixel">
+          {/* Authentic vs AI Risk Scores */}
+          {typeof aiScore === 'number' && (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-black shadow-[1.5px_1.5px_0px_#000] text-[10px] font-pixel">
               <span className="text-zinc-400">Authentic:</span>
-              <span className="font-bold text-emerald-400">{authenticityScore}%</span>
+              <span className="font-bold text-[#a4b872]">{authenticityScore ?? 100 - aiScore}%</span>
               <span className="text-zinc-600">·</span>
               <span className="text-zinc-400">AI Risk:</span>
-              <span className={`font-bold ${isHighAi ? 'text-rose-400' : 'text-zinc-200'}`}>{aiScore}%</span>
+              <span className={`font-bold ${isHighAi ? 'text-rose-400' : 'text-[#d7e0be]'}`}>{aiScore}%</span>
             </div>
           )}
         </div>
 
-        {/* Action Button inside 3D Viewport */}
-        <div className="pointer-events-auto">
+        {/* Action Controls & Mode Switcher */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Corgi State Preview Switcher */}
+          <div className="hidden md:flex items-center gap-1 bg-zinc-900/90 p-1 rounded-lg border border-black shadow-[1.5px_1.5px_0px_#000] text-[9px] font-pixel">
+            <button
+              onClick={() => setManualCorgiState(null)}
+              className={`px-1.5 py-0.5 rounded transition ${
+                manualCorgiState === null ? 'bg-[#606C38] text-white font-bold' : 'text-zinc-400 hover:text-white'
+              }`}
+              title="Auto mode based on document scan score"
+            >
+              Auto
+            </button>
+            <button
+              onClick={() => setManualCorgiState('running')}
+              className={`px-1.5 py-0.5 rounded transition flex items-center gap-1 ${
+                currentCorgiState === 'running' && manualCorgiState === 'running'
+                  ? 'bg-amber-600 text-white font-bold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+              title="Running Corgi (ပြေးနေတဲ့ပုံ)"
+            >
+              <span>🏃 Running</span>
+            </button>
+            <button
+              onClick={() => setManualCorgiState('needs_fix')}
+              className={`px-1.5 py-0.5 rounded transition flex items-center gap-1 ${
+                currentCorgiState === 'needs_fix' && manualCorgiState === 'needs_fix'
+                  ? 'bg-rose-700 text-white font-bold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+              title="Needs Fix Corgi (ပြင်ရန်လိုအပ်တဲ့ပုံ)"
+            >
+              <span>🩹 Needs Fix</span>
+            </button>
+            <button
+              onClick={() => setManualCorgiState('fixed')}
+              className={`px-1.5 py-0.5 rounded transition flex items-center gap-1 ${
+                currentCorgiState === 'fixed' && manualCorgiState === 'fixed'
+                  ? 'bg-[#606C38] text-white font-bold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+              title="Repaired & Authentic Corgi (ပြင်ပြီးတဲ့ပုံ)"
+            >
+              <span>👑 Fixed</span>
+            </button>
+          </div>
+
+          {/* Toggle between Corgi & 3D */}
+          <button
+            onClick={() => setActiveDisplay(activeDisplay === 'corgi' ? '3d' : 'corgi')}
+            className="pixel-btn px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-[10px] font-pixel flex items-center gap-1 border border-black shadow-[1.5px_1.5px_0px_#000] transition"
+            title="Toggle between Corgi Companion and 3D View"
+          >
+            {activeDisplay === 'corgi' ? '🌐 3D' : '🐶 Corgi'}
+          </button>
+
+          {/* Primary Action Button */}
           {variant === 'hero' ? (
             <button
               onClick={onLaunchWorkspace}
-              className="pixel-btn px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-pixel font-bold flex items-center gap-2 border-2 border-black shadow-[3px_3px_0px_#000] transition"
+              className="pixel-btn px-3 py-1 rounded-lg bg-[#606C38] hover:bg-[#4c562c] text-white text-[10px] sm:text-xs font-pixel font-bold flex items-center gap-1.5 border border-black shadow-[2px_2px_0px_#000] transition"
             >
-              <span>Launch Workspace</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Launch</span>
+              <ArrowRight className="w-3 h-3" />
             </button>
           ) : isHighAi && onOneClickHumanize ? (
             <button
-              onClick={onOneClickHumanize}
-              className="pixel-btn px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-pixel font-bold flex items-center gap-1.5 border-2 border-black shadow-[3px_3px_0px_#000] transition"
+              onClick={() => {
+                onOneClickHumanize();
+                setManualCorgiState('fixed');
+              }}
+              className="pixel-btn px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-[10px] sm:text-xs font-pixel font-bold flex items-center gap-1.5 border border-black shadow-[2px_2px_0px_#000] transition animate-pulse"
             >
               <Sparkles className="w-3.5 h-3.5 text-black" />
               <span>One-Click Humanize All</span>
             </button>
           ) : (
             <button
-              onClick={onTriggerScan}
+              onClick={() => {
+                onTriggerScan?.();
+                setManualCorgiState('running');
+                setTimeout(() => setManualCorgiState(null), 1800);
+              }}
               disabled={status === 'scanning'}
-              className="pixel-btn px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-pixel font-bold flex items-center gap-1.5 border-2 border-black shadow-[2px_2px_0px_#000] disabled:opacity-50 transition"
+              className="pixel-btn px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-[10px] font-pixel font-bold flex items-center gap-1 border border-black shadow-[1.5px_1.5px_0px_#000] disabled:opacity-50 transition"
             >
-              <RotateCcw className={`w-3.5 h-3.5 ${status === 'scanning' ? 'animate-spin' : ''}`} />
-              <span>{status === 'scanning' ? 'Scanning...' : 'Trigger Re-Scan'}</span>
+              <RotateCcw className={`w-3 h-3 ${status === 'scanning' ? 'animate-spin' : ''}`} />
+              <span>{status === 'scanning' ? 'Sniffing...' : 'Re-Scan'}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Bottom 3D Telemetry HUD Details (Workspace Mode) */}
+      {/* Main Viewport: Either Pixel Corgi Companion Station or 3D Wireframe */}
+      {activeDisplay === 'corgi' ? (
+        <div className="w-full h-full flex flex-col items-center justify-center pt-5 pb-8 relative bg-pixel-dots select-none">
+          {/* Cute Retro Pixel Corgi Character in Active State */}
+          <div className="z-10 flex flex-col items-center justify-center">
+            <PixelCorgi
+              state={currentCorgiState}
+              statusMessage={statusMessage}
+              size={variant === 'hero' ? 140 : 120}
+              onClick={() => {
+                if (currentCorgiState === 'needs_fix' && onOneClickHumanize) {
+                  onOneClickHumanize();
+                  setManualCorgiState('fixed');
+                } else if (onTriggerScan) {
+                  onTriggerScan();
+                  setManualCorgiState('running');
+                  setTimeout(() => setManualCorgiState(null), 1800);
+                }
+              }}
+            />
+          </div>
+
+          {/* Interactive State Feedback Hint */}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-1.5 text-right pointer-events-none">
+            <span className="text-[10px] font-pixel text-zinc-300 bg-zinc-950/85 px-2.5 py-1 rounded border border-black shadow-[1.5px_1.5px_0px_#000]">
+              {rightHintText}
+            </span>
+          </div>
+        </div>
+      ) : (
+        /* 3D WebGL Canvas Viewport */
+        <Canvas className="w-full h-full cursor-grab active:cursor-grabbing">
+          <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={50} />
+          <ambientLight intensity={0.6} />
+          <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
+          <pointLight position={[-10, -10, -10]} intensity={0.8} color="#606C38" />
+
+          <Float speed={1.5} rotationIntensity={0.4} floatIntensity={0.6}>
+            <group>
+              <GyroscopeRings status={status} />
+              <CentralReactorSphere
+                status={status}
+                aiScore={aiScore}
+                onCoreClick={() => {
+                  if (isHighAi && onOneClickHumanize) {
+                    onOneClickHumanize();
+                  } else if (onTriggerScan) {
+                    onTriggerScan();
+                  }
+                }}
+              />
+              {variant === 'hero' ? (
+                <HeroOrbitalToolNodes
+                  onSelectMode={onSelectMode}
+                  onLaunchWorkspace={onLaunchWorkspace}
+                />
+              ) : (
+                <SentenceOrbitingBeads
+                  sentences={sentenceAnalysis}
+                  onSelectSentence={onSelectSentence}
+                />
+              )}
+            </group>
+          </Float>
+
+          <OrbitControls
+            enableZoom={false}
+            enablePan={false}
+            maxPolarAngle={Math.PI / 1.7}
+            minPolarAngle={Math.PI / 2.3}
+            rotateSpeed={0.6}
+          />
+        </Canvas>
+      )}
+
+      {/* Bottom Compact Telemetry HUD Details */}
       {variant === 'workspace' && metrics && (
-        <div className="absolute bottom-3 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-          <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-400 bg-zinc-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-800">
-            <span>Perplexity: <strong className="text-indigo-300">{metrics.perplexityScore ?? 45}/100</strong></span>
+        <div className="absolute bottom-1.5 left-3 right-3 z-30 flex items-center justify-between gap-2 pointer-events-none">
+          <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400 bg-zinc-950/85 backdrop-blur-md px-2.5 py-0.5 rounded-md border border-zinc-800">
+            <span>Perplexity: <strong className="text-[#a4b872]">{metrics.perplexityScore ?? 45}/100</strong></span>
             <span>·</span>
             <span>Burstiness: <strong className="text-purple-300">{metrics.burstinessScore ?? 60}/100</strong></span>
             <span>·</span>
             <span>Syntactic: <strong className="text-amber-300">{metrics.syntacticUniformity ?? 40}%</strong></span>
           </div>
 
-          <div className="text-[11px] text-zinc-400 font-mono hidden md:flex items-center gap-2 bg-zinc-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-800">
-            <span>💡 Click Central Core or Orbiting Beads to Inspect &amp; Fix</span>
+          <div className="text-[10px] text-zinc-400 font-pixel hidden sm:flex items-center gap-1 bg-zinc-950/85 backdrop-blur-md px-2 py-0.5 rounded-md border border-zinc-800">
+            <span>💡 Click Corgi to Sniff &amp; Humanize</span>
           </div>
         </div>
       )}
-
-      {/* 3D WebGL Canvas */}
-      <Canvas className="w-full h-full cursor-grab active:cursor-grabbing">
-        <PerspectiveCamera makeDefault position={[0, 0, 6]} fov={50} />
-        <ambientLight intensity={0.6} />
-        <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
-        <pointLight position={[-10, -10, -10]} intensity={0.8} color="#6366f1" />
-
-        <Float speed={1.5} rotationIntensity={0.4} floatIntensity={0.6}>
-          <group>
-            {/* Concentric Rotating Orthogonal Rings */}
-            <GyroscopeRings status={status} />
-
-            {/* Central Interactive Clickable Core */}
-            <CentralReactorSphere
-              status={status}
-              aiScore={aiScore}
-              onCoreClick={() => {
-                if (isHighAi && onOneClickHumanize) {
-                  onOneClickHumanize();
-                } else if (onTriggerScan) {
-                  onTriggerScan();
-                }
-              }}
-            />
-
-            {/* In Hero mode: 4 Orbiting 3D Tool Nodes */}
-            {variant === 'hero' ? (
-              <HeroOrbitalToolNodes
-                onSelectMode={onSelectMode}
-                onLaunchWorkspace={onLaunchWorkspace}
-              />
-            ) : (
-              /* In Workspace mode: Orbiting Sentence Satellite Beads */
-              <SentenceOrbitingBeads
-                sentences={sentenceAnalysis}
-                onSelectSentence={onSelectSentence}
-              />
-            )}
-          </group>
-        </Float>
-
-        <OrbitControls
-          enableZoom={false}
-          enablePan={false}
-          maxPolarAngle={Math.PI / 1.7}
-          minPolarAngle={Math.PI / 2.3}
-          rotateSpeed={0.6}
-        />
-      </Canvas>
     </div>
   );
 };

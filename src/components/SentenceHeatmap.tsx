@@ -16,6 +16,7 @@ import { SentenceAnalysis, FlaggedPassage } from '../types';
 import { safeApiFetch } from '../utils/safeApiFetch';
 import { runClientSideSentenceRewrite, runClientSideHumanize } from '../utils/clientForensicEngine';
 import { PixelSparkle, PixelBandAid, PixelShield } from './PixelStickers';
+import { PixelCorgi } from './PixelCorgi';
 
 interface SentenceHeatmapProps {
   sentenceAnalysis: SentenceAnalysis[];
@@ -488,10 +489,22 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
               </button>
             </div>
 
-            {/* Target Sentence Display */}
-            <div className="p-3.5 rounded-2xl bg-zinc-900 border-2 border-black shadow-[2px_2px_0px_#000] space-y-1">
-              <span className="text-[10px] font-pixel font-bold text-zinc-400 block">Target Sentence:</span>
-              <p className="text-xs text-zinc-100 leading-relaxed font-sans">{activeSentence.sentence}</p>
+            {/* Target Sentence Display with Needs-Fix Corgi */}
+            <div className="p-3.5 rounded-2xl bg-zinc-900 border-2 border-black shadow-[2px_2px_0px_#000] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-pixel font-bold text-zinc-400">Target Sentence:</span>
+                {activeSentence.aiProbability >= 65 && (
+                  <span className="text-[10px] font-pixel text-rose-400 font-bold">Needs Fix</span>
+                )}
+              </div>
+              <div className="flex items-start gap-3">
+                {activeSentence.aiProbability >= 65 && (
+                  <div className="shrink-0 pt-0.5">
+                    <PixelCorgi state="needs-fix" size={44} showBadge badgeLabel="Needs Fix" />
+                  </div>
+                )}
+                <p className="flex-1 text-xs text-zinc-100 leading-relaxed font-sans">{activeSentence.sentence}</p>
+              </div>
             </div>
 
             {/* Reasons / Linguistic Diagnostic */}
@@ -504,9 +517,12 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
 
             {/* Mini Diff Preview Container */}
             {activeRewrite[activeSentence.globalIdx]?.loading ? (
-              <div className="p-4 rounded-2xl bg-zinc-900 border-2 border-black flex items-center justify-center gap-2 text-indigo-300 animate-pulse">
-                <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
-                <span className="text-xs font-pixel">Re-engineering cadence with Gemini 4 Argon...</span>
+              <div className="p-4 rounded-2xl bg-zinc-900 border-2 border-black flex items-center justify-center gap-3 text-amber-300">
+                <PixelCorgi state="running" size={42} />
+                <div className="space-y-0.5">
+                  <span className="text-xs font-pixel font-bold block">Corgi running sentence surgery...</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">Re-engineering cadence with Gemini 4 Argon</span>
+                </div>
               </div>
             ) : (activeRewrite[activeSentence.globalIdx]?.text || activeSentence.suggestedRewrite) ? (
               <div className="p-3.5 rounded-2xl bg-zinc-900 border-2 border-black shadow-[2px_2px_0px_#000] space-y-2.5">
@@ -523,10 +539,15 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
                   {activeSentence.sentence}
                 </div>
 
-                {/* Rewritten Replacement */}
-                <div className="text-xs text-emerald-300 font-medium bg-emerald-950/40 p-2.5 rounded-xl border-2 border-black leading-relaxed flex items-start gap-2">
-                  <PixelSparkle size={18} />
-                  <span>{activeRewrite[activeSentence.globalIdx]?.text || activeSentence.suggestedRewrite}</span>
+                {/* Rewritten Replacement with Fixed Corgi */}
+                <div className="text-xs text-emerald-300 font-medium bg-emerald-950/40 p-2.5 rounded-xl border-2 border-black leading-relaxed flex items-start gap-2.5">
+                  <div className="shrink-0 pt-0.5">
+                    <PixelCorgi state="fixed" size={44} showBadge badgeLabel="Repaired" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <span className="block font-pixel text-[10px] text-emerald-400 font-bold">100% Humanized Rewrite:</span>
+                    <span>{activeRewrite[activeSentence.globalIdx]?.text || activeSentence.suggestedRewrite}</span>
+                  </div>
                 </div>
 
                 {activeRewrite[activeSentence.globalIdx]?.rationale && (

@@ -45,6 +45,7 @@ import {
   PixelCrown,
   PixelSearch
 } from './PixelStickers';
+import { PixelCorgi } from './PixelCorgi';
 
 interface DocSurgeonStudioProps {
   initialText?: string;
@@ -687,17 +688,24 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
             </button>
           )}
 
-          {/* 1-Click Surgical Auto-Fix */}
+          {/* 1-Click Surgical Auto-Fix with Running Corgi */}
           <button
             onClick={handleApplySurgicalFixAll}
             disabled={isFixingAll || stats.flaggedSentences === 0}
             className="pixel-btn flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-pixel font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition disabled:opacity-50"
             title="Surgically fix ONLY AI & Plagiarized passages without touching genuine text"
           >
-            <PixelSparkle size={18} className={isFixingAll ? 'animate-spin' : ''} />
-            <span>
-              {isFixingAll ? 'Fixing Passages...' : '⚡ Auto-Fix Flagged Only'}
-            </span>
+            {isFixingAll ? (
+              <>
+                <PixelCorgi state="running" size={30} />
+                <span>Fixing Passages with Corgi...</span>
+              </>
+            ) : (
+              <>
+                <PixelSparkle size={18} />
+                <span>⚡ Auto-Fix Flagged Only</span>
+              </>
+            )}
           </button>
 
           {/* Export Buttons: Intelligently highlights matching original file format */}
@@ -929,24 +937,33 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
               </div>
             )}
 
-            {/* Before vs After Comparison */}
+            {/* Before vs After Comparison with Corgi Indicators */}
             <div className="space-y-3 text-xs">
               <div>
-                <span className="text-[11px] font-pixel font-bold text-zinc-400 block mb-1">
-                  Original Flagged Text:
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-pixel font-bold text-rose-400 flex items-center gap-1.5">
+                    <PixelCorgi state="needs-fix" size={32} />
+                    Original Flagged Text (Needs Fix)
+                  </span>
+                  <span className="text-[10px] text-rose-400 font-pixel font-bold">
+                    {activeSentence.aiProbability}% AI
+                  </span>
+                </div>
                 <div className="p-3 rounded-xl bg-zinc-900 border-2 border-black text-zinc-300 font-serif leading-relaxed">
                   "{activeSentence.originalText}"
                 </div>
               </div>
 
               <div>
-                <span className="text-[11px] font-pixel font-bold text-emerald-400 flex items-center justify-between mb-1">
-                  <span>Surgically Humanized:</span>
-                  <span className="text-[10px] text-zinc-400 font-pixel">
-                    &lt;5% AI Target
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-pixel font-bold text-emerald-400 flex items-center gap-1.5">
+                    <PixelCorgi state="fixed" size={34} />
+                    Surgically Humanized (Fixed &amp; Repaired)
                   </span>
-                </span>
+                  <span className="text-[10px] text-[#A4B872] font-pixel font-bold">
+                    &lt;5% AI
+                  </span>
+                </div>
                 <div className="p-3 rounded-xl bg-emerald-950/40 border-2 border-black text-emerald-200 font-serif leading-relaxed">
                   "{activeSentence.fixedText || activeSentence.originalText}"
                 </div>

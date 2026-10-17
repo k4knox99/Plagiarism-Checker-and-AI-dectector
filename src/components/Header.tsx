@@ -27,6 +27,7 @@ import {
   PixelBandAid, 
   PixelShield 
 } from './PixelStickers';
+import { PixelCorgi } from './PixelCorgi';
 
 interface HeaderProps {
   currentMode: ScannerMode;
@@ -84,8 +85,9 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   Veritas<span className="text-indigo-400">AI</span>
                 </span>
-                <span className="text-[10px] font-pixel px-2 py-0.5 bg-zinc-900 text-amber-300 border-2 border-black shadow-[2px_2px_0px_#000000] font-bold uppercase tracking-wider hidden sm:inline-block">
-                  ★ PixelPop Core
+                <span className="text-[10px] font-pixel px-2 py-0.5 bg-zinc-900 text-[#becd97] border-2 border-black shadow-[2px_2px_0px_#000000] font-bold uppercase tracking-wider hidden sm:inline-flex items-center gap-1.5">
+                  <PixelCorgi state="running" size={20} />
+                  <span>Olive Leaf #606C38</span>
                 </span>
               </div>
               <p className="text-[11px] text-zinc-400 hidden xl:block font-mono">

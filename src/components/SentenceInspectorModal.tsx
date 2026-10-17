@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, RefreshCw, Copy, ArrowRight } from 'lucide-react';
 import { SentenceAnalysis } from '../types';
 import { PixelBandAid, PixelSparkle, PixelShield, PixelRobot } from './PixelStickers';
+import { PixelCorgi } from './PixelCorgi';
 
 interface SentenceInspectorModalProps {
   sentence: SentenceAnalysis | null;
@@ -94,24 +95,29 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
 
         {/* Content body */}
         <div className="p-5 overflow-y-auto space-y-5 custom-scrollbar">
-          {/* Flagged Original Sentence Card */}
-          <div className="p-4 rounded-2xl bg-rose-950/30 border-2 border-black shadow-[3px_3px_0px_#000] space-y-2.5">
+          {/* Flagged Original Sentence Card (Needs Fix State) */}
+          <div className="p-4 rounded-2xl bg-rose-950/30 border-2 border-black shadow-[3px_3px_0px_#000] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-pixel uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
                 <PixelRobot size={16} />
-                Original Flagged Sentence
+                Original Flagged Sentence (Needs Fix)
               </span>
               <span className="text-xs font-pixel px-2.5 py-0.5 rounded-lg bg-black text-rose-300 font-bold border-2 border-black shadow-[1px_1px_0px_#000]">
                 {sentence.aiProbability}% AI Probability
               </span>
             </div>
 
-            <p className="text-sm font-medium text-zinc-100 leading-relaxed bg-zinc-950 p-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000]">
-              "{sentence.sentence}"
-            </p>
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 pt-1">
+                <PixelCorgi state="needs-fix" size={54} showBadge badgeLabel="Needs Fix" />
+              </div>
+              <p className="flex-1 text-sm font-medium text-zinc-100 leading-relaxed bg-zinc-950 p-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000]">
+                "{sentence.sentence}"
+              </p>
+            </div>
 
             {sentence.reasons && sentence.reasons.length > 0 && (
-              <div className="space-y-1 text-xs text-zinc-300">
+              <div className="space-y-1 text-xs text-zinc-300 pl-1">
                 <span className="font-bold font-pixel text-zinc-400">Why this was flagged:</span>
                 <ul className="list-disc list-inside space-y-0.5 text-zinc-300 pl-1 font-sans">
                   {sentence.reasons.map((r, i) => (
@@ -122,18 +128,18 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
             )}
           </div>
 
-          {/* Suggested Fixes */}
+          {/* Suggested Fixes (Humanized Repaired State) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold font-pixel uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
                 <PixelSparkle size={16} />
-                Humanized Rewrite Options
+                Humanized Rewrite Options (Fixed &amp; Repaired)
               </h4>
               {loading && (
-                <span className="flex items-center gap-1 text-xs text-zinc-400 font-pixel">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-                  Generating styled rewrites...
-                </span>
+                <div className="flex items-center gap-2 text-xs text-amber-300 font-pixel">
+                  <PixelCorgi state="running" size={32} />
+                  <span>Corgi running repairs...</span>
+                </div>
               )}
             </div>
 
@@ -153,15 +159,24 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
                     </span>
                   </div>
 
-                  <p className="text-sm text-zinc-100 font-medium leading-relaxed bg-zinc-950 p-3 rounded-xl border-2 border-black shadow-[1px_1px_0px_#000]">
-                    "{opt.text}"
-                  </p>
+                  <div className="flex items-start gap-3">
+                    {idx === 0 && (
+                      <div className="shrink-0 pt-0.5">
+                        <PixelCorgi state="fixed" size={46} showBadge badgeLabel="Repaired" />
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm text-zinc-100 font-medium leading-relaxed bg-zinc-950 p-3 rounded-xl border-2 border-black shadow-[1px_1px_0px_#000]">
+                        "{opt.text}"
+                      </p>
 
-                  {opt.rationale && (
-                    <p className="text-xs text-zinc-400 italic">
-                      {opt.rationale}
-                    </p>
-                  )}
+                      {opt.rationale && (
+                        <p className="text-xs text-zinc-400 italic">
+                          {opt.rationale}
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
                   <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
                     <button

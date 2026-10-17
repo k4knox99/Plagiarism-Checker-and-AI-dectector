@@ -78,8 +78,8 @@ function VeritasAIWorkspace() {
   // Navigation View State: 'workspace' or 'landing'
   const [activeView, setActiveView] = useState<'workspace' | 'landing'>('workspace');
 
-  // Primary Workspace state
-  const [inputText, setInputText] = useState<string>(SAMPLE_TEXTS[0].content);
+  // Primary Workspace state (starts completely clean, no auto-populated sample text)
+  const [inputText, setInputText] = useState<string>('');
   const [mode, setMode] = useState<ScannerMode>('comprehensive');
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanStep, setScanStep] = useState<string>('');
@@ -92,8 +92,9 @@ function VeritasAIWorkspace() {
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
-  // Active Report state
-  const [activeReport, setActiveReport] = useState<ComprehensiveReport | null>(SAMPLE_REPORTS['ai-essay']);
+  // Active Report state (null until user scans a document)
+  const [activeReport, setActiveReport] = useState<ComprehensiveReport | null>(null);
+  const [isDocumentRepaired, setIsDocumentRepaired] = useState<boolean>(false);
 
   // Modals & Drawers state
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
@@ -107,9 +108,9 @@ function VeritasAIWorkspace() {
     try {
       const saved = localStorage.getItem('veritas_scan_history');
       if (saved) return JSON.parse(saved);
-      return [SAMPLE_REPORTS['ai-essay']];
+      return [];
     } catch {
-      return [SAMPLE_REPORTS['ai-essay']];
+      return [];
     }
   });
 
@@ -158,11 +159,32 @@ function VeritasAIWorkspace() {
     return extractShingles(inputText, 5);
   }, [inputText]);
 
+  // Real-time synchronization for Pixel Corgi:
+  // 1. input document ထဲ စာမရှိရင် ပြေးနေမယ် (hasDocumentText === false)
+  // 2. စာထည့်ပြီး fix ရန်ရှိရင် need to fix ဆိုတဲ့ပုံကိုပြမယ် (documentNeedsFix === true)
+  // 3. မလိုရင် fixed ဆိုတာကိုပြမယ် (documentNeedsFix === false)
+  // 4. ပြင်ပြီးရင် လည်း fixedဆိုတာကိုလည်းပြရန် (isDocumentRepaired === true)
+  const hasDocumentText = Boolean(inputText.trim());
+
+  const documentNeedsFix = React.useMemo(() => {
+    if (!hasDocumentText) return false;
+    if (activeReport) {
+      return activeReport.aiAnalysis.overallAiScore >= 45 || activeReport.compositeAuthenticity < 65;
+    }
+    // Instant heuristic check for un-scanned text
+    const words = inputText.trim().split(/\s+/).length;
+    if (words < 10) return false;
+    const lower = inputText.toLowerCase();
+    const hasCliches = /delve into|testament to|beacon of|tapestry|furthermore|moreover|in conclusion|realm of|pivotal role|vital role|crucial role/i.test(lower);
+    return hasCliches || linguistics.burstinessCoefficient < 42 || linguistics.syntacticUniformityScore > 65;
+  }, [hasDocumentText, inputText, activeReport, linguistics]);
+
   // 3D Scanner status derived state
   const scannerStatus: Scanner3DStatus = isScanning ? 'scanning' : activeReport ? 'completed' : 'idle';
 
   // Switch to a sample: instantly load its cached baseline
   const handleLoadSample = (sample: SampleText) => {
+    setIsDocumentRepaired(false);
     setInputText(sample.content);
     setUploadedFileName(null);
     if (SAMPLE_REPORTS[sample.id]) {
@@ -270,6 +292,7 @@ function VeritasAIWorkspace() {
       }
 
       setActiveReport(report);
+      setIsDocumentRepaired(report.aiAnalysis.overallAiScore < 40);
       setHistory(prev => [report, ...prev.filter(h => h.originalText !== report.originalText)].slice(0, 20));
       incrementQuotaUsage();
     } catch (err: any) {
@@ -277,6 +300,7 @@ function VeritasAIWorkspace() {
       const fallbackScanMode: 'comprehensive' | 'ai' | 'plagiarism' = (effectiveMode === 'fixer' || effectiveMode === 'surgeon') ? 'comprehensive' : effectiveMode;
       const fallbackReport = runClientSideScan(textToScan, fallbackScanMode);
       setActiveReport(fallbackReport);
+      setIsDocumentRepaired(fallbackReport.aiAnalysis.overallAiScore < 40);
       setHistory(prev => [fallbackReport, ...prev.filter(h => h.originalText !== fallbackReport.originalText)].slice(0, 20));
     } finally {
       setIsScanning(false);
@@ -312,6 +336,7 @@ function VeritasAIWorkspace() {
       };
       setActiveReport(newReport);
     }
+    setIsDocumentRepaired(true);
   };
 
   // Replace single sentence with rewritten version
@@ -347,6 +372,9 @@ function VeritasAIWorkspace() {
           sentenceAnalysis: updatedSentences
         }
       });
+      if (newAiScore < 45) {
+        setIsDocumentRepaired(true);
+      }
     }
   };
 
@@ -382,6 +410,9 @@ function VeritasAIWorkspace() {
           sentenceAnalysis: updatedSentences
         }
       });
+      if (newAiScore < 45) {
+        setIsDocumentRepaired(true);
+      }
     }
   };
 
@@ -432,6 +463,7 @@ function VeritasAIWorkspace() {
 
   // Handle direct text paste
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setIsDocumentRepaired(false);
     const val = e.target.value;
     if (val.startsWith('PK\x03\x04') || val.includes('[Content_Types].xml')) {
       const extracted = extractTextFromRawDocxString(val);
@@ -447,6 +479,7 @@ function VeritasAIWorkspace() {
     try {
       const text = await navigator.clipboard.readText();
       if (text) {
+        setIsDocumentRepaired(false);
         if (text.startsWith('PK\x03\x04') || text.includes('[Content_Types].xml')) {
           const extracted = extractTextFromRawDocxString(text);
           setInputText(extracted);
@@ -598,6 +631,9 @@ function VeritasAIWorkspace() {
               <ThreeCoreScanner
                 variant="hero"
                 status={scannerStatus}
+                hasText={hasDocumentText}
+                isRepaired={isDocumentRepaired}
+                needsFix={documentNeedsFix}
                 authenticityScore={activeReport?.compositeAuthenticity}
                 aiScore={activeReport?.aiAnalysis.overallAiScore}
                 metrics={activeReport?.aiAnalysis.metrics}
@@ -707,6 +743,9 @@ function VeritasAIWorkspace() {
               <ThreeCoreScanner
                 variant="workspace"
                 status={scannerStatus}
+                hasText={hasDocumentText}
+                isRepaired={isDocumentRepaired}
+                needsFix={documentNeedsFix}
                 authenticityScore={activeReport?.compositeAuthenticity}
                 aiScore={activeReport?.aiAnalysis.overallAiScore}
                 metrics={activeReport?.aiAnalysis.metrics}
@@ -825,9 +864,10 @@ function VeritasAIWorkspace() {
                         onClick={() => {
                           setInputText('');
                           setUploadedFileName(null);
+                          setActiveReport(null);
                         }}
                         className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 transition"
-                        title="Clear editor"
+                        title="Clear document & reset audit"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

@@ -22,24 +22,24 @@ export const PixelRobot: React.FC<PixelIconProps> = ({ size = 24, className = ''
     <rect x="10" y="1" width="4" height="2" fill="#F472B6" />
     {/* Head Outline */}
     <rect x="5" y="5" width="14" height="12" fill="#0F172A" />
-    <rect x="6" y="6" width="12" height="10" fill="#6366F1" />
+    <rect x="6" y="6" width="12" height="10" fill="#606C38" />
     {/* Ears */}
-    <rect x="3" y="9" width="2" height="4" fill="#EC4899" />
-    <rect x="19" y="9" width="2" height="4" fill="#EC4899" />
+    <rect x="3" y="9" width="2" height="4" fill="#82984E" />
+    <rect x="19" y="9" width="2" height="4" fill="#82984E" />
     {/* Eyes Screen */}
     <rect x="7" y="8" width="10" height="4" fill="#0F172A" />
     {/* Pixel Glowing Eyes */}
-    <rect x="8" y="9" width="2" height="2" fill="#22D3EE" />
-    <rect x="14" y="9" width="2" height="2" fill="#22D3EE" />
+    <rect x="8" y="9" width="2" height="2" fill="#D7E0BE" />
+    <rect x="14" y="9" width="2" height="2" fill="#D7E0BE" />
     {/* Blush */}
-    <rect x="7" y="13" width="2" height="1" fill="#F472B6" />
-    <rect x="15" y="13" width="2" height="1" fill="#F472B6" />
+    <rect x="7" y="13" width="2" height="1" fill="#DDA15E" />
+    <rect x="15" y="13" width="2" height="1" fill="#DDA15E" />
     {/* Pixel Smile */}
-    <rect x="10" y="13" width="4" height="1" fill="#F8FAFC" />
+    <rect x="10" y="13" width="4" height="1" fill="#FEFAE0" />
     {/* Neck */}
-    <rect x="10" y="17" width="4" height="2" fill="#A855F7" />
+    <rect x="10" y="17" width="4" height="2" fill="#4C562C" />
     {/* Body Base */}
-    <rect x="6" y="19" width="12" height="3" fill="#4338CA" />
+    <rect x="6" y="19" width="12" height="3" fill="#3D4525" />
   </svg>
 );
 
@@ -362,12 +362,13 @@ export const PixelCheckBadge: React.FC<PixelIconProps> = ({ size = 24, className
 // Sticker Container with white die-cut pixel outline & drop shadow
 export const PixelStickerBadge: React.FC<{
   children: React.ReactNode;
-  color?: 'indigo' | 'emerald' | 'amber' | 'pink' | 'cyan' | 'purple' | 'rose';
+  color?: 'indigo' | 'olive' | 'emerald' | 'amber' | 'pink' | 'cyan' | 'purple' | 'rose';
   className?: string;
   tilt?: 'left' | 'right' | 'none';
-}> = ({ children, color = 'indigo', className = '', tilt = 'none' }) => {
+}> = ({ children, color = 'olive', className = '', tilt = 'none' }) => {
   const colorMap = {
-    indigo: 'bg-indigo-950/80 text-indigo-300 border-2 border-black shadow-[2px_2px_0px_#000]',
+    olive: 'bg-[#606C38]/25 text-[#d7e0be] border-2 border-black shadow-[2px_2px_0px_#000]',
+    indigo: 'bg-[#606C38]/25 text-[#becd97] border-2 border-black shadow-[2px_2px_0px_#000]',
     emerald: 'bg-emerald-950/80 text-emerald-300 border-2 border-black shadow-[2px_2px_0px_#000]',
     amber: 'bg-amber-950/80 text-amber-300 border-2 border-black shadow-[2px_2px_0px_#000]',
     pink: 'bg-pink-950/80 text-pink-300 border-2 border-black shadow-[2px_2px_0px_#000]',

@@ -32,8 +32,8 @@ export function exportForensicReportPDF({
   doc.setFillColor(15, 23, 42); // slate-900
   doc.rect(0, 0, pageWidth, 42, 'F');
 
-  // Decorative Accent Line
-  doc.setFillColor(99, 102, 241); // indigo-500
+  // Decorative Accent Line (Olive Leaf #606C38)
+  doc.setFillColor(96, 108, 56);
   doc.rect(0, 42, pageWidth, 2, 'F');
 
   // Header Title
@@ -208,7 +208,7 @@ export function exportForensicReportPDF({
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
-      doc.setTextColor(99, 102, 241); // indigo
+      doc.setTextColor(96, 108, 56); // Olive Leaf #606C38
       doc.text(source.url.slice(0, 90), margin + 6, currentY);
       currentY += 5;
     });

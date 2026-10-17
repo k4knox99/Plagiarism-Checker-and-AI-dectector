@@ -18,6 +18,7 @@ import {
   PixelPencil,
   PixelShield
 } from './PixelStickers';
+import { PixelCorgi } from './PixelCorgi';
 
 interface HumanizerFixerStudioProps {
   originalText: string;
@@ -155,8 +156,8 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
             >
               {isProcessing ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Re-architecting...</span>
+                  <PixelCorgi state="running" size={32} />
+                  <span>Corgi running repairs...</span>
                 </>
               ) : (
                 <>
@@ -308,13 +309,16 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
             </div>
           </div>
 
-          {/* Text Comparison Viewport */}
+          {/* Text Comparison Viewport with Needs-Fix and Fixed Corgi Characters */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {viewMode === 'split' && (
-              <div className="rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] p-5 space-y-2">
+              <div className="rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] p-5 space-y-3">
                 <div className="flex items-center justify-between text-xs text-zinc-400 font-pixel pb-2 border-b-2 border-zinc-800">
-                  <span>Original Document</span>
-                  <span className="text-rose-400 font-bold">{humanizeResult.beforeAiScore}% AI Risk</span>
+                  <div className="flex items-center gap-2">
+                    <PixelCorgi state="needs-fix" size={36} />
+                    <span className="text-rose-400 font-bold">Needs Fix (AI Flagged)</span>
+                  </div>
+                  <span className="text-rose-400 font-bold px-2 py-0.5 rounded bg-rose-950/60 border border-black">{humanizeResult.beforeAiScore}% AI Risk</span>
                 </div>
                 <div className="text-xs text-zinc-300 leading-relaxed max-h-[360px] overflow-y-auto whitespace-pre-wrap font-sans">
                   {originalText}
@@ -322,13 +326,15 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
               </div>
             )}
 
-            <div className={`rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] p-5 space-y-2 ${viewMode === 'output' ? 'lg:col-span-2' : ''}`}>
+            <div className={`rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] p-5 space-y-3 ${viewMode === 'output' ? 'lg:col-span-2' : ''}`}>
               <div className="flex items-center justify-between text-xs text-zinc-400 font-pixel pb-2 border-b-2 border-zinc-800">
-                <span className="text-emerald-300 font-bold flex items-center gap-1.5">
-                  <PixelSparkle size={14} />
-                  Argon Humanized Output ({style.toUpperCase()})
-                </span>
-                <span className="text-emerald-400 font-bold">{humanizeResult.afterAiScore}% AI (Verified)</span>
+                <div className="flex items-center gap-2">
+                  <PixelCorgi state="fixed" size={38} />
+                  <span className="text-emerald-300 font-bold">
+                    Repaired &amp; Humanized ({style.toUpperCase()})
+                  </span>
+                </div>
+                <span className="text-emerald-400 font-bold px-2 py-0.5 rounded bg-[#606C38]/30 border border-black">{humanizeResult.afterAiScore}% AI (Verified)</span>
               </div>
               <div className="text-xs text-zinc-100 leading-relaxed max-h-[360px] overflow-y-auto whitespace-pre-wrap font-sans">
                 {humanizeResult.rewrittenText}
