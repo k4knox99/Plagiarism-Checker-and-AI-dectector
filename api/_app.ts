@@ -2,6 +2,7 @@ import express, { Request, Response, Router } from 'express';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { PDFParse } from 'pdf-parse';
+import { sendVerificationHandler } from './send-verification';
 
 dotenv.config();
 
@@ -218,6 +219,9 @@ router.get('/health', (_req: Request, res: Response) => {
     hasApiKey: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
   });
 });
+
+// Verification Email Route via Resend
+router.post('/send-verification', sendVerificationHandler);
 
 // 1. POST /detect/ai - Deep AI Content Detector
 router.post('/detect/ai', async (req: Request, res: Response) => {

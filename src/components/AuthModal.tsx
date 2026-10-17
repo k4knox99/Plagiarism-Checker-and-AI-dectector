@@ -46,10 +46,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // 2-Step Verification state
   const [verificationCode, setVerificationCode] = useState('');
   const [expectedCode, setExpectedCode] = useState('');
-  const [simulatedEmailBanner, setSimulatedEmailBanner] = useState<string | null>(null);
   
   // Feedback state
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [emailDomainWarning, setEmailDomainWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -58,6 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setMode(initialMode);
     setStep('form');
     setErrorMessage(null);
+    setInfoMessage(null);
   }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
@@ -66,6 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleSignUpEmailChange = (val: string) => {
     setSignUpEmail(val);
     setErrorMessage(null);
+    setInfoMessage(null);
 
     if (val.includes('@') && val.split('@')[1]?.includes('.')) {
       const res = validateEmailAddress(val);
@@ -82,6 +84,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleSignInSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setInfoMessage(null);
     setIsLoading(true);
 
     setTimeout(() => {
@@ -96,10 +99,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }, 300);
   };
 
-  // Step 1: Pre-flight check & trigger 2-Step Email Verification code dispatch
-  const handleSignUpInitiate = (e: React.FormEvent) => {
+  // Step 1: Pre-flight check & dispatch 6-digit verification code via Resend API
+  const handleSignUpInitiate = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setInfoMessage(null);
 
     const validation = validateEmailAddress(signUpEmail);
     if (!validation.isValid) {
@@ -113,26 +117,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setIsLoading(true);
-    // Generate 6-digit confirmation code
+    // Generate secure 6-digit confirmation code
     const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
     setExpectedCode(generatedCode);
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signUpEmail.trim(), code: generatedCode })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to dispatch verification email. Please try again.');
+      }
       setStep('verify-email');
       setVerificationCode('');
-      setSimulatedEmailBanner(`Verification code dispatched to ${signUpEmail}: ${generatedCode}`);
-    }, 400);
+      setInfoMessage(`Verification code sent to ${signUpEmail}. Please check your inbox.`);
+    } catch (err: any) {
+      console.error('Failed to send verification code:', err);
+      setErrorMessage(err.message || 'Unable to send verification code. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Step 2: Confirm 6-Digit Email Code and Activate 7-Day Free Trial
   const handleVerifyCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setInfoMessage(null);
 
     const cleanInputCode = verificationCode.trim();
     if (cleanInputCode !== expectedCode) {
-      setErrorMessage('Incorrect 6-digit verification code. Please check the simulated email notification banner above.');
+      setErrorMessage('Incorrect 6-digit verification code. Please check your email inbox (and spam folder) and try again.');
       return;
     }
 
@@ -149,12 +167,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }, 400);
   };
 
-  const handleResendCode = () => {
+  // Resend code via Resend API
+  const handleResendCode = async () => {
     const freshCode = Math.floor(100000 + Math.random() * 900000).toString();
     setExpectedCode(freshCode);
     setVerificationCode('');
     setErrorMessage(null);
-    setSimulatedEmailBanner(`New verification code dispatched to ${signUpEmail}: ${freshCode}`);
+    setInfoMessage(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signUpEmail.trim(), code: freshCode })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to resend verification code.');
+      }
+      setInfoMessage(`A fresh verification code was sent to ${signUpEmail}.`);
+    } catch (err: any) {
+      console.error('Failed to resend verification code:', err);
+      setErrorMessage(err.message || 'Unable to resend verification code. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -237,29 +275,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* Simulated Email Toast / Banner for instant code retrieval */}
-        {step === 'verify-email' && simulatedEmailBanner && (
-          <div className="mx-6 mt-4 p-3.5 rounded-xl bg-indigo-950/70 border border-indigo-500/40 text-indigo-200 text-xs flex flex-col gap-2 animate-in fade-in">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold flex items-center gap-1.5 text-indigo-300">
-                <Mail className="w-4 h-4 text-indigo-400" />
-                <span>Simulated Mail Server Delivery</span>
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                Inbox
-              </span>
-            </div>
-            <p className="text-[11px] text-indigo-200 leading-relaxed font-mono">
-              Verification Code: <strong className="text-white text-sm tracking-widest">{expectedCode}</strong>
-            </p>
-            <button
-              type="button"
-              onClick={() => { setVerificationCode(expectedCode); setErrorMessage(null); }}
-              className="self-start text-[11px] font-semibold text-indigo-300 hover:text-white bg-indigo-800/50 hover:bg-indigo-700/60 px-2.5 py-1 rounded-lg border border-indigo-500/40 transition flex items-center gap-1"
-            >
-              <Check className="w-3 h-3 text-emerald-400" />
-              <span>Autofill Code ({expectedCode})</span>
-            </button>
+        {/* Info / Success Notification */}
+        {infoMessage && (
+          <div className="mx-6 mt-3 p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 text-xs flex items-start gap-2.5 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+            <p className="leading-relaxed">{infoMessage}</p>
           </div>
         )}
 

@@ -44,27 +44,29 @@ export const PixelCorgi: React.FC<PixelCorgiProps> = ({
           : 'Pixel Corgi happy: 100% human & fixed!'
       }
     >
-      {/* Dynamic Status Mood Bubble */}
-      <div className="mb-2">
-        {state === 'running' && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900 border border-black shadow-[2px_2px_0px_#000] text-[10px] font-pixel text-[#becd97] animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#606C38] animate-ping" />
-            <span>{statusMessage || 'No Text in Document · Corgi Running 🏃'}</span>
-          </div>
-        )}
-        {state === 'needs_fix' && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-950/90 border border-black shadow-[2px_2px_0px_#000] text-[10px] font-pixel text-rose-300 animate-bounce">
-            <span className="text-rose-400 font-bold">❗</span>
-            <span>{statusMessage || 'Needs Repair / AI Detected!'}</span>
-          </div>
-        )}
-        {state === 'fixed' && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#606C38]/30 border border-black shadow-[2px_2px_0px_#000] text-[10px] font-pixel text-[#d7e0be]">
-            <span>✨</span>
-            <span>{statusMessage || 'Repaired & 100% Authentic!'}</span>
-          </div>
-        )}
-      </div>
+      {/* Dynamic Status Mood Bubble (hidden when size <= 24 to prevent badge overlap) */}
+      {size > 24 && (
+        <div className="mb-2">
+          {state === 'running' && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900 border border-black shadow-[2px_2px_0px_#000] text-[10px] font-pixel text-[#becd97] animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#606C38] animate-ping" />
+              <span>{statusMessage || 'No Text in Document · Corgi Running 🏃'}</span>
+            </div>
+          )}
+          {state === 'needs_fix' && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-950/90 border border-black shadow-[2px_2px_0px_#000] text-[10px] font-pixel text-rose-300 animate-bounce">
+              <span className="text-rose-400 font-bold">❗</span>
+              <span>{statusMessage || 'Needs Repair / AI Detected!'}</span>
+            </div>
+          )}
+          {state === 'fixed' && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#606C38]/30 border border-black shadow-[2px_2px_0px_#000] text-[10px] font-pixel text-[#d7e0be]">
+              <span>✨</span>
+              <span>{statusMessage || 'Repaired & 100% Authentic!'}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* SVG Pixel Corgi Character */}
       <div className="relative">
