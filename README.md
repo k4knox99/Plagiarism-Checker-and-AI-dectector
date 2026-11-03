@@ -1,133 +1,49 @@
-# VeritasAI — Plagiarism & AI Detector with Smart Humanizer
+# Veritas — writing integrity workspace
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
-![Vite](https://img.shields.io/badge/Vite-8.3-646CFF?logo=vite&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4?logo=tailwindcss&logoColor=white)
+A responsive writing studio with AI signal analysis, grounded web source suggestions, and a private server document library.
 
-Comprehensive plagiarism checker, AI content detector, and smart humanizer fixer to verify originality and rewrite flagged text with natural human cadence. Engineered for high performance both locally and on **Vercel**.
+## Run locally
 
----
+Requires Node 22.13+ (tested on Node 24).
 
-## 🚀 1-Click Deploy to Vercel
-
-Click the button below to deploy your own instance of VeritasAI directly to Vercel:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
-
-### Step-by-Step Vercel Deployment (Git Import)
-
-1. **Push your code to GitHub / GitLab / Bitbucket**.
-2. Go to [vercel.com/new](https://vercel.com/new).
-3. Import your VeritasAI repository.
-4. Vercel automatically detects the project settings from `vercel.json`:
-   - **Framework Preset**: `Vite`
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
-5. Under **Environment Variables**, add:
-   - `GEMINI_API_KEY`: Your Gemini API key (obtain from [Google AI Studio](https://aistudio.google.com/app/apikey)).
-6. Click **Deploy**. Your application will be live in seconds!
-
----
-
-## 💻 Deploy via Vercel CLI
-
-You can also deploy directly from your terminal using the Vercel CLI:
-
-```bash
-# 1. Install Vercel CLI globally (or use npx)
-npm install -g vercel
-
-# 2. Login to your Vercel account
-vercel login
-
-# 3. Deploy preview
-vercel
-
-# 4. Deploy directly to production
-vercel --prod
-```
-
-When prompted during CLI deployment:
-- Set up and deploy? **Yes**
-- Link to existing project? **No**
-- What's your project's name? **veritas-ai**
-- In which directory is your code located? **./**
-- Want to modify these settings? **No** (Vercel automatically reads `vercel.json`)
-
-After deploying, set your secret key:
-```bash
-vercel env add GEMINI_API_KEY production
-```
-
----
-
-## 🏗️ Architecture on Vercel
-
-```
-┌────────────────────────────────────────────────────────┐
-│                      Vercel Edge                       │
-│                                                        │
-│   Incoming Requests                                    │
-│   ├── /api/*   ───────►   Vercel Serverless Function   │
-│   │                       (/api/index.ts -> Express)   │
-│   │                                                    │
-│   └── /*       ───────►   Global Edge CDN (Vite SPA)   │
-│                           (/dist/index.html + assets)  │
-└────────────────────────────────────────────────────────┘
-```
-
-- **Frontend**: Single Page Application built by Vite with React 19, Lucide icons, and Tailwind CSS v4, compiled into `/dist` and delivered through Vercel's Global CDN.
-- **Backend API**: Serverless Functions inside `/api/` running the Express app on Node.js.
-- **Fail-Safe Heuristic Engine**: If `GEMINI_API_KEY` is temporarily missing or hits a quota threshold, VeritasAI automatically utilizes its built-in local stylometric analysis engine (burstiness, perplexity proxies, syntactic uniformity, and cliché pattern matching) to provide instant responses without throwing 500 errors.
-
----
-
-## ⚙️ Environment Variables
-
-| Variable | Required | Description |
-| :--- | :---: | :--- |
-| `GEMINI_API_KEY` | Recommended | API key from Google AI Studio. Powers deep AI forensics and the Gemini 3.8 Flash humanizer. (App gracefully falls back to local stylometrics if omitted). |
-| `PORT` | Optional | Port for local server (defaults to `3000`). |
-
----
-
-## 🛠️ Local Development
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Set your environment variable in .env
-echo "GEMINI_API_KEY=your_key_here" > .env
-
-# 3. Start local development server (Vite + Express with HMR middleware)
+```sh
+npm ci
 npm run dev
-
-# 4. Build for production
-npm run build
-
-# 5. Type check / lint
-npm run lint
 ```
 
-Local server starts at `http://localhost:3000`.
+Open http://localhost:3000 and register with a password of at least 12 characters. SQLite is created under `data/` and persists across restarts. No API key is needed for local pattern analysis; web search needs a server-side Gemini key.
 
----
+## Production
 
-## 📡 API Endpoints
+Set `APP_ORIGIN` to the exact HTTPS origin without a trailing slash. Set `DATABASE_URL` to a private PostgreSQL database for Vercel or multiple instances. Use provider-approved, certificate-verified TLS. Schema creation is automatic; table/index creation privileges are required on first startup.
 
-- `GET  /api/health` — Service health and API key readiness check.
-- `POST /api/detect/comprehensive` — Unified single-call AI forensics & web plagiarism scan.
-- `POST /api/detect/ai` — Stylometric and perplexity AI probability detector.
-- `POST /api/detect/plagiarism` — Web search grounded plagiarism audit.
-- `POST /api/fix/humanize` — Multi-style humanizer (Academic, Conversational, Professional, Creative, Stealth).
-- `POST /api/fix/sentence` — Instant 3-variation single sentence humanizer.
-- `POST /api/fix/cite` — Citation generator (APA, MLA, Chicago, Harvard, BibTeX).
+Set `GEMINI_API_KEY` on the server to enable Gemini analysis and grounded web search. Never prefix a secret with `VITE_`.
 
----
+Run `npm ci`, `npm run build`, then `npm start`. Start selects production mode. Place self-hosted servers behind HTTPS. A single self-hosted process may use SQLite instead, with `DATA_DIR` on a persistent private volume. Vercel refuses SQLite fallback because its filesystem is ephemeral.
 
-## 📄 License
+See [deployment instructions](VERCEL_DEPLOYMENT.md) and [security review](SECURITY.md).
 
-MIT
+## Save, load, and privacy
+
+Sign in, write or import TXT/Markdown/DOCX/PDF, and choose **Save document**. Reopen, search, export, or delete saved drafts and reports from your account library. Saving is explicit; unsaved edits trigger a navigation warning. Limits: 100 documents per account, 15,000 characters per document, 2 MB per imported file.
+
+Analysis and PDF import send text/files to the server. AI analysis may share text with Google Gemini. DOCX parsing is local and its library loads only when needed. Passwords are hashed; browser storage is not used for credentials or document persistence. Production session cookies are Secure, HttpOnly, and SameSite=Strict.
+
+Documents and reports live in the configured database. Recent scan results are cached in process memory for up to 30 minutes, with 50 entries maximum and full-text/account-separated keys. Expired entries are removed on the next cache write. Deleting a document does not purge database backups, caches, or prior provider submissions. Database encryption, backup, access, and retention controls are the deployer's responsibility.
+
+## Limitations and migration
+
+AI scores are estimates, not proof of authorship. Similarity is not a plagiarism verdict. Search coverage is incomplete; manually check suggested sources. Unavailable web search reports **Not checked**, never a certificate of originality.
+
+The old browser-only subscriptions, payment receipts, admin/demo accounts, bearer sign-in, certificates, and guaranteed detector-evasion features are retired. Old browser credentials and sessions are cleared on first load and are not migrated. Create a new server account. There is currently no email ownership verification, password reset, MFA, billing, or administrator interface.
+
+## Validation
+
+```sh
+npm test
+npm run lint
+npm run build
+npm audit
+```
+
+Integration tests use temporary SQLite databases in ignored `work/`. They cover account isolation, authentication, session revocation/expiry, rate limits, validation, cache separation, and unavailable-service behavior. CI runs on Node 22 and 24. Hosted PostgreSQL and live Gemini require deployment credentials and are not included in the offline suite.

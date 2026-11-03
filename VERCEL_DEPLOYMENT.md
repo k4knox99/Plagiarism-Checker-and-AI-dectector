@@ -1,52 +1,14 @@
-# Vercel Deployment Checklist & Guide
+# Vercel deployment
 
-This project is pre-configured for seamless zero-configuration deployment to **Vercel**.
+1. Import this repository into Vercel using Vite, build command `npm run build`, output `dist`, and Node 24 (22.13+ also supported).
+2. Provision persistent PostgreSQL and set `DATABASE_URL` server-side. Use your provider's pooler URL and verified TLS settings. Never disable certificate verification.
+3. Set `APP_ORIGIN` to the exact public origin, e.g. `https://your-project.vercel.app`, without a trailing slash. Previews need their own matching origin and preferably separate databases.
+4. Optionally set `GEMINI_API_KEY`. Without it, AI analysis uses local heuristics and web similarity is unavailable.
+5. Deploy, register disposable test accounts, save a draft, refresh and reopen it, sign out, and verify account isolation.
+6. Configure database backups, encryption, restricted credentials, spending limits, bot controls, monitoring, and retention before broad public access.
 
-## 1. Key Configuration Files Created
+`vercel.json` routes API requests to Express and applies security headers to static pages. Sessions, rate limits, and documents use PostgreSQL to survive function restarts. SQLite fallback is intentionally unavailable on Vercel.
 
-- `vercel.json`: Defines the build command (`npm run build`), output directory (`dist`), and routing rewrites for both API serverless functions and SPA client-side routing.
-- `.vercelignore`: Prevents unnecessary local build caches and credentials from being uploaded.
-- `api/_app.ts`: Modular Express application containing all forensics, plagiarism detection, and humanizer routes, with automatic fallback when API keys are pending.
-- `api/index.ts`: Standard Vercel Serverless Function entry point for `/api`.
-- `api/[...path].ts`: Wildcard Vercel Serverless Function entry point ensuring all `/api/*` subroutes route seamlessly.
+Remove `VITE_ADMIN_PASSWORD` from all environments and rotate any password ever configured there, including reuse elsewhere. VITE-prefixed configuration is frontend-visible. Rebuild/redeploy and remove older deployments containing sensitive values; this revision cannot retract previously published assets.
 
-## 2. Deploying via Vercel Web Dashboard
-
-1. Push this repository to your GitHub account:
-   ```bash
-   git add .
-   git commit -m "Configure Vercel deployment"
-   git push origin main
-   ```
-2. Navigate to [https://vercel.com/new](https://vercel.com/new).
-3. Select your repository.
-4. Vercel automatically detects the Vite framework and settings.
-5. In the **Environment Variables** section:
-   - Name: `GEMINI_API_KEY`
-   - Value: `your_gemini_api_key`
-6. Click **Deploy**.
-
-## 3. Deploying via Vercel CLI
-
-```bash
-# Preview deployment
-npx vercel
-
-# Production deployment
-npx vercel --prod
-```
-
-## 4. Testing Your Deployed API
-
-Once deployed, you can verify your Vercel deployment by requesting:
-`https://your-vercel-deployment.vercel.app/api/health`
-
-It should return:
-```json
-{
-  "status": "ok",
-  "service": "VeritasAI API",
-  "timestamp": "2026-10-15T...",
-  "hasApiKey": true
-}
-```
+This revision does not provision a database or deploy production. Hosted PostgreSQL, live Gemini, production HTTPS cookies, and function limits need smoke testing with your deployment credentials. Local SQLite, API security regression tests, build, and type checks were validated.

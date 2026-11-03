@@ -500,7 +500,7 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
               <div className="flex items-start gap-3">
                 {activeSentence.aiProbability >= 65 && (
                   <div className="shrink-0 pt-0.5">
-                    <PixelCorgi state="needs-fix" size={44} showBadge badgeLabel="Needs Fix" />
+                    <PixelCorgi state="needs_fix" size={44} />
                   </div>
                 )}
                 <p className="flex-1 text-xs text-zinc-100 leading-relaxed font-sans">{activeSentence.sentence}</p>
@@ -542,7 +542,7 @@ export const SentenceHeatmap: React.FC<SentenceHeatmapProps> = ({
                 {/* Rewritten Replacement with Fixed Corgi */}
                 <div className="text-xs text-emerald-300 font-medium bg-emerald-950/40 p-2.5 rounded-xl border-2 border-black leading-relaxed flex items-start gap-2.5">
                   <div className="shrink-0 pt-0.5">
-                    <PixelCorgi state="fixed" size={44} showBadge badgeLabel="Repaired" />
+                    <PixelCorgi state="fixed" size={44} />
                   </div>
                   <div className="flex-1 space-y-1">
                     <span className="block font-pixel text-[10px] text-emerald-400 font-bold">100% Humanized Rewrite:</span>

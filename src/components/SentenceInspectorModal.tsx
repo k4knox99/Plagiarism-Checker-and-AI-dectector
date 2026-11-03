@@ -109,7 +109,7 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
 
             <div className="flex items-start gap-3">
               <div className="shrink-0 pt-1">
-                <PixelCorgi state="needs-fix" size={54} showBadge badgeLabel="Needs Fix" />
+                <PixelCorgi state="needs_fix" size={54} />
               </div>
               <p className="flex-1 text-sm font-medium text-zinc-100 leading-relaxed bg-zinc-950 p-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000]">
                 "{sentence.sentence}"
@@ -162,7 +162,7 @@ export const SentenceInspectorModal: React.FC<SentenceInspectorModalProps> = ({
                   <div className="flex items-start gap-3">
                     {idx === 0 && (
                       <div className="shrink-0 pt-0.5">
-                        <PixelCorgi state="fixed" size={46} showBadge badgeLabel="Repaired" />
+                        <PixelCorgi state="fixed" size={46} />
                       </div>
                     )}
                     <div className="flex-1 space-y-2">
