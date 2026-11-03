@@ -13,6 +13,11 @@ import {
 } from "node:crypto";
 import { query, StorageConfigurationError } from "./storage.js";
 import { validReport } from "./validation.js";
+import {
+  sendVerification,
+  confirmVerification,
+  VerificationError,
+} from "./verification.js";
 import { trustedOrigins } from "./origins.js";
 
 const derive = (password: string, salt: string) =>
@@ -31,7 +36,11 @@ const production =
 const cookieName = production ? "__Host-veritas" : "veritas_session";
 const digest = (value: string) =>
   createHash("sha256").update(value).digest("hex");
-export type UserRequest = Request & { userId?: string };
+export type UserRequest = Request & {
+  userId?: string;
+  userEmail?: string;
+  emailVerified?: boolean;
+};
 
 export function securityHeaders(
   _req: Request,
@@ -65,13 +74,10 @@ export function sameOrigin(req: Request, res: Response, next: NextFunction) {
     localOrigin: `${req.protocol}://${req.get("host")}`,
   });
   if (!allowed.size)
-    return res
-      .status(503)
-      .json({
-        error:
-          "The account service is not ready. Please contact the site owner.",
-        code: "ORIGIN_NOT_CONFIGURED",
-      });
+    return res.status(503).json({
+      error: "The account service is not ready. Please contact the site owner.",
+      code: "ORIGIN_NOT_CONFIGURED",
+    });
   if (
     (origin && !allowed.has(origin)) ||
     req.get("sec-fetch-site") === "cross-site"
@@ -128,7 +134,7 @@ function readToken(req: Request) {
   );
 }
 
-export async function requireUser(
+export async function requireSession(
   req: UserRequest,
   res: Response,
   next: NextFunction,
@@ -138,7 +144,7 @@ export async function requireUser(
     if (!/^[a-f0-9]{64}$/.test(token))
       return res.status(401).json({ error: "Please sign in to continue." });
     const [session] = await query(
-      "SELECT user_id FROM sessions WHERE token_hash=$1 AND expires_at>$2",
+      "SELECT sessions.user_id,accounts.email,accounts.verified_at FROM sessions JOIN accounts ON accounts.id=sessions.user_id WHERE token_hash=$1 AND expires_at>$2",
       [digest(token), Date.now()],
     );
     if (!session)
@@ -146,12 +152,31 @@ export async function requireUser(
         .status(401)
         .json({ error: "Your session has expired. Please sign in again." });
     req.userId = session.user_id;
+    req.userEmail = session.email;
+    req.emailVerified = Boolean(session.verified_at);
     next();
   } catch {
     res.status(503).json({ error: "Account storage is unavailable." });
   }
 }
 
+export function requireUser(
+  req: UserRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  return requireSession(req, res, () => {
+    if (!req.emailVerified)
+      return res
+        .status(403)
+        .json({
+          error:
+            "Please verify your email to use your library and analysis tools.",
+          code: "EMAIL_VERIFICATION_REQUIRED",
+        });
+    next();
+  });
+}
 async function issueSession(req: Request, res: Response, userId: string) {
   await query("DELETE FROM sessions WHERE token_hash=$1 OR expires_at<$2", [
     digest(readToken(req)),
@@ -202,10 +227,17 @@ accountRouter.post(
         const salt = randomBytes(16).toString("hex");
         const hash = ((await derive(password, salt)) as Buffer).toString("hex");
         user = { id: randomUUID(), email: cleanEmail };
-        await query(
-          "INSERT INTO accounts (id,email,password_hash,created_at) VALUES ($1,$2,$3,$4)",
+        const created = await query(
+          "INSERT INTO accounts (id,email,password_hash,created_at) VALUES ($1,$2,$3,$4) ON CONFLICT(email) DO NOTHING RETURNING id",
           [user.id, cleanEmail, `${salt}:${hash}`, new Date().toISOString()],
         );
+        if (!created.length)
+          return res
+            .status(409)
+            .json({
+              error:
+                "An account already exists. Please sign in to verify your email.",
+            });
       } else {
         // Derive even for unknown accounts to reduce timing differences.
         const [salt, hash] = (
@@ -218,7 +250,28 @@ accountRouter.post(
             .json({ error: "Email or password is incorrect." });
       }
       await issueSession(req, res, user.id);
-      res.json({ user: { id: user.id, email: user.email } });
+      if (!user.verified_at) {
+        let verificationSent = false,
+          message = "";
+        try {
+          await sendVerification(user.id, user.email);
+          verificationSent = true;
+        } catch (error) {
+          message =
+            error instanceof Error
+              ? error.message
+              : "Email delivery is unavailable.";
+        }
+        return res
+          .status(202)
+          .json({
+            user: { id: user.id, email: user.email, verified: false },
+            verificationRequired: true,
+            verificationSent,
+            message,
+          });
+      }
+      res.json({ user: { id: user.id, email: user.email, verified: true } });
     } catch {
       res
         .status(503)
@@ -226,16 +279,75 @@ accountRouter.post(
     }
   },
 );
-accountRouter.get("/me", requireUser, async (req: UserRequest, res, next) => {
-  try {
-    const [user] = await query("SELECT id,email FROM accounts WHERE id=$1", [
-      req.userId,
-    ]);
-    res.json({ user });
-  } catch (e) {
-    next(e);
-  }
-});
+accountRouter.get(
+  "/me",
+  requireSession,
+  async (req: UserRequest, res, next) => {
+    try {
+      const [user] = await query(
+        "SELECT id,email,verified_at FROM accounts WHERE id=$1",
+        [req.userId],
+      );
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          verified: Boolean(user.verified_at),
+        },
+      });
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+accountRouter.post(
+  "/resend-verification",
+  requireSession,
+  rateLimit("resend-ip", 10, 3600000),
+  async (req: UserRequest, res) => {
+    if (req.emailVerified) return res.json({ verified: true });
+    try {
+      await sendVerification(req.userId!, req.userEmail!);
+      res.json({ success: true, retryAfter: 60 });
+    } catch (error) {
+      res
+        .status(error instanceof VerificationError ? error.status : 503)
+        .json({
+          error:
+            error instanceof VerificationError
+              ? error.message
+              : "Email delivery is unavailable.",
+        });
+    }
+  },
+);
+accountRouter.post(
+  "/verify-email",
+  requireSession,
+  rateLimit("verify-ip", 30, 15 * 60000),
+  async (req: UserRequest, res) => {
+    if (req.emailVerified)
+      return res.json({
+        user: { id: req.userId, email: req.userEmail, verified: true },
+      });
+    try {
+      await confirmVerification(req.userId!, req.userEmail!, req.body?.code);
+      await issueSession(req, res, req.userId!);
+      res.json({
+        user: { id: req.userId, email: req.userEmail, verified: true },
+      });
+    } catch (error) {
+      res
+        .status(error instanceof VerificationError ? error.status : 503)
+        .json({
+          error:
+            error instanceof VerificationError
+              ? error.message
+              : "Verification is temporarily unavailable.",
+        });
+    }
+  },
+);
 accountRouter.post("/logout", async (req, res, next) => {
   try {
     await query("DELETE FROM sessions WHERE token_hash=$1", [

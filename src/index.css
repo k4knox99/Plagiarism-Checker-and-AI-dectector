@@ -1133,3 +1133,147 @@ summary {
     scroll-behavior: auto !important;
   }
 }
+/* Comfortable reading sizes across editor, tools, library, and account flows. */
+:root {
+  font-size: 16px;
+}
+.page-intro p,
+.analysis-card > p,
+.tip-card p,
+.results-empty p,
+.document-title input,
+.editor-footer,
+.save-button,
+.editor-toolbar button,
+.library-empty p,
+.privacy-card p,
+.account-row strong,
+.account-row small,
+.source-result a,
+.result-card > p,
+.sentence-result p,
+.auth-dialog > p,
+.auth-dialog label,
+.auth-dialog input,
+.auth-dialog small,
+.auth-dialog .switch-auth {
+  font-size: 14px;
+}
+.button,
+.check-option strong,
+.results-empty h3,
+.document-row strong,
+.library-search input,
+.nav-item {
+  font-size: 14px;
+}
+.check-option small,
+.document-title span,
+.analysis-footnote,
+.result-caution,
+.sentence-result small,
+.library-empty small,
+.document-row small,
+.privacy-card strong {
+  font-size: 12px;
+}
+.space-label,
+.library-heading,
+.eyebrow,
+.editor-toolbar > span {
+  font-size: 11px;
+}
+textarea {
+  font-size: 16px;
+  line-height: 1.9;
+}
+.analysis-footnote {
+  line-height: 1.65;
+}
+.check-option {
+  padding: 17px 12px;
+}
+.workspace-grid {
+  grid-template-columns: minmax(0, 1fr) 330px;
+}
+.auth-dialog {
+  width: min(480px, calc(100% - 32px));
+}
+.auth-feedback {
+  font-size: 13px;
+  color: #477256;
+  line-height: 1.7;
+  margin-top: 14px;
+}
+.otp-input {
+  text-align: center;
+  font-size: 28px !important;
+  letter-spacing: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.verification-banner {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: #fff6df;
+  border: 1px solid #e7d8ac;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 24px;
+  color: #6e5b27;
+}
+.verification-banner > span {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.verification-banner strong {
+  display: block;
+  font-size: 15px;
+}
+@media (max-width: 1100px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+  .analysis-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .tip-card {
+    margin-top: 0;
+  }
+  .page-intro {
+    display: block;
+  }
+  .page-intro .button {
+    margin-top: 18px;
+  }
+}
+@media (max-width: 650px) {
+  .analysis-column {
+    grid-template-columns: 1fr;
+  }
+  .verification-banner {
+    flex-wrap: wrap;
+  }
+  .verification-banner .button {
+    width: 100%;
+  }
+  .editor-footer {
+    font-size: 12px;
+  }
+  .library-search input,
+  .library-empty p {
+    font-size: 13px;
+  }
+  .document-list {
+    min-height: 0;
+  }
+  .check-option small {
+    font-size: 12px;
+  }
+  .page-intro p {
+    font-size: 14px;
+  }
+}

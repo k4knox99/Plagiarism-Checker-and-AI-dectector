@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import type { AIDetectionResult, PlagiarismResult } from "./types";
 import { readApiResponse } from "./utils/apiResponse";
-type Account = { id: string; email: string };
+type Account = { id: string; email: string; verified: boolean };
 type SavedDocument = { id: string; title: string; updated_at: string };
 type Report = {
   ai?: AIDetectionResult;
@@ -96,9 +96,9 @@ export default function App() {
     return () => controller.current?.abort();
   }, []);
   useEffect(() => {
-    if (user) refreshDocuments().catch((e) => setError(e.message));
+    if (user?.verified) refreshDocuments().catch((e) => setError(e.message));
     else setDocuments([]);
-  }, [user?.id]);
+  }, [user?.id, user?.verified]);
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (dirty) {
@@ -147,7 +147,7 @@ export default function App() {
     }
   }
   async function save() {
-    if (!user) {
+    if (!user?.verified) {
       setAuth("login");
       return;
     }
@@ -180,7 +180,7 @@ export default function App() {
     }
   }
   async function scan() {
-    if (!user) {
+    if (!user?.verified) {
       setAuth("login");
       return;
     }
@@ -228,7 +228,7 @@ export default function App() {
     try {
       let value: string;
       if (/\.pdf$/i.test(file.name)) {
-        if (!user)
+        if (!user?.verified)
           throw new Error(
             "Sign in before importing a PDF. PDFs are processed by the server.",
           );
@@ -449,6 +449,18 @@ export default function App() {
           </div>
         </header>
         <main>
+          {user && !user.verified && (
+            <div className="verification-banner" role="status">
+              <ShieldCheck size={20} />
+              <span>
+                <strong>Verify your email</strong>Confirm your email to save
+                documents and use analysis tools.
+              </span>
+              <button className="button small" onClick={() => setAuth("login")}>
+                Enter confirmation code
+              </button>
+            </div>
+          )}
           <section className="page-intro">
             <div>
               <div className="eyebrow">A LITTLE CLARITY GOES A LONG WAY</div>
@@ -615,7 +627,7 @@ export default function App() {
                   <ShieldCheck size={14} />
                   <span>
                     Analysis sends your text to our server and, when configured,
-                    Google Gemini.
+                    the configured AI provider.
                   </span>
                 </div>
               </section>
@@ -699,6 +711,9 @@ export default function App() {
                       <small>/ 100</small>
                     </div>
                     <h3>{report.ai.verdict}</h3>
+                    <small>
+                      {report.ai.engine || "AI writing signal estimate"}
+                    </small>
                     <p>{report.ai.overallSummary}</p>
                     <small className="result-caution">
                       This is a pattern-based estimate, not proof of authorship.
@@ -769,6 +784,8 @@ export default function App() {
       </div>
       {auth && (
         <AuthDialog
+          initialAccount={user && !user.verified ? user : null}
+          onPending={setUser}
           mode={auth}
           onMode={setAuth}
           onClose={() => setAuth(null)}
@@ -786,29 +803,84 @@ function AuthDialog({
   onMode,
   onClose,
   onSuccess,
+  onPending,
+  initialAccount,
 }: {
   mode: "login" | "register";
   onMode: (m: "login" | "register") => void;
   onClose: () => void;
   onSuccess: (u: Account) => void;
+  onPending: (u: Account) => void;
+  initialAccount: Account | null;
 }) {
-  const [email, setEmail] = useState(""),
+  const [email, setEmail] = useState(initialAccount?.email || ""),
     [password, setPassword] = useState(""),
+    [code, setCode] = useState(""),
+    [verifying, setVerifying] = useState(Boolean(initialAccount)),
     [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [message, setMessage] = useState(""),
+    [busy, setBusy] = useState(false),
+    [cooldown, setCooldown] = useState(0);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     dialog.current?.showModal();
     return () => dialog.current?.close();
   }, []);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((value) => value - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+  function accept(data: any) {
+    if (
+      typeof data.user?.id !== "string" ||
+      typeof data.user?.email !== "string" ||
+      typeof data.user?.verified !== "boolean"
+    )
+      throw new Error(
+        "The account server sent an incomplete response. Please reload and try again.",
+      );
+    if (!data.user.verified) {
+      setVerifying(true);
+      setEmail(data.user.email);
+      setPassword("");
+      setCooldown(60);
+      onPending(data.user);
+      if (data.verificationSent)
+        setMessage(
+          "A confirmation code was sent to your email. Check your inbox and spam folder.",
+        );
+      else setError(data.message || "Request a confirmation code to continue.");
+    } else onSuccess(data.user);
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
-      onSuccess((await api(`/auth/${mode}`, "POST", { email, password })).user);
+      accept(
+        await api(
+          verifying ? "/auth/verify-email" : `/auth/${mode}`,
+          "POST",
+          verifying ? { code } : { email, password },
+        ),
+      );
     } catch (e: any) {
       setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function resend() {
+    setBusy(true);
+    setError("");
+    try {
+      await api("/auth/resend-verification", "POST", {});
+      setMessage("A new confirmation code was sent. Use the latest code.");
+      setCooldown(60);
+    } catch (e: any) {
+      setError(e.message);
+      setCooldown(60);
     } finally {
       setBusy(false);
     }
@@ -835,45 +907,78 @@ function AuthDialog({
         <ShieldCheck size={25} />
       </span>
       <h2 id="auth-heading">
-        {mode === "login" ? "Welcome back." : "A space of your own."}
+        {verifying
+          ? "Confirm your email."
+          : mode === "login"
+            ? "Welcome back."
+            : "A space of your own."}
       </h2>
       <p>
-        {mode === "login"
-          ? "Sign in to your private writing workspace."
-          : "Create an account to save documents and explore your writing."}
+        {verifying
+          ? `Enter the 6-digit code sent to ${email}.`
+          : mode === "login"
+            ? "Sign in to your private writing workspace."
+            : "Create an account, then confirm your email to unlock your private workspace."}
       </p>
       <form onSubmit={submit}>
-        <label>
-          Email address
-          <input
-            autoFocus
-            type="email"
-            autoComplete="email"
-            required
-            maxLength={254}
-            disabled={busy}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            required
-            minLength={12}
-            maxLength={128}
-            autoComplete={
-              mode === "login" ? "current-password" : "new-password"
-            }
-            disabled={busy}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-        <small>
-          Use 12–128 characters. Your password is never stored in the browser.
-        </small>
+        {verifying ? (
+          <label>
+            Confirmation code
+            <input
+              autoFocus
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              required
+              minLength={6}
+              maxLength={6}
+              className="otp-input"
+              disabled={busy}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            />
+          </label>
+        ) : (
+          <>
+            <label>
+              Email address
+              <input
+                autoFocus
+                type="email"
+                autoComplete="email"
+                required
+                maxLength={254}
+                disabled={busy}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                required
+                minLength={12}
+                maxLength={128}
+                autoComplete={
+                  mode === "login" ? "current-password" : "new-password"
+                }
+                disabled={busy}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+            <small>
+              Use 12–128 characters. Your password is never stored in the
+              browser.
+            </small>
+          </>
+        )}
+        {message && (
+          <p className="auth-feedback" role="status">
+            {message}
+          </p>
+        )}
         {error && (
           <p className="error-message" role="alert">
             {error}
@@ -882,28 +987,51 @@ function AuthDialog({
         <button className="button" disabled={busy}>
           {busy
             ? "Please wait…"
-            : mode === "login"
-              ? "Sign in"
-              : "Create account"}
+            : verifying
+              ? "Verify email"
+              : mode === "login"
+                ? "Sign in"
+                : "Create account"}
           <ArrowRight size={16} />
         </button>
       </form>
-      <button
-        className="switch-auth"
-        disabled={busy}
-        onClick={() => {
-          onMode(mode === "login" ? "register" : "login");
-          setError("");
-        }}
-      >
-        {mode === "login"
-          ? "New here? Create an account"
-          : "Already have an account? Sign in"}
-      </button>
-      <small className="auth-note">
-        Legacy demo accounts are no longer accepted. New accounts do not yet
-        include email ownership verification.
-      </small>
+      {verifying ? (
+        <>
+          <button
+            className="switch-auth"
+            disabled={busy || cooldown > 0}
+            onClick={resend}
+          >
+            {cooldown > 0
+              ? `Resend code in ${cooldown}s`
+              : "Send a new confirmation code"}
+          </button>
+          <small className="auth-note">
+            Codes expire and can be used only once. Existing accounts also need
+            to verify their email before using tools. Your saved documents stay
+            with your account.
+          </small>
+        </>
+      ) : (
+        <>
+          <button
+            className="switch-auth"
+            disabled={busy}
+            onClick={() => {
+              onMode(mode === "login" ? "register" : "login");
+              setError("");
+            }}
+          >
+            {mode === "login"
+              ? "New here? Create an account"
+              : "Already have an account? Sign in"}
+          </button>
+          <small className="auth-note">
+            Email confirmation is required for all accounts. One account per
+            email address.
+          </small>
+        </>
+      )}
     </dialog>
   );
 }

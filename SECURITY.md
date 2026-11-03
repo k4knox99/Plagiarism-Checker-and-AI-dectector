@@ -23,7 +23,7 @@ Use HTTPS, a private durable database, verified database TLS, restricted databas
 
 This is a source review and local regression testing, not a penetration-test certification.
 
-- Registration is open and email ownership is unverified. There is no password reset, MFA, account recovery, billing, enterprise authorization, or administrator interface. Email domains must never establish organizational membership.
+- Registration is open, but email confirmation is required before protected tools or documents are accessible. There is no password reset, MFA, account recovery, billing, enterprise authorization, or administrator interface. Email domains must never establish organizational membership.
 - Proxy configuration determines IP rate-limit identity. Vercel trusts one platform proxy; self-hosting trusts no proxies by default. Configure only known reverse proxies deliberately.
 - Rate windows are shared in the database; cache/concurrency limits are per process. Public installations still need edge bot controls, global provider quotas, admission controls, and monitoring. Multiple accounts/IPs can exhaust provider budgets.
 - File-size limits do not fully stop compressed-document resource attacks. PDF parsing remains in-process. Hostile/high-volume environments should isolate parsing in constrained workers/services and add file scanning.
@@ -36,3 +36,11 @@ References: [Express production security guidance](https://expressjs.com/en/adva
 Report issues privately to the repository owner; do not post secrets or private documents in public issues.
 
 Preview-origin handling also accepts only the exact VERCEL_URL supplied by Vercel. It never derives production trust from a client-controlled Host or forwarding header. Registration fails closed with a setup error until durable hosted storage is connected.
+
+## Verification and tool update
+
+The preview now requires email confirmation for every account, including pre-update users. Existing passwords, IDs, and documents are retained; old sessions cannot bypass the verification gate. App passwords are not sent to the OTP provider. The provider consumes single-use codes; local challenges enforce expiry, per-account binding, a 60-second resend cooldown, five-attempt limit and shared database rate limits. Case-insensitive unique email indexing and conflict-safe insertion prevent concurrent duplicate application accounts.
+
+Neon shared SMTP is used for preview email delivery. Configure custom SMTP for a broad production launch. Provider inbox delivery must be tested with a real mailbox; integration tests use an isolated provider stub. Password reset and MFA remain outside this revision.
+
+Live AI Gateway/web-search calls use the deployment OIDC token or a server-only gateway key. Requests are bounded and source links are filtered against actual provider source metadata. Provider credits/payment verification can affect availability. The UI labels local fallback output rather than hiding outages.

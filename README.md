@@ -35,7 +35,7 @@ Documents and reports live in the configured database. Recent scan results are c
 
 AI scores are estimates, not proof of authorship. Similarity is not a plagiarism verdict. Search coverage is incomplete; manually check suggested sources. Unavailable web search reports **Not checked**, never a certificate of originality.
 
-The old browser-only subscriptions, payment receipts, admin/demo accounts, bearer sign-in, certificates, and guaranteed detector-evasion features are retired. Old browser credentials and sessions are cleared on first load and are not migrated. Create a new server account. There is currently no email ownership verification, password reset, MFA, billing, or administrator interface.
+The old browser-only subscriptions, payment receipts, admin/demo accounts, bearer sign-in, certificates, and guaranteed detector-evasion features are retired. Old browser credentials and sessions are cleared on first load and are not migrated. Create a new server account. Email confirmation is required. Password reset, MFA, billing, and an administrator interface are not implemented.
 
 ## Validation
 
@@ -47,3 +47,17 @@ npm audit
 ```
 
 Integration tests use temporary SQLite databases in ignored `work/`. They cover account isolation, authentication, session revocation/expiry, rate limits, validation, cache separation, and unavailable-service behavior. CI runs on Node 22 and 24. Hosted PostgreSQL and live Gemini require deployment credentials and are not included in the offline suite.
+
+## Email confirmation update
+
+All new and existing accounts must prove email ownership before saving/loading private documents, importing PDFs, or running analysis. Existing account IDs, passwords and documents are retained; previously issued sessions are checked against verification state on every protected request. Nobody is automatically marked verified.
+
+The preview uses Neon Managed Auth email OTP delivery over its shared SMTP service. The app keeps its existing password/session identity and uses Neon only to consume a single-use email code and return a verified email-ownership proof. A small managed email identity is created by the OTP provider; it does not create another application account or change document ownership. Its temporary provider session is discarded after verification. No app passwords are sent to Neon Auth.
+
+Set server-only NEON_AUTH_BASE_URL to the branch Auth URL. The confirmation screen supports resend with a 60-second cooldown; each challenge allows five attempts, expires within ten minutes (the provider can expire it sooner), and is bound to the signed-in account. Shared provider email is suitable for preview testing; configure a custom verified SMTP sender before a broad production launch.
+
+Apply the versioned migration in server/migrations/001_email_verification.sql. It adds nullable verified_at, a normalized unique email index and bounded verification state; it does not mark existing users verified or delete their data. Hosted cold starts read the migration version rather than rerunning schema DDL each time.
+
+## Live analysis configuration
+
+Gemini keys remain supported. Vercel deployments also use AI Gateway through their short-lived VERCEL_OIDC_TOKEN; AI_GATEWAY_MODEL selects a model, currently openai/gpt-5.4-mini. Web similarity uses actual provider web search and returns only URLs present in source metadata. Provider account/credit requirements still apply. Results identify local fallback estimates if the AI service is unavailable; fallback scores are never proof of authorship or originality.

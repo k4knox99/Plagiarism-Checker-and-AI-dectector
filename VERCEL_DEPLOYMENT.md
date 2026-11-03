@@ -18,3 +18,9 @@ This revision does not provision a database or deploy production. Hosted Postgre
 Real accounts require PostgreSQL. In the Vercel project, attach a Neon/PostgreSQL database and expose its pooled connection string as DATABASE_URL to Preview and Production, then redeploy. The app creates its tables automatically. Vercel's own VERCEL_URL is accepted as the exact trusted preview origin; APP_ORIGIN remains the custom production origin.
 
 If the deployment is protected by Vercel Authentication, sign in through Vercel before testing. Do not disable protection just to hide an API error. Missing storage now returns a specific setup error. Server startup failures return JSON rather than an HTML error page where possible. The API module uses explicit ESM import paths and loads PDF parsing only when requested.
+
+## Confirmation-code configuration
+
+Set NEON_AUTH_BASE_URL on the same preview branch as DATABASE_URL. Apply server/migrations/001_email_verification.sql before deploying the updated server. Set AI_GATEWAY_MODEL to a catalog model; Vercel OIDC can authenticate Gateway without copying provider keys. AI Gateway still requires an eligible account/credits. Verification uses the branch's Managed Auth OTP service and retains existing application account/document IDs. Existing users must sign in with their current password and enter the emailed code.
+
+For production, configure a verified custom SMTP sender in Neon Auth first. A shared sender can be used to test this preview. Never copy the preview database or authentication audience into production unintentionally.

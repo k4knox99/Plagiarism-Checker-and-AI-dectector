@@ -14,6 +14,20 @@ process.env.NODE_ENV = "test";
 process.env.VERCEL = "";
 const { default: app, getCacheKey } = await import("../server/app.js");
 const { query } = await import("../server/storage");
+const { setVerificationProviderForTests, VerificationError } = await import(
+  "../server/verification.js"
+);
+const delivered = new Map<string, string>();
+setVerificationProviderForTests({
+  send: async (email) => {
+    delivered.set(email, "123456");
+  },
+  verify: async (email, code) => {
+    if (delivered.get(email) !== code)
+      throw new VerificationError("Invalid OTP");
+    delivered.delete(email);
+  },
+});
 let server: any, base: string, alice: string, bob: string;
 const documentId = randomUUID();
 async function call(
@@ -62,7 +76,8 @@ test("registration creates a server-verified cookie; does not expose password ha
     email: "alice@example.com",
     password: "Alice-test-password-123",
   });
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 202);
+  assert.equal(data.user.verified, false);
   alice = response.headers.get("set-cookie")!.split(";")[0];
   assert.match(response.headers.get("set-cookie")!, /HttpOnly/);
   assert.match(response.headers.get("set-cookie")!, /SameSite=Strict/);
@@ -74,13 +89,43 @@ test("registration creates a server-verified cookie; does not expose password ha
   );
   assert.ok(!row.password_hash.includes("Alice-test"));
 });
+test("unverified accounts cannot access tools or documents; code confirms ownership", async () => {
+  assert.equal(
+    (await call("/api/documents", "GET", undefined, alice)).response.status,
+    403,
+  );
+  const bad = await call(
+    "/api/auth/verify-email",
+    "POST",
+    { code: "000000" },
+    alice,
+  );
+  assert.equal(bad.response.status, 400);
+  const good = await call(
+    "/api/auth/verify-email",
+    "POST",
+    { code: "123456" },
+    alice,
+  );
+  assert.equal(good.response.status, 200);
+  assert.equal(good.data.user.verified, true);
+  alice = good.response.headers.get("set-cookie")!.split(";")[0];
+});
 test("second account is separate", async () => {
   const { response } = await call("/api/auth/register", "POST", {
     email: "bob@example.com",
     password: "Bob-test-password-123",
   });
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 202);
   bob = response.headers.get("set-cookie")!.split(";")[0];
+  const verified = await call(
+    "/api/auth/verify-email",
+    "POST",
+    { code: "123456" },
+    bob,
+  );
+  assert.equal(verified.response.status, 200);
+  bob = verified.response.headers.get("set-cookie")!.split(";")[0];
 });
 test("saving and loading preserves text with no browser storage", async () => {
   const content = "A private document that should remain private.";
@@ -224,6 +269,25 @@ test("heuristic scan works and repeated text is cached", async () => {
   const b = await call("/api/detect/ai", "POST", { text }, alice);
   assert.equal(b.data.fromCache, true);
 });
+test("PDF import extracts actual document text", async () => {
+  const { PDFDocument, StandardFonts } = await import("pdf-lib");
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage();
+  page.drawText("A genuine PDF import test.", {
+    x: 50,
+    y: 700,
+    font: await pdf.embedFont(StandardFonts.Helvetica),
+  });
+  const bytes = await pdf.save();
+  const result = await call(
+    "/api/parse/pdf",
+    "POST",
+    { fileBase64: Buffer.from(bytes).toString("base64"), fileName: "test.pdf" },
+    alice,
+  );
+  assert.equal(result.response.status, 200);
+  assert.match(result.data.text, /genuine PDF import test/);
+});
 test("missing web search never certifies originality", async () => {
   const { data } = await call(
     "/api/detect/plagiarism",
@@ -299,6 +363,65 @@ test("expired session is rejected", async () => {
     (await call("/api/auth/me", "GET", undefined, bob)).response.status,
     401,
   );
+});
+test("existing accounts and old sessions must verify after migration; expiry, cooldown and attempts are enforced", async () => {
+  const [account] = await query("SELECT id FROM accounts WHERE email=$1", [
+    "alice@example.com",
+  ]);
+  await query("UPDATE accounts SET verified_at=NULL WHERE id=$1", [account.id]);
+  const login = await call("/api/auth/login", "POST", {
+    email: "alice@example.com",
+    password: "Alice-test-password-123",
+  });
+  assert.equal(login.response.status, 202);
+  const cookie = login.response.headers.get("set-cookie")!.split(";")[0];
+  assert.equal(
+    (await call("/api/documents", "GET", undefined, cookie)).response.status,
+    403,
+  );
+  assert.equal(
+    (await call("/api/auth/me", "GET", undefined, cookie)).data.user.verified,
+    false,
+  );
+  assert.equal(
+    (await call("/api/auth/resend-verification", "POST", {}, cookie)).response
+      .status,
+    429,
+  );
+  for (let i = 0; i < 5; i++)
+    await call("/api/auth/verify-email", "POST", { code: "000000" }, cookie);
+  assert.equal(
+    (await call("/api/auth/verify-email", "POST", { code: "123456" }, cookie))
+      .response.status,
+    400,
+  );
+  await query(
+    "UPDATE verification_requests SET expires_at=0,attempts=0 WHERE user_id=$1",
+    [account.id],
+  );
+  assert.equal(
+    (await call("/api/auth/verify-email", "POST", { code: "123456" }, cookie))
+      .response.status,
+    400,
+  );
+});
+test("concurrent duplicate registrations create only one canonical account", async () => {
+  const responses = await Promise.all([
+    call("/api/auth/register", "POST", {
+      email: "DUPLICATE@example.com",
+      password: "Duplicate-password-123",
+    }),
+    call("/api/auth/register", "POST", {
+      email: "duplicate@example.com",
+      password: "Duplicate-password-123",
+    }),
+  ]);
+  assert.deepEqual(responses.map((r) => r.response.status).sort(), [202, 409]);
+  const [count] = await query(
+    "SELECT COUNT(*) AS total FROM accounts WHERE email=$1",
+    ["duplicate@example.com"],
+  );
+  assert.equal(Number(count.total), 1);
 });
 test("login rate limits persist in database", async () => {
   let status = 0;
