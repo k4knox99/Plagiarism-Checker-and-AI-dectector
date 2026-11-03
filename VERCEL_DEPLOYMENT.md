@@ -3,7 +3,7 @@
 1. Import this repository into Vercel using Vite, build command `npm run build`, output `dist`, and Node 24 (22.13+ also supported).
 2. Provision persistent PostgreSQL and set `DATABASE_URL` server-side. Use your provider's pooler URL and verified TLS settings. Never disable certificate verification.
 3. Set `APP_ORIGIN` to the exact public origin, e.g. `https://your-project.vercel.app`, without a trailing slash. Previews need their own matching origin and preferably separate databases.
-4. Optionally set `GEMINI_API_KEY`. Without it, AI analysis uses local heuristics and web similarity is unavailable.
+4. Configure `GEMINI_API_KEY`, `AI_GATEWAY_API_KEY`, or Vercel OIDC for AI Gateway. Rewrites and plagiarism web search require a working AI service with available credits. Without one, AI detection uses labeled local estimates and the other tools report their service is unavailable.
 5. Deploy, register disposable test accounts, save a draft, refresh and reopen it, sign out, and verify account isolation.
 6. Configure database backups, encryption, restricted credentials, spending limits, bot controls, monitoring, and retention before broad public access.
 
@@ -23,4 +23,4 @@ If the deployment is protected by Vercel Authentication, sign in through Vercel 
 
 Set NEON_AUTH_BASE_URL on the same preview branch as DATABASE_URL. Apply server/migrations/001_email_verification.sql before deploying the updated server. Set AI_GATEWAY_MODEL to a catalog model; Vercel OIDC can authenticate Gateway without copying provider keys. AI Gateway still requires an eligible account/credits. Verification uses the branch's Managed Auth OTP service and retains existing application account/document IDs. Existing users must sign in with their current password and enter the emailed code.
 
-For production, configure a verified custom SMTP sender in Neon Auth first. A shared sender can be used to test this preview. Never copy the preview database or authentication audience into production unintentionally.
+Configure a custom SMTP sender in Neon Auth. The preview currently uses the sender configured by its owner. The server derives the required Origin header from NEON_AUTH_BASE_URL rather than forwarding a browser-controlled header. Never copy the preview database or authentication audience into production unintentionally.

@@ -4,11 +4,13 @@ import {
   ArrowRight,
   Check,
   ChevronRight,
+  Copy,
   FileText,
   FolderOpen,
   LoaderCircle,
   LogOut,
   Plus,
+  PenLine,
   Save,
   Search,
   ShieldCheck,
@@ -17,16 +19,60 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import type { AIDetectionResult, PlagiarismResult } from "./types";
+import type {
+  AIDetectionResult,
+  PlagiarismResult,
+  RewriteStyle,
+  WritingRewriteResult,
+} from "./types";
 import { readApiResponse } from "./utils/apiResponse";
 type Account = { id: string; email: string; verified: boolean };
 type SavedDocument = { id: string; title: string; updated_at: string };
 type Report = {
   ai?: AIDetectionResult;
   plagiarism?: PlagiarismResult;
+  rewrite?: WritingRewriteResult;
   scannedAt: string;
   originalText: string;
 };
+type ToolMode = "ai" | "plagiarism" | "rewrite";
+const writingTools = [
+  {
+    id: "ai",
+    title: "AI detector",
+    description: "Explore writing patterns and sentence signals.",
+    action: "Check AI signals",
+    icon: Sparkles,
+  },
+  {
+    id: "plagiarism",
+    title: "Plagiarism checker",
+    description: "Search the web for possible source matches.",
+    action: "Check for source matches",
+    icon: Search,
+  },
+  {
+    id: "rewrite",
+    title: "Humanize & rewrite",
+    description: "Get a clearer, more natural version of your draft.",
+    action: "Rewrite my draft",
+    icon: PenLine,
+  },
+] as const;
+const rewriteStyles: { id: RewriteStyle; label: string; description: string }[] = [
+  {
+    id: "natural",
+    label: "Natural",
+    description: "Clear, conversational wording",
+  },
+  {
+    id: "professional",
+    label: "Professional",
+    description: "Polished and direct",
+  },
+  { id: "academic", label: "Academic", description: "Formal, precise language" },
+  { id: "concise", label: "Concise", description: "Fewer words, same meaning" },
+];
 async function api(
   path: string,
   method = "GET",
@@ -60,7 +106,8 @@ export default function App() {
     [title, setTitle] = useState("Untitled document"),
     [text, setText] = useState("");
   const [report, setReport] = useState<Report | null>(null),
-    [mode, setMode] = useState<"ai" | "plagiarism">("ai");
+    [mode, setMode] = useState<ToolMode>("ai");
+  const [rewriteStyle, setRewriteStyle] = useState<RewriteStyle>("natural");
   const [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -70,6 +117,7 @@ export default function App() {
   const input = useRef<HTMLInputElement>(null),
     controller = useRef<AbortController | null>(null);
   const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const activeTool = writingTools.find((tool) => tool.id === mode)!;
   async function refreshDocuments() {
     setDocuments((await api("/documents")).documents);
   }
@@ -185,30 +233,57 @@ export default function App() {
       return;
     }
     if (busy || text.trim().length < 20) return;
-    setBusy("Analyzing");
+    setBusy(mode === "rewrite" ? "Rewriting" : "Analyzing");
     setError("");
     setNotice("");
     controller.current = new AbortController();
     const timer = setTimeout(() => controller.current?.abort(), 90000);
     try {
       const data = await api(
-        `/detect/${mode}`,
+        mode === "rewrite" ? "/fix/humanize" : `/detect/${mode}`,
         "POST",
-        { text },
+        mode === "rewrite" ? { text, style: rewriteStyle } : { text },
         controller.current.signal,
       );
+      let result: AIDetectionResult | PlagiarismResult | WritingRewriteResult;
+      if (mode === "rewrite") {
+        if (
+          typeof data.rewrittenText !== "string" ||
+          !data.rewrittenText.trim() ||
+          data.rewrittenText.length > 15000
+        )
+          throw new Error("The rewrite could not be completed. Please try again.");
+        result = {
+          rewrittenText: data.rewrittenText,
+          engine:
+            typeof data.engine === "string" ? data.engine : "Writing rewrite",
+          changes: Array.isArray(data.changes)
+            ? data.changes
+                .filter(
+                  (change: unknown): change is string =>
+                    typeof change === "string",
+                )
+                .slice(0, 12)
+            : [],
+          style: rewriteStyle,
+        };
+      } else result = data.analysis;
       setReport((previous) => ({
         ...(previous?.originalText === text ? previous : {}),
-        [mode]: data.analysis,
+        [mode]: result,
         scannedAt: new Date().toISOString(),
         originalText: text,
       }));
       setDirty(true);
-      setNotice("Analysis complete. Save to keep this result.");
+      setNotice(
+        mode === "rewrite"
+          ? "Your rewrite is ready. Review it below, then copy, download, or use it in your document."
+          : "Analysis complete. Save to keep this result.",
+      );
     } catch (e: any) {
       setError(
         e.name === "AbortError"
-          ? "Analysis stopped. Your document is still here."
+          ? "Request stopped. Your document is still here."
           : e.message,
       );
     } finally {
@@ -284,6 +359,42 @@ export default function App() {
     a.download = `${title.replace(/[^a-z0-9_-]/gi, "_") || "document"}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+  async function copyRewrite() {
+    if (!report?.rewrite) return;
+    setError("");
+    try {
+      await navigator.clipboard.writeText(report.rewrite.rewrittenText);
+      setNotice("Rewritten text copied.");
+    } catch {
+      setError(
+        "Copy is unavailable in this browser. Select the rewritten text or download it instead.",
+      );
+    }
+  }
+  function downloadRewrite() {
+    if (!report?.rewrite) return;
+    const url = URL.createObjectURL(
+      new Blob([report.rewrite.rewrittenText], {
+        type: "text/plain;charset=utf-8",
+      }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${title.replace(/[^a-z0-9_-]/gi, "_") || "document"}_rewritten.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  function applyRewrite() {
+    if (!report?.rewrite) return;
+    setText(report.rewrite.rewrittenText);
+    setReport(null);
+    setDirty(true);
+    setError("");
+    setNotice(
+      "Rewrite applied to your document. Save to keep it, or run a fresh check.",
+    );
+    document.getElementById("editor")?.focus();
   }
   async function logout() {
     if (dirty && !window.confirm("Sign out and discard unsaved changes?"))
@@ -466,8 +577,8 @@ export default function App() {
               <div className="eyebrow">A LITTLE CLARITY GOES A LONG WAY</div>
               <h1>Make every word your own.</h1>
               <p>
-                A calmer space to check your writing, explore sources, and move
-                forward with confidence.
+                Check AI signals, find possible plagiarism matches, and rewrite
+                your draft in a voice that feels like you.
               </p>
             </div>
             <button
@@ -479,6 +590,25 @@ export default function App() {
               New document
             </button>
           </section>
+          <div className="tool-picker" role="group" aria-label="Writing tools">
+            {writingTools.map((tool) => (
+              <button
+                key={tool.id}
+                className={`tool-tab ${mode === tool.id ? "active" : ""}`}
+                disabled={!!busy}
+                onClick={() => setMode(tool.id)}
+                aria-pressed={mode === tool.id}
+                aria-controls="tool-settings"
+              >
+                <tool.icon size={21} aria-hidden="true" />
+                <span>
+                  <strong>{tool.title}</strong>
+                  <small>{tool.description}</small>
+                </span>
+                {mode === tool.id && <Check size={17} aria-hidden="true" />}
+              </button>
+            ))}
+          </div>
           <div className="workspace-grid">
             <section className="editor-card" aria-label="Document editor">
               <div className="editor-heading">
@@ -564,70 +694,86 @@ export default function App() {
               </div>
             </section>
             <aside className="analysis-column">
-              <section className="analysis-card">
+              <section
+                className="analysis-card"
+                id="tool-settings"
+                aria-label={`${activeTool.title} settings`}
+              >
                 <div className="section-heading">
-                  <Sparkles size={19} />
-                  <h2>A fresh perspective</h2>
+                  <activeTool.icon size={19} />
+                  <h2>{activeTool.title}</h2>
                 </div>
-                <p>Choose what you’d like to explore.</p>
-                {(["ai", "plagiarism"] as const).map((m) => (
-                  <button
-                    key={m}
-                    className={`check-option ${mode === m ? "chosen" : ""}`}
-                    disabled={!!busy}
-                    onClick={() => setMode(m)}
-                    aria-pressed={mode === m}
-                  >
-                    <span className="option-icon">
-                      {m === "ai" ? (
-                        <Sparkles size={19} />
-                      ) : (
-                        <Search size={19} />
-                      )}
-                    </span>
-                    <span>
-                      <strong>
-                        {m === "ai" ? "AI writing signals" : "Web similarity"}
-                      </strong>
-                      <small>
-                        {m === "ai"
-                          ? "Patterns, rhythm & sentence variation"
-                          : "Discover possible source matches"}
-                      </small>
-                    </span>
-                    <span className="radio">{mode === m && <span />}</span>
-                  </button>
-                ))}
+                <p>{activeTool.description}</p>
+                {mode === "rewrite" ? (
+                  <fieldset className="rewrite-styles" disabled={!!busy}>
+                    <legend>Choose your tone</legend>
+                    {rewriteStyles.map((style) => (
+                      <label
+                        key={style.id}
+                        className={`rewrite-style ${rewriteStyle === style.id ? "chosen" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="rewrite-style"
+                          value={style.id}
+                          checked={rewriteStyle === style.id}
+                          onChange={() => setRewriteStyle(style.id)}
+                        />
+                        <span>
+                          <strong>{style.label}</strong>
+                          <small>{style.description}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : (
+                  <div className="tool-explainer">
+                    <strong>
+                      {mode === "ai"
+                        ? "A second perspective on your writing"
+                        : "Web similarity & attribution review"}
+                    </strong>
+                    <p>
+                      {mode === "ai"
+                        ? "Review sentence patterns, repetition, and variation. Signals are estimates and cannot prove who wrote a text."
+                        : "Find possible source matches and open the linked pages to review them. Web search does not cover every publication or private database."}
+                    </p>
+                  </div>
+                )}
                 <button
                   className="button analyze-button"
                   disabled={!!busy || text.trim().length < 20 || checking}
                   onClick={scan}
                 >
-                  {busy === "Analyzing" ? (
+                  {busy === "Analyzing" || busy === "Rewriting" ? (
                     <>
                       <LoaderCircle className="spin" size={18} />
-                      Analyzing…
+                      {busy}…
                     </>
                   ) : (
                     <>
-                      {user ? "Analyze document" : "Sign in to analyze"}
+                      {user?.verified
+                        ? activeTool.action
+                        : user
+                          ? "Verify email to continue"
+                          : "Sign in to continue"}
                       <ArrowRight size={17} />
                     </>
                   )}
                 </button>
-                {busy === "Analyzing" && (
+                {(busy === "Analyzing" || busy === "Rewriting") && (
                   <button
                     className="cancel-button"
                     onClick={() => controller.current?.abort()}
                   >
-                    Cancel analysis
+                    Cancel request
                   </button>
                 )}
                 <div className="analysis-footnote">
                   <ShieldCheck size={14} />
                   <span>
-                    Analysis sends your text to our server and, when configured,
-                    the configured AI provider.
+                    This tool sends your text to our server and its configured
+                    AI provider. Review the result before using it.
                   </span>
                 </div>
               </section>
@@ -640,8 +786,8 @@ export default function App() {
                   with your perspective.
                 </h3>
                 <p>
-                  Use these checks as a second pair of eyes. AI signals are
-                  estimates, and a source match always deserves a closer look.
+                  Rewrites help with clarity and flow. Check facts, keep your
+                  citations, and make the final wording your own.
                 </p>
                 <span className="tip-rule" />
               </section>
@@ -666,14 +812,18 @@ export default function App() {
                 {notice}
               </div>
             )}
-            {busy && busy !== "Analyzing" && (
+            {busy && busy !== "Analyzing" && busy !== "Rewriting" && (
               <span>
                 <LoaderCircle size={16} className="spin" />
                 {busy}…
               </span>
             )}
           </div>
-          <section className="results-section">
+          <section
+            className="results-section"
+            id="tool-results"
+            aria-label="Tool results"
+          >
             <div className="results-heading">
               <div>
                 <div className="eyebrow">THE BIGGER PICTURE</div>
@@ -691,13 +841,71 @@ export default function App() {
                 <div>
                   <h3>Room for your next discovery</h3>
                   <p>
-                    Add at least 20 characters, choose a check, and explore
-                    what’s behind your words.
+                    Add at least 20 characters and choose AI detector,
+                    Plagiarism checker, or Humanize & rewrite above.
                   </p>
                 </div>
               </div>
             ) : (
               <div className="report-grid">
+                {report.rewrite && (
+                  <article className="result-card rewrite-result">
+                    <div className="rewrite-result-heading">
+                      <div>
+                        <span className="eyebrow">
+                          HUMANIZE & REWRITE · {report.rewrite.style.toUpperCase()}
+                        </span>
+                        <h3>Your rewritten draft</h3>
+                      </div>
+                      <span className="rewrite-engine">
+                        {report.rewrite.engine}
+                      </span>
+                    </div>
+                    <div className="rewrite-comparison">
+                      <div>
+                        <h4>Original</h4>
+                        <p className="rewrite-text original-text" tabIndex={0} aria-label="Original draft">
+                          {report.originalText}
+                        </p>
+                      </div>
+                      <div>
+                        <h4>Rewritten</h4>
+                        <p className="rewrite-text" tabIndex={0} aria-label="Rewritten draft">
+                          {report.rewrite.rewrittenText}
+                        </p>
+                      </div>
+                    </div>
+                    {!!report.rewrite.changes?.length && (
+                      <div className="rewrite-notes">
+                        <h4>What changed</h4>
+                        <ul>
+                          {report.rewrite.changes.map((change, index) => (
+                            <li key={index}>{change}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div className="rewrite-actions">
+                      <button className="button" onClick={applyRewrite} disabled={!!busy}>
+                        <Check size={16} />Use in editor
+                      </button>
+                      <button className="button secondary" onClick={copyRewrite} disabled={!!busy}>
+                        <Copy size={16} />Copy text
+                      </button>
+                      <button className="button secondary" onClick={downloadRewrite} disabled={!!busy}>
+                        <ArrowDownToLine size={16} />Download TXT
+                      </button>
+                      <button className="button secondary" onClick={save} disabled={!!busy || !title.trim()}>
+                        <Save size={16} />Save result
+                      </button>
+                    </div>
+                    <small className="result-caution">
+                      Review meaning, facts, and citations before using this
+                      draft. A rewrite does not guarantee a particular detector
+                      score or originality.
+                    </small>
+                  </article>
+                )}
                 {report.ai && (
                   <article className="result-card">
                     <span className="eyebrow">
@@ -735,7 +943,7 @@ export default function App() {
                 )}
                 {report.plagiarism && (
                   <article className="result-card">
-                    <span className="eyebrow">WEB SIMILARITY</span>
+                    <span className="eyebrow">PLAGIARISM CHECK · WEB SIMILARITY</span>
                     <h3>
                       {report.plagiarism.verdict === "Not checked"
                         ? "Search unavailable"
@@ -848,7 +1056,7 @@ function AuthDialog({
       onPending(data.user);
       if (data.verificationSent)
         setMessage(
-          "A confirmation code was sent to your email. Check your inbox and spam folder.",
+          "Your confirmation email was accepted for delivery. Check your inbox; it may take a few minutes to arrive.",
         );
       else setError(data.message || "Request a confirmation code to continue.");
     } else onSuccess(data.user);
@@ -857,6 +1065,7 @@ function AuthDialog({
     e.preventDefault();
     setBusy(true);
     setError("");
+    setMessage("");
     try {
       accept(
         await api(
@@ -874,9 +1083,10 @@ function AuthDialog({
   async function resend() {
     setBusy(true);
     setError("");
+    setMessage("");
     try {
       await api("/auth/resend-verification", "POST", {});
-      setMessage("A new confirmation code was sent. Use the latest code.");
+      setMessage("A new confirmation email was accepted for delivery. Use the latest code when it arrives.");
       setCooldown(60);
     } catch (e: any) {
       setError(e.message);
@@ -915,7 +1125,7 @@ function AuthDialog({
       </h2>
       <p>
         {verifying
-          ? `Enter the 6-digit code sent to ${email}.`
+          ? `Enter the latest 6-digit code for ${email}, or request a new code below.`
           : mode === "login"
             ? "Sign in to your private writing workspace."
             : "Create an account, then confirm your email to unlock your private workspace."}

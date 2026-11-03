@@ -39,13 +39,28 @@ export function validPlagiarism(value: any): boolean {
       ),
   );
 }
+export const rewriteStyles = ["natural", "professional", "academic", "concise"] as const;
+export function validRewrite(value: any): boolean {
+  return Boolean(
+    value &&
+      string(value.rewrittenText) &&
+      value.rewrittenText.trim().length > 0 &&
+      value.rewrittenText.length <= 15000 &&
+      string(value.engine) && value.engine.length <= 100 &&
+      rewriteStyles.includes(value.style) &&
+      (value.changes === undefined ||
+        (Array.isArray(value.changes) && value.changes.length <= 12 &&
+          value.changes.every((change: unknown) => string(change) && (change as string).length <= 500))),
+  );
+}
 export function validReport(value: any): boolean {
   return Boolean(
     value &&
       string(value.scannedAt) &&
       string(value.originalText) &&
-      (value.ai !== undefined || value.plagiarism !== undefined) &&
+      (value.ai !== undefined || value.plagiarism !== undefined || value.rewrite !== undefined) &&
       (value.ai === undefined || validAI(value.ai)) &&
-      (value.plagiarism === undefined || validPlagiarism(value.plagiarism)),
+      (value.plagiarism === undefined || validPlagiarism(value.plagiarism)) &&
+      (value.rewrite === undefined || validRewrite(value.rewrite)),
   );
 }

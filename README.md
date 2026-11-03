@@ -1,6 +1,6 @@
 # Veritas — writing integrity workspace
 
-A responsive writing studio with AI signal analysis, grounded web source suggestions, and a private server document library.
+A responsive writing studio with AI signal analysis, plagiarism source checks, a four-tone writing rewrite tool, and a private server document library.
 
 ## Run locally
 
@@ -11,13 +11,13 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000 and register with a password of at least 12 characters. SQLite is created under `data/` and persists across restarts. No API key is needed for local pattern analysis; web search needs a server-side Gemini key.
+Open http://localhost:3000 and register with a password of at least 12 characters. Configure the email provider below to confirm the account. SQLite is created under `data/` and persists across restarts. No API key is needed for local pattern analysis; rewrites and web search need a server-side AI provider.
 
 ## Production
 
 Set `APP_ORIGIN` to the exact HTTPS origin without a trailing slash. Set `DATABASE_URL` to a private PostgreSQL database for Vercel or multiple instances. Use provider-approved, certificate-verified TLS. Schema creation is automatic; table/index creation privileges are required on first startup.
 
-Set `GEMINI_API_KEY` on the server to enable Gemini analysis and grounded web search. Never prefix a secret with `VITE_`.
+Set `GEMINI_API_KEY` or `AI_GATEWAY_API_KEY` on the server to enable model analysis, rewrites, and grounded web search. Vercel deployments can also authenticate Gateway through their OIDC token. Never prefix a secret with `VITE_`.
 
 Run `npm ci`, `npm run build`, then `npm start`. Start selects production mode. Place self-hosted servers behind HTTPS. A single self-hosted process may use SQLite instead, with `DATA_DIR` on a persistent private volume. Vercel refuses SQLite fallback because its filesystem is ephemeral.
 
@@ -27,7 +27,7 @@ See [deployment instructions](VERCEL_DEPLOYMENT.md) and [security review](SECURI
 
 Sign in, write or import TXT/Markdown/DOCX/PDF, and choose **Save document**. Reopen, search, export, or delete saved drafts and reports from your account library. Saving is explicit; unsaved edits trigger a navigation warning. Limits: 100 documents per account, 15,000 characters per document, 2 MB per imported file.
 
-Analysis and PDF import send text/files to the server. AI analysis may share text with Google Gemini. DOCX parsing is local and its library loads only when needed. Passwords are hashed; browser storage is not used for credentials or document persistence. Production session cookies are Secure, HttpOnly, and SameSite=Strict.
+Analysis and PDF import send text/files to the server. Model analysis and rewrites share text with the configured AI provider; plagiarism checks also use its web search. DOCX parsing is local and its library loads only when needed. Passwords are hashed; browser storage is not used for credentials or document persistence. Production session cookies are Secure, HttpOnly, and SameSite=Strict.
 
 Documents and reports live in the configured database. Recent scan results are cached in process memory for up to 30 minutes, with 50 entries maximum and full-text/account-separated keys. Expired entries are removed on the next cache write. Deleting a document does not purge database backups, caches, or prior provider submissions. Database encryption, backup, access, and retention controls are the deployer's responsibility.
 
@@ -52,12 +52,14 @@ Integration tests use temporary SQLite databases in ignored `work/`. They cover 
 
 All new and existing accounts must prove email ownership before saving/loading private documents, importing PDFs, or running analysis. Existing account IDs, passwords and documents are retained; previously issued sessions are checked against verification state on every protected request. Nobody is automatically marked verified.
 
-The preview uses Neon Managed Auth email OTP delivery over its shared SMTP service. The app keeps its existing password/session identity and uses Neon only to consume a single-use email code and return a verified email-ownership proof. A small managed email identity is created by the OTP provider; it does not create another application account or change document ownership. Its temporary provider session is discarded after verification. No app passwords are sent to Neon Auth.
+The preview uses Neon Managed Auth email OTP delivery with the configured custom SMTP sender. The app keeps its existing password/session identity and uses Neon only to consume a single-use email code and return a verified email-ownership proof. A small managed email identity is created by the OTP provider; it does not create another application account or change document ownership. Its temporary provider session is discarded after verification. No app passwords are sent to Neon Auth.
 
-Set server-only NEON_AUTH_BASE_URL to the branch Auth URL. The confirmation screen supports resend with a 60-second cooldown; each challenge allows five attempts, expires within ten minutes (the provider can expire it sooner), and is bound to the signed-in account. Shared provider email is suitable for preview testing; configure a custom verified SMTP sender before a broad production launch.
+Set server-only NEON_AUTH_BASE_URL to the branch Auth URL. Server requests include the configured provider's Origin, which Neon requires even for server-to-server OTP calls. The confirmation screen supports resend with a 60-second cooldown; each challenge allows five attempts, expires within ten minutes (the provider can expire it sooner), and is bound to the signed-in account. SMTP acceptance is distinct from inbox delivery; public errors do not expose SMTP credentials or codes.
 
 Apply the versioned migration in server/migrations/001_email_verification.sql. It adds nullable verified_at, a normalized unique email index and bounded verification state; it does not mark existing users verified or delete their data. Hosted cold starts read the migration version rather than rerunning schema DDL each time.
 
 ## Live analysis configuration
 
 Gemini keys remain supported. Vercel deployments also use AI Gateway through their short-lived VERCEL_OIDC_TOKEN; AI_GATEWAY_MODEL selects a model, currently openai/gpt-5.4-mini. Web similarity uses actual provider web search and returns only URLs present in source metadata. Provider account/credit requirements still apply. Results identify local fallback estimates if the AI service is unavailable; fallback scores are never proof of authorship or originality.
+
+Choose **Humanize & rewrite** for Natural, Professional, Academic, or Concise edits. Review the original and rewritten drafts side by side, copy or download the output, and save the result with its source draft. **Use in editor** applies the new text and clears scans made against the old text. Rewrites require a working model; provider failures return an error and preserve the original. The app does not fabricate a successful rewrite or promise a detector score.

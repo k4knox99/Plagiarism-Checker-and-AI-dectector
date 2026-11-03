@@ -10,6 +10,8 @@ process.env.DATA_DIR = mkdtempSync(path.resolve("work/test-db-"));
 process.env.DATABASE_URL = "";
 process.env.GEMINI_API_KEY = "";
 process.env.GOOGLE_API_KEY = "";
+process.env.AI_GATEWAY_API_KEY = "";
+process.env.VERCEL_OIDC_TOKEN = "";
 process.env.NODE_ENV = "test";
 process.env.VERCEL = "";
 const { default: app, getCacheKey } = await import("../server/app.js");
@@ -296,6 +298,134 @@ test("missing web search never certifies originality", async () => {
     alice,
   );
   assert.equal(data.analysis.verdict, "Not checked");
+});
+test("rewrite rejects unsupported styles and fails clearly without a model", async () => {
+  await query("DELETE FROM rate_limits WHERE key LIKE 'analysis:%'");
+  const text = "This original document should be edited without losing its meaning.";
+  const invalid = await call(
+    "/api/fix/humanize", "POST", { text, style: "unsupported" }, alice,
+  );
+  assert.equal(invalid.response.status, 400);
+  const missing = await call(
+    "/api/fix/humanize", "POST", { text, style: "natural" }, alice,
+  );
+  assert.equal(missing.response.status, 503);
+  assert.equal(missing.data.rewrittenText, undefined);
+  assert.match(missing.data.error, /not configured/);
+});
+test("rewrite returns edited text, isolates its cache and saves a rewrite-only report", async () => {
+  await query("DELETE FROM rate_limits WHERE key LIKE 'analysis:%'");
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.AI_GATEWAY_API_KEY;
+  process.env.AI_GATEWAY_API_KEY = "test-gateway-key";
+  const text = "It is worth noting that our first community workshop starts on 12 March, according to [1].";
+  const rewrittenText = "Our first community workshop starts on 12 March, according to [1].";
+  let providerCalls = 0;
+  try {
+    globalThis.fetch = async (input, init) => {
+      if (String(input) !== "https://ai-gateway.vercel.sh/v1/responses")
+        return originalFetch(input, init);
+      providerCalls++;
+      const request = JSON.parse(String(init?.body));
+      assert.equal(request.store, false);
+      assert.match(request.input, /12 March/);
+      return Response.json({ output: [{ type: "message", content: [{
+        type: "output_text",
+        text: JSON.stringify({ rewrittenText, changes: ["Removed an empty introductory phrase."], predictedAiScore: 0 }),
+      }] }] });
+    };
+    const first = await call("/api/fix/humanize", "POST", { text, style: "natural" }, alice);
+    assert.equal(first.response.status, 200);
+    assert.equal(first.data.success, true);
+    assert.equal(first.data.rewrittenText, rewrittenText);
+    assert.equal(first.data.style, "natural");
+    assert.equal(first.data.predictedAiScore, undefined);
+    assert.match(first.data.engine, /Vercel gateway/);
+    const repeated = await call("/api/fix/humanize", "POST", { text, style: "natural" }, alice);
+    assert.equal(repeated.data.fromCache, true);
+    assert.equal(providerCalls, 1);
+    assert.equal((await call("/api/fix/humanize", "POST", { text, style: "professional" }, alice)).response.status, 200);
+    assert.equal(providerCalls, 2);
+    const otherAccount = await call("/api/fix/humanize", "POST", { text, style: "natural" }, bob);
+    assert.equal(otherAccount.response.status, 200);
+    assert.equal(otherAccount.data.fromCache, undefined);
+    assert.equal(providerCalls, 3);
+
+    const rewriteId = randomUUID();
+    const report = {
+      scannedAt: new Date().toISOString(), originalText: text,
+      rewrite: { rewrittenText: first.data.rewrittenText, changes: first.data.changes, engine: first.data.engine, style: first.data.style },
+    };
+    assert.equal((await call("/api/documents/" + rewriteId, "PUT", { title: "Edited workshop draft", content: text, report }, alice)).response.status, 200);
+    const loaded = await call("/api/documents/" + rewriteId, "GET", undefined, alice);
+    assert.equal(loaded.data.document.content, text);
+    assert.deepEqual(loaded.data.document.report, report);
+    assert.equal((await call("/api/documents/" + rewriteId, "GET", undefined, bob)).response.status, 404);
+    assert.equal((await call("/api/documents/" + rewriteId, "PUT", { title: "Other user", content: text, report }, bob)).response.status, 404);
+    const invalidReport = { ...report, rewrite: { ...report.rewrite, rewrittenText: "x".repeat(15001) } };
+    assert.equal((await call("/api/documents/" + rewriteId, "PUT", { title: "Invalid output", content: text, report: invalidReport }, alice)).response.status, 400);
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.AI_GATEWAY_API_KEY = originalKey;
+  }
+});
+test("rewrite discards malformed model output without overwriting original text", async () => {
+  await query("DELETE FROM rate_limits WHERE key LIKE 'analysis:%'");
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.AI_GATEWAY_API_KEY;
+  process.env.AI_GATEWAY_API_KEY = "test-gateway-key";
+  try {
+    globalThis.fetch = async (input, init) => String(input) === "https://ai-gateway.vercel.sh/v1/responses"
+      ? Response.json({ output: [{ type: "message", content: [{ type: "output_text", text: '{"rewrittenText":42}' }] }] })
+      : originalFetch(input, init);
+    const result = await call("/api/fix/humanize", "POST", {
+      text: "A separate original document whose invalid model result must not be accepted.", style: "concise",
+    }, alice);
+    assert.equal(result.response.status, 503);
+    assert.equal(result.data.rewrittenText, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.AI_GATEWAY_API_KEY = originalKey;
+  }
+});
+test("plagiarism check returns only searched HTTP sources and caches the result", async () => {
+  await query("DELETE FROM rate_limits WHERE key LIKE 'analysis:%'");
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.AI_GATEWAY_API_KEY;
+  process.env.AI_GATEWAY_API_KEY = "test-gateway-key";
+  let providerCalls = 0;
+  try {
+    globalThis.fetch = async (input, init) => {
+      if (String(input) !== "https://ai-gateway.vercel.sh/v1/responses") return originalFetch(input, init);
+      providerCalls++;
+      const request = JSON.parse(String(init?.body));
+      assert.equal(request.tools[0].type, "web_search");
+      assert.equal(request.tool_choice, "required");
+      const analysis = {
+        similarityScore: 25, verdict: "Possible source matches", summary: "Review sources.", flaggedPassages: [],
+        matchedSources: [
+          { title: "Actual search source", url: "https://example.com/source", matchedExcerpt: "Workshop source passage" },
+          { title: "Invented citation", url: "https://example.com/invented" },
+          { title: "Unsafe URL", url: "javascript:alert(1)" },
+        ],
+      };
+      return Response.json({ output: [
+        { type: "message", content: [{ type: "output_text", text: JSON.stringify(analysis) }] },
+        { type: "web_search_call", action: { sources: [{ url: "https://example.com/source" }, { url: "javascript:alert(1)" }] } },
+      ] });
+    };
+    const text = "Workshop source passage and other writing for a grounded plagiarism search.";
+    const result = await call("/api/detect/plagiarism", "POST", { text }, alice);
+    assert.equal(result.response.status, 200);
+    assert.deepEqual(result.data.analysis.matchedSources.map((source: any) => source.url), ["https://example.com/source"]);
+    assert.match(result.data.analysis.summary, /coverage is incomplete/);
+    const repeated = await call("/api/detect/plagiarism", "POST", { text }, alice);
+    assert.equal(repeated.data.fromCache, true);
+    assert.equal(providerCalls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.AI_GATEWAY_API_KEY = originalKey;
+  }
 });
 test("PDF parser rejects invalid files and wrong data types", async () => {
   for (const fileBase64 of ["bm90IGEgcGRm", 42])

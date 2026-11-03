@@ -74,6 +74,15 @@ export interface PlagiarismResult {
   liveWebSources?: Array<{ title: string; url: string }>;
 }
 
+export type RewriteStyle = "natural" | "professional" | "academic" | "concise";
+
+export interface WritingRewriteResult {
+  rewrittenText: string;
+  engine: string;
+  changes?: string[];
+  style: RewriteStyle;
+}
+
 export interface ComprehensiveReport {
   compositeAuthenticity: number;
   aiAnalysis: AIDetectionResult;

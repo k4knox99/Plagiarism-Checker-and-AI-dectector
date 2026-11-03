@@ -13,73 +13,145 @@ type Provider = {
   send(email: string): Promise<void>;
   verify(email: string, code: string): Promise<void>;
 };
-async function providerCall(path: string, body: unknown) {
-  const base = process.env.NEON_AUTH_BASE_URL;
-  if (!base || !base.startsWith("https://"))
-    throw new VerificationError(
-      "Email verification is temporarily unavailable. Please try again later.",
-      503,
-    );
-  const response = await fetch(base.replace(/\/$/, "") + path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(15000),
-  });
-  const data = await response.json().catch(() => null);
-  if (!response.ok)
-    throw new VerificationError(
-      response.status === 429
-        ? "Too many code requests. Please wait before trying again."
-        : path.includes("send-")
-          ? "The verification email could not be sent. Please try again later."
-          : "The code is incorrect or expired. Request a new code if needed.",
-      response.status === 429 ? 429 : path.includes("send-") ? 503 : 400,
-    );
-  return { data, response };
-}
-const managedProvider: Provider = {
-  async send(email) {
-    const { data } = await providerCall("/email-otp/send-verification-otp", {
-      email,
-      type: "sign-in",
-    });
-    if (data?.success !== true)
+type ProviderOperation = "send" | "verify" | "sign-out";
+const providerErrorCodes = new Set([
+  "MISSING_OR_NULL_ORIGIN",
+  "INVALID_ORIGIN",
+  "INVALID_OTP",
+  "OTP_EXPIRED",
+  "TOO_MANY_ATTEMPTS",
+  "TOO_MANY_REQUESTS",
+  "FAILED_TO_SEND_VERIFICATION_EMAIL",
+  "FAILED_TO_SEND_EMAIL",
+  "INTERNAL_SERVER_ERROR",
+  "USER_NOT_FOUND",
+  "INVALID_EMAIL",
+]);
+
+export function createManagedProvider(
+  fetchProvider: typeof fetch = (...args) => fetch(...args),
+  timeoutMs = 15000,
+): Provider {
+  async function providerCall(
+    path: string,
+    body: unknown,
+    operation: ProviderOperation,
+    cookies?: string,
+  ) {
+    const started = Date.now(),
+      requestId = randomUUID();
+    const diagnose = (providerCode: string, status?: number) =>
+      console.error("email_verification_provider_error", {
+        operation,
+        status,
+        providerCode,
+        requestId,
+        durationMs: Date.now() - started,
+      });
+    let base: URL;
+    try {
+      base = new URL(process.env.NEON_AUTH_BASE_URL || "");
+      if (
+        base.protocol !== "https:" ||
+        base.username || base.password || base.search || base.hash
+      )
+        throw new Error("Invalid provider URL");
+    } catch {
+      diagnose("INVALID_CONFIGURATION");
       throw new VerificationError(
-        "The verification email could not be sent.",
+        "Email verification is temporarily unavailable. Please try again later.",
         503,
       );
-  },
-  async verify(email, code) {
-    // Neon consumes the OTP and returns a verified identity. App accounts,
-    // passwords, document ownership, and browser sessions remain in this app.
-    const { data, response } = await providerCall("/sign-in/email-otp", {
-      email,
-      otp: code,
-      name: "Veritas user",
-    });
-    if (
-      !data?.user?.emailVerified ||
-      data.user.email?.trim().toLowerCase() !== email
-    )
-      throw new VerificationError("Email ownership could not be confirmed.");
-    // This service is only an email-ownership proof: discard its separate session.
-    const cookies = response.headers
-      .getSetCookie()
-      .map((value) => value.split(";")[0])
-      .join("; ");
-    if (cookies)
-      await fetch(
-        process.env.NEON_AUTH_BASE_URL!.replace(/\/$/, "") + "/sign-out",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Cookie: cookies },
-          body: "{}",
-          signal: AbortSignal.timeout(5000),
+    }
+    let response: Response;
+    try {
+      response = await fetchProvider(base.href.replace(/\/$/, "") + path, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Neon requires an Origin even for server-to-server OTP calls.
+          // Derive it only from our configured provider, never a browser header.
+          Origin: base.origin,
+          "X-Request-ID": requestId,
+          ...(cookies ? { Cookie: cookies } : {}),
         },
-      ).catch(() => {});
-  },
-};
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(
+          operation === "sign-out" ? Math.min(timeoutMs, 5000) : timeoutMs,
+        ),
+        redirect: "error",
+      });
+    } catch (error) {
+      diagnose(
+        error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name)
+          ? "REQUEST_TIMEOUT"
+          : "NETWORK_ERROR",
+      );
+      throw new VerificationError(
+        "Email verification is temporarily unavailable. Please try again later.",
+        503,
+      );
+    }
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      diagnose(
+        providerErrorCodes.has(data?.code) ? data.code : "UNKNOWN_PROVIDER_ERROR",
+        response.status,
+      );
+      const unavailable = operation !== "verify" || response.status >= 500;
+      throw new VerificationError(
+        response.status === 429
+          ? "Too many code requests. Please wait before trying again."
+          : unavailable
+            ? "The verification email service is unavailable. Please try again later."
+            : "The code is incorrect or expired. Request a new code if needed.",
+        response.status === 429 ? 429 : unavailable ? 503 : 400,
+      );
+    }
+    return { data, response, diagnose };
+  }
+  return {
+    async send(email) {
+      const { data, response, diagnose } = await providerCall(
+        "/email-otp/send-verification-otp",
+        { email, type: "sign-in" },
+        "send",
+      );
+      if (data?.success !== true) {
+        diagnose("INVALID_RESPONSE", response.status);
+        throw new VerificationError(
+          "The verification email could not be sent.",
+          503,
+        );
+      }
+    },
+    async verify(email, code) {
+      // Neon consumes the OTP and returns a verified identity. App accounts,
+      // passwords, document ownership, and browser sessions remain in this app.
+      const { data, response, diagnose } = await providerCall(
+        "/sign-in/email-otp",
+        { email, otp: code, name: "Veritas user" },
+        "verify",
+      );
+      if (
+        data?.user?.emailVerified !== true ||
+        typeof data.user.email !== "string" ||
+        data.user.email.trim().toLowerCase() !== email
+      ) {
+        diagnose("INVALID_IDENTITY", response.status);
+        throw new VerificationError("Email ownership could not be confirmed.");
+      }
+      // This service is only an email-ownership proof: discard its separate session.
+      const cookies = response.headers
+        .getSetCookie()
+        .map((value) => value.split(";")[0])
+        .join("; ");
+      if (cookies)
+        await providerCall("/sign-out", {}, "sign-out", cookies).catch(() => {});
+    },
+  };
+}
+const managedProvider = createManagedProvider();
 let provider = managedProvider;
 export function setVerificationProviderForTests(value: Provider) {
   if (process.env.NODE_ENV !== "test")
