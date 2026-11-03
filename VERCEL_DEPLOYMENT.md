@@ -12,3 +12,9 @@
 Remove `VITE_ADMIN_PASSWORD` from all environments and rotate any password ever configured there, including reuse elsewhere. VITE-prefixed configuration is frontend-visible. Rebuild/redeploy and remove older deployments containing sensitive values; this revision cannot retract previously published assets.
 
 This revision does not provision a database or deploy production. Hosted PostgreSQL, live Gemini, production HTTPS cookies, and function limits need smoke testing with your deployment credentials. Local SQLite, API security regression tests, build, and type checks were validated.
+
+## Sign-up troubleshooting
+
+Real accounts require PostgreSQL. In the Vercel project, attach a Neon/PostgreSQL database and expose its pooled connection string as DATABASE_URL to Preview and Production, then redeploy. The app creates its tables automatically. Vercel's own VERCEL_URL is accepted as the exact trusted preview origin; APP_ORIGIN remains the custom production origin.
+
+If the deployment is protected by Vercel Authentication, sign in through Vercel before testing. Do not disable protection just to hide an API error. Missing storage now returns a specific setup error. Server startup failures return JSON rather than an HTML error page where possible. The API module uses explicit ESM import paths and loads PDF parsing only when requested.

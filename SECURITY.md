@@ -34,3 +34,5 @@ This is a source review and local regression testing, not a penetration-test cer
 References: [Express production security guidance](https://expressjs.com/en/advanced/best-practice-security/) and [Node SQLite API](https://nodejs.org/api/sqlite.html).
 
 Report issues privately to the repository owner; do not post secrets or private documents in public issues.
+
+Preview-origin handling also accepts only the exact VERCEL_URL supplied by Vercel. It never derives production trust from a client-controlled Host or forwarding header. Registration fails closed with a setup error until durable hosted storage is connected.

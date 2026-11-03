@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "npm run build:api && tsx --test tests/*.test.ts",
+    "build:api": "tsc --ignoreConfig --target ES2022 --module NodeNext --moduleResolution NodeNext --esModuleInterop --skipLibCheck --outDir work/compiled-api server/app.ts server/handler.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

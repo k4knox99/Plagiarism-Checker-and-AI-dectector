@@ -11,8 +11,9 @@ import {
   scrypt,
   timingSafeEqual,
 } from "node:crypto";
-import { query } from "./storage";
-import { validReport } from "./validation";
+import { query, StorageConfigurationError } from "./storage.js";
+import { validReport } from "./validation.js";
+import { trustedOrigins } from "./origins.js";
 
 const derive = (password: string, salt: string) =>
   new Promise<Buffer>((resolve, reject) => {
@@ -57,11 +58,22 @@ export function securityHeaders(
 export function sameOrigin(req: Request, res: Response, next: NextFunction) {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
   const origin = req.get("origin");
-  const expected =
-    process.env.APP_ORIGIN || `${req.protocol}://${req.get("host")}`;
+  const allowed = trustedOrigins({
+    appOrigin: process.env.APP_ORIGIN,
+    vercelHost: process.env.VERCEL ? process.env.VERCEL_URL : undefined,
+    production,
+    localOrigin: `${req.protocol}://${req.get("host")}`,
+  });
+  if (!allowed.size)
+    return res
+      .status(503)
+      .json({
+        error:
+          "The account service is not ready. Please contact the site owner.",
+        code: "ORIGIN_NOT_CONFIGURED",
+      });
   if (
-    (production && !process.env.APP_ORIGIN) ||
-    (origin && origin !== expected) ||
+    (origin && !allowed.has(origin)) ||
     req.get("sec-fetch-site") === "cross-site"
   ) {
     return res.status(403).json({ error: "Request origin is not allowed." });
@@ -92,10 +104,16 @@ export function rateLimit(scope: string, maximum: number, windowMs = 60_000) {
           .json({ error: "Too many requests. Please try again shortly." });
       }
       next();
-    } catch {
-      res
-        .status(503)
-        .json({ error: "Storage is unavailable. Please try again later." });
+    } catch (error) {
+      res.status(503).json(
+        error instanceof StorageConfigurationError
+          ? {
+              error:
+                "Accounts are not available yet. The site owner needs to finish account storage setup.",
+              code: "STORAGE_NOT_CONFIGURED",
+            }
+          : { error: "Storage is unavailable. Please try again later." },
+      );
     }
   };
 }
@@ -168,11 +186,9 @@ accountRouter.post(
         password.length < 12 ||
         password.length > 128
       ) {
-        return res
-          .status(400)
-          .json({
-            error: "Enter a valid email and a password of 12–128 characters.",
-          });
+        return res.status(400).json({
+          error: "Enter a valid email and a password of 12–128 characters.",
+        });
       }
       const cleanEmail = email.trim().toLowerCase();
       let [user] = await query("SELECT * FROM accounts WHERE email=$1", [
@@ -279,12 +295,10 @@ documentRouter.put("/:id", async (req: UserRequest, res, next) => {
       (report != null &&
         (!validReport(report) || report.originalText !== content))
     )
-      return res
-        .status(400)
-        .json({
-          error:
-            "Invalid document. Limit: 15,000 characters and a 120-character title.",
-        });
+      return res.status(400).json({
+        error:
+          "Invalid document. Limit: 15,000 characters and a 120-character title.",
+      });
     const [existing] = await query(
       "SELECT user_id FROM documents WHERE id=$1",
       [req.params.id],
@@ -296,11 +310,9 @@ documentRouter.put("/:id", async (req: UserRequest, res, next) => {
       [req.userId],
     );
     if (!existing && Number(count.total) >= 100)
-      return res
-        .status(409)
-        .json({
-          error: "Document limit reached. Delete an older document first.",
-        });
+      return res.status(409).json({
+        error: "Document limit reached. Delete an older document first.",
+      });
     const updated = new Date().toISOString();
     const rows = await query(
       "INSERT INTO documents (id,user_id,title,content,report,updated_at) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(id) DO UPDATE SET title=excluded.title, content=excluded.content, report=excluded.report, updated_at=excluded.updated_at WHERE documents.user_id=excluded.user_id RETURNING id",

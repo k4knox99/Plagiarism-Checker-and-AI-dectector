@@ -1,8 +1,7 @@
-import express, { Request, Response, Router } from "express";
+import express, { Router, type Request, type Response } from "express";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
-import { PDFParse } from "pdf-parse";
-import { validAI, validPlagiarism } from "../server/validation";
+import { validAI, validPlagiarism } from "./validation.js";
 import { createHash } from "node:crypto";
 import {
   accountRouter,
@@ -12,7 +11,7 @@ import {
   sameOrigin,
   securityHeaders,
   type UserRequest,
-} from "../server/security";
+} from "./security.js";
 
 dotenv.config();
 
@@ -371,12 +370,9 @@ router.get("/health", (_req: Request, res: Response) => {
 
 // Verification Email Route via Resend
 router.post("/send-verification", (_req, res) =>
-  res
-    .status(410)
-    .json({
-      error:
-        "Legacy verification is disabled. Use server account registration.",
-    }),
+  res.status(410).json({
+    error: "Legacy verification is disabled. Use server account registration.",
+  }),
 );
 router.use(
   requireUser,
@@ -388,12 +384,10 @@ router.use((req: UserRequest, res, next) => {
   const owner = req.userId!;
   const total = Array.from(activeRequests.values()).reduce((a, b) => a + b, 0);
   if ((activeRequests.get(owner) || 0) >= 2 || total >= 16)
-    return res
-      .status(429)
-      .json({
-        error:
-          "Analysis capacity is busy. Please wait for your current requests to finish.",
-      });
+    return res.status(429).json({
+      error:
+        "Analysis capacity is busy. Please wait for your current requests to finish.",
+    });
   activeRequests.set(owner, (activeRequests.get(owner) || 0) + 1);
   // A disconnected client must not leak capacity forever. Provider calls time out earlier.
   let released = false;
@@ -612,12 +606,10 @@ router.post("/detect/plagiarism", async (req: Request, res: Response) => {
     cacheResult(cacheKey, { timestamp: Date.now(), data: result });
     res.json({ success: true, analysis: result });
   } catch {
-    res
-      .status(503)
-      .json({
-        error:
-          "Web search is unavailable. Please try again later; no originality assessment was performed.",
-      });
+    res.status(503).json({
+      error:
+        "Web search is unavailable. Please try again later; no originality assessment was performed.",
+    });
   }
 });
 
@@ -631,12 +623,10 @@ router.post(
     "/fix/document-surgeon",
   ],
   (_req, res) =>
-    res
-      .status(410)
-      .json({
-        error:
-          "This legacy feature has been retired. Use AI writing signals or web similarity.",
-      }),
+    res.status(410).json({
+      error:
+        "This legacy feature has been retired. Use AI writing signals or web similarity.",
+    }),
 );
 
 // 7. POST /parse/pdf - Extract text and structure from PDF
@@ -666,6 +656,7 @@ router.post("/parse/pdf", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid PDF file." });
 
     // Use pdf-parse to extract raw text
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: buffer });
     let textResult;
     try {
@@ -722,17 +713,15 @@ app.use((err: any, _req: Request, res: Response, next: any) => {
       : err instanceof SyntaxError
         ? 400
         : 500;
-  res
-    .status(status)
-    .json({
-      success: false,
-      error:
-        status === 413
-          ? "Request is too large."
-          : status === 400
-            ? "Invalid JSON request."
-            : "Internal server error.",
-    });
+  res.status(status).json({
+    success: false,
+    error:
+      status === 413
+        ? "Request is too large."
+        : status === 400
+          ? "Invalid JSON request."
+          : "Internal server error.",
+  });
 });
 
 export default app;

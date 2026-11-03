@@ -5,6 +5,11 @@ import { Pool } from "pg";
 let ready: Promise<void> | undefined;
 let pool: Pool | undefined;
 let sqlite: any;
+export class StorageConfigurationError extends Error {
+  constructor() {
+    super("Persistent DATABASE_URL is required on Vercel.");
+  }
+}
 
 async function queryRaw(sql: string, params: any[] = []): Promise<any[]> {
   if (pool) return (await pool.query(sql, params)).rows;
@@ -21,8 +26,7 @@ async function initialize() {
       connectionTimeoutMillis: 5000,
     });
   } else {
-    if (process.env.VERCEL)
-      throw new Error("Persistent DATABASE_URL is required on Vercel.");
+    if (process.env.VERCEL) throw new StorageConfigurationError();
     const directory = path.resolve(process.env.DATA_DIR || "./data");
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     const { DatabaseSync } = await import("node:sqlite");

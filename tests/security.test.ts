@@ -12,7 +12,7 @@ process.env.GEMINI_API_KEY = "";
 process.env.GOOGLE_API_KEY = "";
 process.env.NODE_ENV = "test";
 process.env.VERCEL = "";
-const { default: app, getCacheKey } = await import("../api/_app");
+const { default: app, getCacheKey } = await import("../server/app.js");
 const { query } = await import("../server/storage");
 let server: any, base: string, alice: string, bob: string;
 const documentId = randomUUID();

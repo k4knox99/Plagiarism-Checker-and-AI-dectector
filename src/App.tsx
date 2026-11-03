@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import type { AIDetectionResult, PlagiarismResult } from "./types";
+import { readApiResponse } from "./utils/apiResponse";
 type Account = { id: string; email: string };
 type SavedDocument = { id: string; title: string; updated_at: string };
 type Report = {
@@ -39,12 +40,7 @@ async function api(
     body: body === undefined ? undefined : JSON.stringify(body),
     signal,
   });
-  const data = await response
-    .json()
-    .catch(() => ({ error: "The server returned an unexpected response." }));
-  if (!response.ok)
-    throw new Error(data.error || "The request failed. Please try again.");
-  return data;
+  return readApiResponse(response);
 }
 const safeLink = (url: string) => {
   try {
