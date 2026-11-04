@@ -61,14 +61,14 @@ export default function ExtendedToolResults({ report, copy, apply, save, busy, c
         </div>)}
       </details>
       <ResultActions value={proofread.correctedText} apply={apply} copy={copy} save={save} busy={busy} canSave={canSave} />
-      <small className="result-caution">Review suggestions in context. Applying the corrected draft clears checks made against the old text.</small>
+      <small className="result-caution">{/no AI/i.test(proofread.engine) ? "Basic mode checks a limited set of English punctuation, repetition, and wordiness patterns. " : ""}Review suggestions in context. Applying the corrected draft clears checks made against the old text.</small>
     </article>}
     {summary && <article className="result-card extended-result summary-result">
       <div className="rewrite-result-heading"><div><span className="eyebrow">SUMMARIZER</span><h3>The main idea, in focus</h3></div><span className="rewrite-engine">{summary.engine}</span></div>
       <p className="summary-copy">{summary.summary}</p>
       <div className="summary-columns"><section><h4>Key points</h4><ul>{summary.keyPoints.map((point, index) => <li key={index}>{point}</li>)}</ul></section><section><h4>Document outline</h4><ol>{summary.outline.map((point, index) => <li key={index}>{point}</li>)}</ol></section></div>
       <ResultActions value={summaryText} copy={copy} save={save} busy={busy} canSave={canSave} />
-      <small className="result-caution">Compare the summary with your document before sharing it. Important qualifications can be lost when a text is shortened.</small>
+      <small className="result-caution">{summary.scope ? `${summary.scope} ` : /no AI|extractive/i.test(summary.engine) ? "Basic mode selects and retains sentences from your original draft. " : ""}Compare the summary with your document before sharing it. Important qualifications can be lost when a text is shortened.</small>
     </article>}
     {comparison && <article className="result-card extended-result">
       <div className="rewrite-result-heading"><div><span className="eyebrow">TWO-DOCUMENT COMPARISON</span><h3>Shared passages</h3></div><span className="rewrite-engine">{comparison.engine}</span></div>

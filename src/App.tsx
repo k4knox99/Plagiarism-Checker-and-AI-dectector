@@ -49,6 +49,7 @@ type Report = {
   originalText: string;
 };
 type ToolMode = "ai" | "plagiarism" | "rewrite" | "proofread" | "summarize" | "compare" | "citations";
+const wordCounter = new Intl.Segmenter(undefined, { granularity: "word" });
 const writingTools = [
   {
     id: "ai",
@@ -141,7 +142,7 @@ export default function App() {
     [search, setSearch] = useState("");
   const input = useRef<HTMLInputElement>(null),
     controller = useRef<AbortController | null>(null);
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const words = React.useMemo(() => [...wordCounter.segment(text)].filter((part) => part.isWordLike).length, [text]);
   const activeTool = writingTools.find((tool) => tool.id === mode)!;
   async function refreshDocuments() {
     setDocuments((await api("/documents")).documents);
@@ -445,6 +446,11 @@ export default function App() {
     setNotice("Updated text applied. Save it or run a fresh check.");
     document.getElementById("editor")?.focus();
   }
+  function chooseTool(nextMode: ToolMode) {
+    setMode(nextMode);
+    setError("");
+    setNotice("");
+  }
   async function logout() {
     if (dirty && !window.confirm("Sign out and discard unsaved changes?"))
       return;
@@ -645,7 +651,7 @@ export default function App() {
                 key={tool.id}
                 className={`tool-tab ${mode === tool.id ? "active" : ""}`}
                 disabled={!!busy}
-                onClick={() => setMode(tool.id)}
+                onClick={() => chooseTool(tool.id)}
                 aria-pressed={mode === tool.id}
                 aria-controls="tool-settings"
               >
@@ -783,7 +789,7 @@ export default function App() {
                       <label>Length<select value={rewriteLength} onChange={(e) => setRewriteLength(e.target.value)}><option value="preserve">Keep a similar length</option><option value="shorter">Make it shorter</option><option value="expanded">Develop the explanation</option></select></label>
                       <label>A sample of your voice <span>(optional)</span><textarea value={voiceSample} maxLength={1500} onChange={(e) => setVoiceSample(e.target.value)} placeholder="Paste a short example of your own writing." rows={4} /></label>
                       <label>Terms to preserve <span>(optional)</span><textarea value={preserveTerms} maxLength={500} onChange={(e) => setPreserveTerms(e.target.value)} placeholder="Names, technical terms, or phrases to keep." rows={2} /></label>
-                      <p className="field-help">Names, facts, citations, and the document language should be preserved. Review the revision before using it.</p>
+                      <p className="field-help">Custom voice, audience, and length preferences require the AI service. Basic mode provides limited English clarity edits. Review names, facts, and citations in either mode.</p>
                     </fieldset>
                   </details>
                   </>
@@ -800,6 +806,7 @@ export default function App() {
                         ? "Review sentence patterns, repetition, and variation. Signals are estimates and cannot prove who wrote a text."
                         : "Find possible source matches and open the linked pages to review them. Web search does not cover every publication or private database."}
                     </p>
+                    {mode === "plagiarism" && <div className="comparison-alternative"><p>Have a source document? Compare it directly with your draft, even when web search is unavailable.</p><button className="button secondary small" disabled={!!busy} onClick={() => chooseTool("compare")}><Files size={15} />Compare documents</button></div>}
                   </div>
                 )}
                 {mode === "proofread" && <div className="tool-explainer"><strong>Corrections you can understand</strong><p>Review grammar, punctuation, clarity, and style suggestions with a reason for each edit. Reading insights help you find dense passages.</p></div>}
@@ -851,7 +858,9 @@ export default function App() {
                 <div className="analysis-footnote">
                   <ShieldCheck size={14} />
                   <span>
-                    {mode === "compare" || mode === "citations" ? "This tool runs on our server without an AI provider. Save the result to keep it in your account." : "This tool sends your text to our server and its configured AI provider. Review the result before using it."}
+                    {mode === "compare" || mode === "citations" ? "This tool runs on our server without an AI provider. Save the result to keep it in your account."
+                      : ["rewrite", "proofread", "summarize"].includes(mode) ? "Uses AI when available, with a labeled basic mode when the AI service is unavailable. Text is sent to our server and to the AI provider when it is used."
+                      : "This tool sends your text to our server and its configured AI provider when available. Review the result and its engine label before using it."}
                   </span>
                 </div>
               </section>
@@ -980,9 +989,9 @@ export default function App() {
                       </button>
                     </div>
                     <small className="result-caution">
-                      Review meaning, facts, and citations before using this
-                      draft. A rewrite does not guarantee a particular detector
-                      score or originality.
+                      {/no AI/i.test(report.rewrite.engine)
+                        ? "Basic mode applies limited English clarity edits. Custom voice, audience, and length preferences require the AI service. Review meaning, facts, and citations before using the draft."
+                        : "Review meaning, facts, and citations before using this draft. A rewrite does not guarantee a particular detector score or originality."}
                     </small>
                   </article>
                 )}
@@ -1030,6 +1039,7 @@ export default function App() {
                         : "Possible source matches"}
                     </h3>
                     <p>{report.plagiarism.summary}</p>
+                    {report.plagiarism.verdict === "Not checked" && <div className="comparison-alternative"><p>If you have a source document, you can check for shared passages directly.</p><button className="button secondary" disabled={!!busy} onClick={() => chooseTool("compare")}><Files size={16} />Compare documents</button></div>}
                     <small className="result-caution">
                       Similarity is not a plagiarism verdict. Verify each source
                       and its attribution. No matches do not establish

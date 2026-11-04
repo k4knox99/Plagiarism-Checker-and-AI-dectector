@@ -172,6 +172,54 @@ test("summary API uses the configured model, reuses only the owner's cache, and 
   });
 });
 
+test("a missing AI provider still permits an explicitly extractive summary and saving its scope", async () => {
+  const draft = "Solar panels provide power during the day. Batteries store that power for the evening. Schools can use stored power after sunset.";
+  const result = await call("/api/tools/summarize", "POST", { text: draft }, alice);
+  assert.equal(result.response.status, 200);
+  assert.equal(result.data.analysis.engine, "Extractive summary (no AI)");
+  assert.ok(result.data.analysis.keyPoints.every((point: string) => draft.includes(point)));
+  assert.match(result.data.analysis.scope, /source order|source excerpts/);
+  const report = { originalText: draft, scannedAt: new Date().toISOString(), summarize: result.data.analysis };
+  assert.equal((await call(`/api/documents/${randomUUID()}`, "PUT", { title: "Extractive summary", content: draft, report }, alice)).response.status, 200);
+});
+
+test("provider verification failures give labeled basic output without caching away restored AI access", async () => {
+  const previousFetch = globalThis.fetch, previousKey = process.env.AI_GATEWAY_API_KEY;
+  process.env.AI_GATEWAY_API_KEY = "fallback-test-key-only";
+  const draft = "The the project served 125 readers in 2025. In order to improve clarity,read the report carefully.";
+  let providerCalls = 0;
+  try {
+    globalThis.fetch = async (input, options) => {
+      if (String(input).startsWith(base + "/")) return realFetch(input, options);
+      assert.equal(String(input), "https://ai-gateway.vercel.sh/v1/responses");
+      providerCalls++;
+      if (providerCalls === 1 || providerCalls === 3)
+        return Response.json({ error: { type: "customer_verification_required", message: "Owner verification required" } }, { status: 403 });
+      const data = providerCalls === 2
+        ? { rewrittenText: "The project served 125 readers in 2025. Read the report carefully to improve clarity.", changes: ["Removed repeated and wordy phrasing."] }
+        : summaryOutput;
+      return Response.json({ output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify(data) }] }] });
+    };
+    const basic = await call("/api/fix/humanize", "POST", { text: draft }, alice);
+    assert.equal(basic.response.status, 200);
+    assert.match(basic.data.engine, /no AI/);
+    assert.ok(!basic.data.rewrittenText.includes("The the"));
+    assert.ok(basic.data.warnings.some((warning: string) => /verification/.test(warning)));
+    const restored = await call("/api/fix/humanize", "POST", { text: draft }, alice);
+    assert.match(restored.data.engine, /Vercel gateway/);
+    assert.equal(providerCalls, 2);
+    const sourceSummary = await call("/api/tools/summarize", "POST", { text: draft }, alice);
+    assert.match(sourceSummary.data.analysis.engine, /no AI/);
+    const modelSummary = await call("/api/tools/summarize", "POST", { text: draft }, alice);
+    assert.match(modelSummary.data.analysis.engine, /Vercel gateway/);
+    assert.equal(providerCalls, 4);
+  } finally {
+    globalThis.fetch = previousFetch;
+    if (previousKey === undefined) delete process.env.AI_GATEWAY_API_KEY;
+    else process.env.AI_GATEWAY_API_KEY = previousKey;
+  }
+});
+
 test("all extended result types survive save/load and malformed reports are rejected", async () => {
   const proofread = await call("/api/tools/proofread", "POST", { text }, alice);
   const compared = await call("/api/tools/compare", "POST", { text, comparisonText: text }, alice);

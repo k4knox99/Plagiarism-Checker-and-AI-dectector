@@ -201,6 +201,105 @@ export function basicProofread(text: string) {
   };
 }
 
+export function localRewrite(
+  text: string,
+  style: "natural" | "professional" | "academic" | "concise" = "natural",
+) {
+  const result = basicProofread(text);
+  const changes = result.issues.length
+    ? [...new Set(result.issues.map((issue) => issue.explanation))].slice(0, 6)
+    : ["No basic-rule changes were found; your original text was preserved."];
+  return {
+    rewrittenText: result.correctedText,
+    style,
+    engine: "Basic English clarity edit (no AI)",
+    changes,
+    warnings: [
+      `The selected ${style} style is limited to basic punctuation, repeated-word, and wordiness edits here. Review the changes before using them.`,
+      "Advanced rewriting, custom voice, audience adaptation, and expansion require an available AI service. These rules do not establish authorship or guarantee a detector score.",
+    ],
+  };
+}
+
+function sourceExcerpt(value: string, limit = 700) {
+  const original = value.trim();
+  if (original.length <= limit) return { value: original, shortened: false };
+  let boundary = 0;
+  for (const segment of wordSegmenter.segment(original)) {
+    const end = segment.index + segment.segment.length;
+    if (end > limit) break;
+    boundary = end;
+  }
+  // An unusually long unbroken token may offer no word boundary within the limit.
+  if (!boundary) {
+    boundary = limit;
+    const previous = original.charCodeAt(boundary - 1), next = original.charCodeAt(boundary);
+    if (previous >= 0xd800 && previous <= 0xdbff && next >= 0xdc00 && next <= 0xdfff) boundary--;
+  }
+  return { value: original.slice(0, boundary).trimEnd(), shortened: true };
+}
+
+export function extractiveSummary(text: string) {
+  const seen = new Set<string>();
+  const sentences = [...sentenceSegmenter.segment(text)]
+    .map((segment) => segment.segment.trim())
+    .filter((sentence) => {
+      const key = sentence.normalize("NFKC").toLowerCase().replace(/\s+/g, " ");
+      if (!words(sentence).length || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  const candidates = sentences.map((sentence, index) => {
+    const tokens = words(sentence).map((token) => token.value);
+    const content = [...new Set(tokens.filter((token) => token.length > 1 &&
+      !englishMarkers.has(token) && /\p{L}/u.test(token)))];
+    return { sentence, index, tokens, content };
+  });
+  const frequency = new Map<string, number>();
+  for (const candidate of candidates)
+    for (const token of candidate.content) frequency.set(token, (frequency.get(token) || 0) + 1);
+  const selected: typeof candidates = [], selectedIndexes = new Set<number>(), covered = new Set<string>();
+  const count = Math.min(8, Math.ceil(Math.sqrt(candidates.length)));
+  for (let i = 0; i < count; i++) {
+    let best: typeof candidates[number] | undefined, bestScore = -1;
+    for (const candidate of candidates) {
+      if (selectedIndexes.has(candidate.index)) continue;
+      const weight = candidate.content.reduce((total, token) => total + Math.log1p(frequency.get(token) || 0), 0);
+      const novelty = candidate.content.filter((token) => !covered.has(token)).length / Math.max(1, candidate.content.length);
+      const score = ((weight / Math.sqrt(Math.max(1, candidate.tokens.length))) + 0.35 / (candidate.index + 1)) *
+        (0.35 + 0.65 * novelty) * (candidate.tokens.length < 4 ? 0.5 : 1);
+      if (score > bestScore) { best = candidate; bestScore = score; }
+    }
+    if (!best) break;
+    selected.push(best);
+    selectedIndexes.add(best.index);
+    best.content.forEach((token) => covered.add(token));
+  }
+  let shortened = false;
+  const excerpt = (sentence: string) => {
+    const result = sourceExcerpt(sentence);
+    shortened ||= result.shortened;
+    return result.value;
+  };
+  const ordered = selected.sort((a, b) => a.index - b.index);
+  const keyPoints = ordered.map((candidate) => excerpt(candidate.sentence));
+  const summary = keyPoints.slice(0, 5).join("\n\n");
+  const outline = text.trim().split(/\n[ \t]*\n/)
+    .map((paragraph) => [...sentenceSegmenter.segment(paragraph)]
+      .map((segment) => segment.segment.trim()).find((sentence) => words(sentence).length))
+    .filter((sentence): sentence is string => Boolean(sentence))
+    .slice(0, 10).map(excerpt);
+  return {
+    summary,
+    keyPoints,
+    outline,
+    engine: "Extractive summary (no AI)",
+    scope: shortened
+      ? "Selected passages are copied from your document. Long passages are shortened to source excerpts at a word boundary where possible. This is an extractive preview, without new facts or AI interpretation."
+      : "Selected sentences are copied verbatim from your document and kept in source order. This is an extractive summary, without new facts or AI interpretation.",
+  };
+}
+
 export type CitationInput = { title?: string; author?: string; year?: string | number; url?: string; accessed?: string };
 const oneLine = (value: unknown) => typeof value === "string" ? value.replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim() : "";
 function bibtexEscape(value: string) {

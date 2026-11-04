@@ -299,7 +299,7 @@ test("missing web search never certifies originality", async () => {
   );
   assert.equal(data.analysis.verdict, "Not checked");
 });
-test("rewrite rejects unsupported styles and fails clearly without a model", async () => {
+test("rewrite rejects unsupported styles and labels its limited basic mode without a model", async () => {
   await query("DELETE FROM rate_limits WHERE key LIKE 'analysis:%'");
   const text = "This original document should be edited without losing its meaning.";
   const invalid = await call(
@@ -309,9 +309,10 @@ test("rewrite rejects unsupported styles and fails clearly without a model", asy
   const missing = await call(
     "/api/fix/humanize", "POST", { text, style: "natural" }, alice,
   );
-  assert.equal(missing.response.status, 503);
-  assert.equal(missing.data.rewrittenText, undefined);
-  assert.match(missing.data.error, /not configured/);
+  assert.equal(missing.response.status, 200);
+  assert.equal(typeof missing.data.rewrittenText, "string");
+  assert.match(missing.data.engine, /no AI/);
+  assert.ok(missing.data.warnings.length > 0);
 });
 test("rewrite returns edited text, isolates its cache and saves a rewrite-only report", async () => {
   await query("DELETE FROM rate_limits WHERE key LIKE 'analysis:%'");

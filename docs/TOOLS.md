@@ -23,3 +23,9 @@ Saved results stay attached to the exact original draft. Editing or applying a r
 - [Vercel OIDC](https://vercel.com/docs/oidc) and [AI Gateway OIDC](https://vercel.com/docs/ai-gateway/authentication-and-byok/oidc): request-scoped authentication for deployed Functions.
 
 The implementation has not been benchmarked against these commercial products. Broader language coverage, proprietary source collections, and detector accuracy require separate evaluation and infrastructure.
+
+## Provider availability
+
+The deployed provider check returned `403 customer_verification_required` for both writing and web search. OIDC token handling is configured; Vercel requires the account owner's provider verification before advanced requests can run. This is distinct from the site's own email confirmation, which is already working.
+
+Basic clarity editing and extractive summaries keep useful output available during that restriction. Their engine labels and scope notes identify their limitations. They never claim a model ran, adapt a custom voice, or guarantee human authorship. These fallbacks are not cached, so the server retries its configured model once provider access is restored. Two-document comparison, manual citation formatting, and private save/load remain independent of model access.

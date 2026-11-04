@@ -91,7 +91,7 @@ export interface ProofreadResult {
   engine: string;
   insights: { words: number; sentences: number; paragraphs: number; readingMinutes: number; averageSentenceWords: number; longSentences: number; readingEase: number | null; readingLabel: string };
 }
-export interface SummaryResult { summary: string; keyPoints: string[]; outline: string[]; engine: string }
+export interface SummaryResult { summary: string; keyPoints: string[]; outline: string[]; engine: string; scope?: string }
 export interface ComparisonResult {
   similarityScore: number; matchedWords: number; totalWords: number;
   matches: { text: string; sourceText: string; start: number; end: number; sourceStart: number; sourceEnd: number }[];

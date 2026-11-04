@@ -65,7 +65,7 @@ export function validProofread(value: any): boolean {
     (insights.readingEase === null || score(insights.readingEase)) && bounded(insights.readingLabel, 200));
 }
 export function validSummary(value: any): boolean {
-  return Boolean(value && bounded(value.summary, 4000, 1) && strings(value.keyPoints, 12, 700) && strings(value.outline, 12, 700) && bounded(value.engine, 100, 1));
+  return Boolean(value && bounded(value.summary, 4000, 1) && strings(value.keyPoints, 12, 700) && strings(value.outline, 12, 700) && bounded(value.engine, 100, 1) && (value.scope === undefined || bounded(value.scope, 2000)));
 }
 export function validComparison(value: any): boolean {
   return Boolean(value && score(value.similarityScore) && nonnegative(value.matchedWords) && nonnegative(value.totalWords) && value.matchedWords <= value.totalWords && bounded(value.engine, 100, 1) && bounded(value.scope, 1000) &&

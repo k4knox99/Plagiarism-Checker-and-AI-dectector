@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { gatewayConfigured, gatewayAnalysis, gatewayErrorMessage, GatewayError } from "./gateway.js";
 import { validAI, validPlagiarism, validRewrite, rewriteStyles, validProofread, validSummary } from "./validation.js";
-import { compareDocuments, formatCitations, basicProofread, writingInsights } from "./writing-tools.js";
+import { compareDocuments, formatCitations, basicProofread, writingInsights, localRewrite, extractiveSummary } from "./writing-tools.js";
 import { preservationWarnings } from "./edits.js";
 import { createHash } from "node:crypto";
 import {
@@ -650,7 +650,7 @@ router.post("/fix/humanize", async (req: Request, res: Response) => {
     return res.json({ success: true, ...cached.data, fromCache: true });
   const ai = getAIClient();
   if (!ai && !gatewayConfigured())
-    return res.status(503).json({ error: "The writing service is not configured. Ask the site owner to connect an AI provider." });
+    return res.json({ success: true, ...localRewrite(text, style) });
   const guidance = {
     natural: "Use clear, natural language, varied sentence rhythm, and direct phrasing. Remove empty filler without changing the author's voice.",
     professional: "Use polished, direct professional language suitable for a workplace audience.",
@@ -682,6 +682,10 @@ INPUT DATA: ${JSON.stringify({document:text,voiceSample,preserveTerms})}`;
     cacheResult(key, { timestamp: Date.now(), data: output });
     return res.json({ success: true, ...output });
   } catch (error) {
+    if (error instanceof GatewayError && error.code !== "invalid_response") {
+      const fallback = localRewrite(text, style);
+      return res.json({ success: true, ...fallback, warnings: [...fallback.warnings, gatewayErrorMessage(error)].slice(0, 12) });
+    }
     // Documents and model responses may contain private information; log only a safe category.
     console.warn("Writing service failed", { code: error instanceof Error && error.message === "INVALID_REWRITE_OUTPUT" ? "INVALID_OUTPUT" : "PROVIDER_UNAVAILABLE" });
     return res.status(503).json({ error: `${gatewayErrorMessage(error)} Your original text is unchanged.` });
@@ -731,7 +735,11 @@ router.post("/tools/summarize", async (req: UserRequest, res) => {
     if (!validSummary(analysis)) throw new Error("Invalid summary");
     cacheResult(key, { timestamp: Date.now(), data: analysis });
     return res.json({ success: true, analysis });
-  } catch (error) { return res.status(503).json({ error: gatewayErrorMessage(error) }); }
+  } catch (error) {
+    if (error instanceof GatewayError && error.code !== "invalid_response")
+      return res.json({ success: true, analysis: extractiveSummary(text) });
+    return res.status(503).json({ error: gatewayErrorMessage(error) });
+  }
 });
 
 router.post("/tools/compare", (req, res) => {

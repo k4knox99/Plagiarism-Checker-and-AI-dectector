@@ -3,7 +3,7 @@
 1. Import this repository into Vercel using Vite, build command `npm run build`, output `dist`, and Node 24 (22.13+ also supported).
 2. Provision persistent PostgreSQL and set `DATABASE_URL` server-side. Use your provider's pooler URL and verified TLS settings. Never disable certificate verification.
 3. Set `APP_ORIGIN` to the exact public origin, e.g. `https://your-project.vercel.app`, without a trailing slash. Previews need their own matching origin and preferably separate databases.
-4. Configure `GEMINI_API_KEY`, `AI_GATEWAY_API_KEY`, or Vercel OIDC for AI Gateway. Rewrites and plagiarism web search require a working AI service with available credits. Without one, AI detection uses labeled local estimates and the other tools report their service is unavailable.
+4. Configure `GEMINI_API_KEY`, `AI_GATEWAY_API_KEY`, or Vercel OIDC for AI Gateway. Advanced rewrites and plagiarism web search require an eligible AI account with available credits. Without one, AI detection uses labeled local estimates, rewriting/proofreading use limited basic English rules, and summaries use original source sentences. Document comparison and manual citations work independently. Web search reports unavailable until its provider is ready.
 5. Deploy, register disposable test accounts, save a draft, refresh and reopen it, sign out, and verify account isolation.
 6. Configure database backups, encryption, restricted credentials, spending limits, bot controls, monitoring, and retention before broad public access.
 
