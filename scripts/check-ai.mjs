@@ -10,7 +10,27 @@ const model = /^[a-z0-9.-]+\/[a-z0-9._:-]+$/i.test(configuredModel)
 const safeCodes = new Set([
   "customer_verification_required", "insufficient_funds", "quota_for_entity_exceeded",
   "invalid_api_key", "model_not_found", "rate_limit_exceeded",
+  "access_denied",
 ]);
+function classifyError(body,status) {
+  // Keep these fixed categories aligned with server/gateway.ts. Compatible
+  // Gateway endpoints return error.type as well as error.code.
+  for (const candidate of [body?.error?.code,body?.error?.type,body?.code,body?.type]) {
+    if (typeof candidate === "string" && safeCodes.has(candidate)) return candidate;
+  }
+  const message = [body?.error?.message,body?.message,
+    typeof body?.error === "string" ? body.error : ""]
+    .filter(value=>typeof value === "string").join(" ").slice(0,4096);
+  if (/\bcustomer_verification_required\b/i.test(message) ||
+      /AI Gateway requires a valid (?:credit|debit) card on file/i.test(message))
+    return "customer_verification_required";
+  if (status === 402 && /\binsufficient[_ ](?:funds|credits)\b/i.test(message))
+    return "insufficient_funds";
+  if (status === 401) return "invalid_api_key";
+  if (status === 403) return "access_denied";
+  if (status === 429) return "rate_limit_exceeded";
+  return "provider_unavailable";
+}
 function report(event, success, status, code) {
   console.log(JSON.stringify({event,success,status,code,model:model || "unconfigured"}));
 }
@@ -63,9 +83,7 @@ async function check(event, input, search, maxOutputTokens) {
     });
     const body = await response.json().catch(()=>null);
     if (!response.ok) {
-      const code = safeCodes.has(body?.error?.code) ? body.error.code
-        : response.status === 401 ? "invalid_api_key"
-        : response.status === 429 ? "rate_limit_exceeded" : "provider_unavailable";
+      const code = classifyError(body,response.status);
       report(event,false,response.status,code);
       return;
     }

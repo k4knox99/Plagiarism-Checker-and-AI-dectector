@@ -43,7 +43,29 @@ const providerCodes = new Set([
   "invalid_api_key",
   "model_not_found",
   "rate_limit_exceeded",
+  "access_denied",
 ]);
+
+export function classifyGatewayError(body: any, status: number): string {
+  // Gateway's compatible APIs use both error.type and error.code. Return only
+  // fixed categories; provider messages can contain submitted private content.
+  for (const candidate of [body?.error?.code, body?.error?.type, body?.code, body?.type]) {
+    if (typeof candidate === "string" && providerCodes.has(candidate)) return candidate;
+  }
+  const message = [body?.error?.message, body?.message,
+    typeof body?.error === "string" ? body.error : ""]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ").slice(0, 4096);
+  if (/\bcustomer_verification_required\b/i.test(message) ||
+      /AI Gateway requires a valid (?:credit|debit) card on file/i.test(message))
+    return "customer_verification_required";
+  if (status === 402 && /\binsufficient[_ ](?:funds|credits)\b/i.test(message))
+    return "insufficient_funds";
+  if (status === 401) return "invalid_api_key";
+  if (status === 403) return "access_denied";
+  if (status === 429) return "rate_limit_exceeded";
+  return "provider_unavailable";
+}
 
 export function gatewayErrorMessage(error: unknown): string {
   const code = error instanceof GatewayError ? error.code : "provider_unavailable";
@@ -55,6 +77,8 @@ export function gatewayErrorMessage(error: unknown): string {
     return "The AI provider is busy. Please wait a moment and try again.";
   if (code === "missing_credentials" || code === "invalid_api_key")
     return "The AI provider connection needs attention. Please contact the site owner.";
+  if (code === "access_denied")
+    return "The AI provider has restricted access for this account. The site owner should review AI Gateway access or contact Vercel support.";
   return "The AI service is temporarily unavailable. Please try again later.";
 }
 
@@ -100,9 +124,7 @@ export async function gatewayAnalysis(
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     throw new GatewayError(
-      providerCodes.has(body?.error?.code) ? body.error.code
-        : response.status === 429 ? "rate_limit_exceeded"
-        : response.status === 401 ? "invalid_api_key" : "provider_unavailable",
+      classifyGatewayError(body, response.status),
       response.status,
     );
   }

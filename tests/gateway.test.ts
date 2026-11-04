@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { gatewayAnalysis, gatewayConfigured, GatewayError, gatewayErrorMessage } from "../server/gateway.js";
+import { gatewayAnalysis, gatewayConfigured, GatewayError, gatewayErrorMessage, classifyGatewayError } from "../server/gateway.js";
 
 const contextSymbol = Symbol.for("@vercel/request-context");
 const requestContexts = new AsyncLocalStorage<{headers: Record<string, string>}>();
@@ -173,4 +173,34 @@ test("gateway reports provider setup errors without revealing credentials", asyn
     if (token === undefined) delete process.env.AI_GATEWAY_API_KEY;
     else process.env.AI_GATEWAY_API_KEY = token;
   }
+});
+
+test("Gateway compatible error.type and message-only verification errors retain actionable categories", async () => {
+  const restore = preserveSettings();
+  process.env.AI_GATEWAY_API_KEY = "secret-test-key";
+  const cases = [
+    {body:{error:{message:"Requires verification",type:"customer_verification_required"}},status:403,code:"customer_verification_required"},
+    {body:{error:{message:"Forbidden.",type:"access_denied"}},status:403,code:"access_denied"},
+    {body:{type:"customer_verification_required",message:"Requires verification"},status:403,code:"customer_verification_required"},
+    {body:{error:{message:"AI Gateway requires a valid credit card on file to service requests."}},status:403,code:"customer_verification_required"},
+    {body:{error:{message:"Forbidden."}},status:403,code:"access_denied"},
+    {body:{error:{type:"insufficient_funds",message:"Private provider details"}},status:402,code:"insufficient_funds"},
+    {body:{error:{type:"quota_for_entity_exceeded"}},status:402,code:"quota_for_entity_exceeded"},
+    {body:{error:{type:"rate_limit_exceeded"}},status:429,code:"rate_limit_exceeded"},
+    {body:{error:{type:"private-unrecognized-type",message:"secret-test-key"}},status:500,code:"provider_unavailable"},
+  ];
+  try {
+    for (const scenario of cases) {
+      assert.equal(classifyGatewayError(scenario.body,scenario.status),scenario.code);
+      globalThis.fetch = async () => Response.json(scenario.body,{status:scenario.status});
+      await assert.rejects(gatewayAnalysis("test"),error=>{
+        assert.ok(error instanceof GatewayError);
+        assert.equal(error.code,scenario.code);
+        assert.ok(!gatewayErrorMessage(error).includes("secret-test-key"));
+        return true;
+      });
+    }
+    assert.match(gatewayErrorMessage(new GatewayError("access_denied")),/review AI Gateway access/);
+    assert.ok(!gatewayErrorMessage(new GatewayError("access_denied")).includes("verification"));
+  } finally { restore(); }
 });
