@@ -11,6 +11,10 @@ import {
   LogOut,
   Plus,
   PenLine,
+  ListChecks,
+  AlignLeft,
+  Files,
+  BookOpen,
   Save,
   Search,
   ShieldCheck,
@@ -24,18 +28,27 @@ import type {
   PlagiarismResult,
   RewriteStyle,
   WritingRewriteResult,
+  ProofreadResult,
+  SummaryResult,
+  ComparisonResult,
+  CitationResult,
 } from "./types";
 import { readApiResponse } from "./utils/apiResponse";
+import ExtendedToolResults from "./components/ExtendedToolResults";
 type Account = { id: string; email: string; verified: boolean };
 type SavedDocument = { id: string; title: string; updated_at: string };
 type Report = {
   ai?: AIDetectionResult;
   plagiarism?: PlagiarismResult;
   rewrite?: WritingRewriteResult;
+  proofread?: ProofreadResult;
+  summarize?: SummaryResult;
+  compare?: ComparisonResult;
+  citations?: CitationResult;
   scannedAt: string;
   originalText: string;
 };
-type ToolMode = "ai" | "plagiarism" | "rewrite";
+type ToolMode = "ai" | "plagiarism" | "rewrite" | "proofread" | "summarize" | "compare" | "citations";
 const writingTools = [
   {
     id: "ai",
@@ -58,6 +71,10 @@ const writingTools = [
     action: "Rewrite my draft",
     icon: PenLine,
   },
+  { id: "proofread", title: "Grammar & clarity", description: "Review corrections, explanations, and reading insights.", action: "Review my writing", icon: ListChecks },
+  { id: "summarize", title: "Summarizer", description: "Turn your document into a summary, key points, and outline.", action: "Summarize my draft", icon: AlignLeft },
+  { id: "compare", title: "Compare documents", description: "Find shared passages in two documents without an AI provider.", action: "Compare these documents", icon: Files },
+  { id: "citations", title: "Citation builder", description: "Format the source details you provide in four citation styles.", action: "Build citations", icon: BookOpen },
 ] as const;
 const rewriteStyles: { id: RewriteStyle; label: string; description: string }[] = [
   {
@@ -108,6 +125,14 @@ export default function App() {
   const [report, setReport] = useState<Report | null>(null),
     [mode, setMode] = useState<ToolMode>("ai");
   const [rewriteStyle, setRewriteStyle] = useState<RewriteStyle>("natural");
+  const [audience, setAudience] = useState("general"),
+    [rewriteLength, setRewriteLength] = useState("preserve"),
+    [voiceSample, setVoiceSample] = useState(""),
+    [preserveTerms, setPreserveTerms] = useState("");
+  const [comparisonText, setComparisonText] = useState(""),
+    [excludeQuotes, setExcludeQuotes] = useState(false),
+    [excludeReferences, setExcludeReferences] = useState(false);
+  const [citation, setCitation] = useState({ title: "", author: "", year: "", url: "", accessed: "" });
   const [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -167,6 +192,10 @@ export default function App() {
     setId(crypto.randomUUID());
     setTitle("Untitled document");
     setText("");
+    setComparisonText("");
+    setVoiceSample("");
+    setPreserveTerms("");
+    setCitation({ title: "", author: "", year: "", url: "", accessed: "" });
     setReport(null);
     setDirty(false);
     setError("");
@@ -232,7 +261,11 @@ export default function App() {
       setAuth("login");
       return;
     }
-    if (busy || text.trim().length < 20) return;
+    if (busy || (mode !== "citations" && text.trim().length < 20)) return;
+    if (mode === "compare" && comparisonText.trim().length < 20) {
+      setError("Add at least 20 characters to the comparison document.");
+      return;
+    }
     setBusy(mode === "rewrite" ? "Rewriting" : "Analyzing");
     setError("");
     setNotice("");
@@ -240,12 +273,14 @@ export default function App() {
     const timer = setTimeout(() => controller.current?.abort(), 90000);
     try {
       const data = await api(
-        mode === "rewrite" ? "/fix/humanize" : `/detect/${mode}`,
+        mode === "rewrite" ? "/fix/humanize" : ["ai", "plagiarism"].includes(mode) ? `/detect/${mode}` : `/tools/${mode}`,
         "POST",
-        mode === "rewrite" ? { text, style: rewriteStyle } : { text },
+        mode === "rewrite" ? { text, style: rewriteStyle, audience, length: rewriteLength, voiceSample, preserveTerms }
+          : mode === "compare" ? { text, comparisonText, excludeQuotes, excludeReferences }
+          : mode === "citations" ? { text, ...citation } : { text },
         controller.current.signal,
       );
-      let result: AIDetectionResult | PlagiarismResult | WritingRewriteResult;
+      let result: AIDetectionResult | PlagiarismResult | WritingRewriteResult | ProofreadResult | SummaryResult | ComparisonResult | CitationResult;
       if (mode === "rewrite") {
         if (
           typeof data.rewrittenText !== "string" ||
@@ -266,8 +301,12 @@ export default function App() {
                 .slice(0, 12)
             : [],
           style: rewriteStyle,
+          warnings: Array.isArray(data.warnings) ? data.warnings.filter((warning: unknown) => typeof warning === "string").slice(0, 12) : [],
         };
-      } else result = data.analysis;
+      } else {
+        if (!data.analysis || typeof data.analysis !== "object") throw new Error("The tool returned an incomplete result. Please try again.");
+        result = data.analysis;
+      }
       setReport((previous) => ({
         ...(previous?.originalText === text ? previous : {}),
         [mode]: result,
@@ -394,6 +433,16 @@ export default function App() {
     setNotice(
       "Rewrite applied to your document. Save to keep it, or run a fresh check.",
     );
+    document.getElementById("editor")?.focus();
+  }
+  async function copyResult(value: string) {
+    setError("");
+    try { await navigator.clipboard.writeText(value); setNotice("Result copied."); }
+    catch { setError("Copy is unavailable. Select and copy the result text instead."); }
+  }
+  function applyResult(value: string) {
+    setText(value); setReport(null); setDirty(true); setError("");
+    setNotice("Updated text applied. Save it or run a fresh check.");
     document.getElementById("editor")?.focus();
   }
   async function logout() {
@@ -577,8 +626,8 @@ export default function App() {
               <div className="eyebrow">A LITTLE CLARITY GOES A LONG WAY</div>
               <h1>Make every word your own.</h1>
               <p>
-                Check AI signals, find possible plagiarism matches, and rewrite
-                your draft in a voice that feels like you.
+                Check sources, improve clarity, and shape your draft in a voice
+                that feels like you. Seven tools, one private workspace.
               </p>
             </div>
             <button
@@ -590,7 +639,7 @@ export default function App() {
               New document
             </button>
           </section>
-          <div className="tool-picker" role="group" aria-label="Writing tools">
+          <div className="tool-picker tool-suite" role="group" aria-label="Writing tools">
             {writingTools.map((tool) => (
               <button
                 key={tool.id}
@@ -693,7 +742,7 @@ export default function App() {
                 </button>
               </div>
             </section>
-            <aside className="analysis-column">
+            <aside className={`analysis-column ${["rewrite", "compare", "citations"].includes(mode) ? "has-tool-form" : ""}`}>
               <section
                 className="analysis-card"
                 id="tool-settings"
@@ -704,7 +753,8 @@ export default function App() {
                   <h2>{activeTool.title}</h2>
                 </div>
                 <p>{activeTool.description}</p>
-                {mode === "rewrite" ? (
+                {mode === "rewrite" && (
+                  <>
                   <fieldset className="rewrite-styles" disabled={!!busy}>
                     <legend>Choose your tone</legend>
                     {rewriteStyles.map((style) => (
@@ -726,7 +776,19 @@ export default function App() {
                       </label>
                     ))}
                   </fieldset>
-                ) : (
+                  <details className="advanced-writing">
+                    <summary>Voice & writing preferences</summary>
+                    <fieldset disabled={!!busy} className="tool-form">
+                      <label>Audience<select value={audience} onChange={(e) => setAudience(e.target.value)}><option value="general">General readers</option><option value="academic">Academic readers</option><option value="business">Business readers</option></select></label>
+                      <label>Length<select value={rewriteLength} onChange={(e) => setRewriteLength(e.target.value)}><option value="preserve">Keep a similar length</option><option value="shorter">Make it shorter</option><option value="expanded">Develop the explanation</option></select></label>
+                      <label>A sample of your voice <span>(optional)</span><textarea value={voiceSample} maxLength={1500} onChange={(e) => setVoiceSample(e.target.value)} placeholder="Paste a short example of your own writing." rows={4} /></label>
+                      <label>Terms to preserve <span>(optional)</span><textarea value={preserveTerms} maxLength={500} onChange={(e) => setPreserveTerms(e.target.value)} placeholder="Names, technical terms, or phrases to keep." rows={2} /></label>
+                      <p className="field-help">Names, facts, citations, and the document language should be preserved. Review the revision before using it.</p>
+                    </fieldset>
+                  </details>
+                  </>
+                )}
+                {(mode === "ai" || mode === "plagiarism") && (
                   <div className="tool-explainer">
                     <strong>
                       {mode === "ai"
@@ -740,9 +802,26 @@ export default function App() {
                     </p>
                   </div>
                 )}
+                {mode === "proofread" && <div className="tool-explainer"><strong>Corrections you can understand</strong><p>Review grammar, punctuation, clarity, and style suggestions with a reason for each edit. Reading insights help you find dense passages.</p></div>}
+                {mode === "summarize" && <div className="tool-explainer"><strong>Find the thread in your draft</strong><p>Get a concise summary, key points, and an outline using only the information in your document.</p></div>}
+                {mode === "compare" && <fieldset className="tool-form" disabled={!!busy}>
+                  <label>Comparison document<textarea value={comparisonText} onChange={(e) => setComparisonText(e.target.value)} maxLength={15000} rows={8} placeholder="Paste the second document. Minimum 20 characters." /></label>
+                  <span className="field-help">{comparisonText.length.toLocaleString()} / 15,000 characters</span>
+                  <label className="inline-check"><input type="checkbox" checked={excludeQuotes} onChange={(e) => setExcludeQuotes(e.target.checked)} />Exclude quoted text</label>
+                  <label className="inline-check"><input type="checkbox" checked={excludeReferences} onChange={(e) => setExcludeReferences(e.target.checked)} />Exclude reference sections</label>
+                  <p className="field-help">Compares these two documents on our server. No AI provider or web search is used.</p>
+                </fieldset>}
+                {mode === "citations" && <fieldset className="tool-form" disabled={!!busy}>
+                  <label>Source title<input value={citation.title} maxLength={300} onChange={(e) => setCitation({ ...citation, title: e.target.value })} placeholder="Article or page title" /></label>
+                  <label>Author <span>(optional)</span><input value={citation.author} maxLength={200} onChange={(e) => setCitation({ ...citation, author: e.target.value })} placeholder="Name or organization" /></label>
+                  <label>Year <span>(optional)</span><input value={citation.year} maxLength={4} inputMode="numeric" onChange={(e) => setCitation({ ...citation, year: e.target.value })} placeholder="2026" /></label>
+                  <label>Source URL <span>(optional)</span><input type="url" value={citation.url} maxLength={2000} onChange={(e) => setCitation({ ...citation, url: e.target.value })} placeholder="https://example.com/article" /></label>
+                  <label>Access date <span>(optional)</span><input type="date" value={citation.accessed} onChange={(e) => setCitation({ ...citation, accessed: e.target.value })} /></label>
+                  <p className="field-help">Uses the details you enter. Missing authors and dates are not invented. Verify formatting against your institution's requirements.</p>
+                </fieldset>}
                 <button
                   className="button analyze-button"
-                  disabled={!!busy || text.trim().length < 20 || checking}
+                  disabled={!!busy || checking || (mode === "citations" ? !citation.title.trim() : text.trim().length < 20) || (mode === "compare" && comparisonText.trim().length < 20)}
                   onClick={scan}
                 >
                   {busy === "Analyzing" || busy === "Rewriting" ? (
@@ -772,8 +851,7 @@ export default function App() {
                 <div className="analysis-footnote">
                   <ShieldCheck size={14} />
                   <span>
-                    This tool sends your text to our server and its configured
-                    AI provider. Review the result before using it.
+                    {mode === "compare" || mode === "citations" ? "This tool runs on our server without an AI provider. Save the result to keep it in your account." : "This tool sends your text to our server and its configured AI provider. Review the result before using it."}
                   </span>
                 </div>
               </section>
@@ -841,19 +919,20 @@ export default function App() {
                 <div>
                   <h3>Room for your next discovery</h3>
                   <p>
-                    Add at least 20 characters and choose AI detector,
-                    Plagiarism checker, or Humanize & rewrite above.
+                    Choose a tool above. Add your draft to check or improve it,
+                    or enter source details to build a citation.
                   </p>
                 </div>
               </div>
             ) : (
               <div className="report-grid">
+                <ExtendedToolResults report={report} busy={!!busy} copy={copyResult} apply={applyResult} save={save} canSave={!!title.trim()} />
                 {report.rewrite && (
                   <article className="result-card rewrite-result">
                     <div className="rewrite-result-heading">
                       <div>
                         <span className="eyebrow">
-                          HUMANIZE & REWRITE · {report.rewrite.style.toUpperCase()}
+                          HUMANIZE & REWRITE · {(report.rewrite.style || "natural").toUpperCase()}
                         </span>
                         <h3>Your rewritten draft</h3>
                       </div>
@@ -885,6 +964,7 @@ export default function App() {
                         </ul>
                       </div>
                     )}
+                    {!!report.rewrite.warnings?.length && <div className="rewrite-notes verification-notes"><h4>Review before using</h4><ul>{report.rewrite.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></div>}
                     <div className="rewrite-actions">
                       <button className="button" onClick={applyRewrite} disabled={!!busy}>
                         <Check size={16} />Use in editor

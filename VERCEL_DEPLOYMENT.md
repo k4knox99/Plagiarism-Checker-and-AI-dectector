@@ -23,4 +23,8 @@ If the deployment is protected by Vercel Authentication, sign in through Vercel 
 
 Set NEON_AUTH_BASE_URL on the same preview branch as DATABASE_URL. Apply server/migrations/001_email_verification.sql before deploying the updated server. Set AI_GATEWAY_MODEL to a catalog model; Vercel OIDC can authenticate Gateway without copying provider keys. AI Gateway still requires an eligible account/credits. Verification uses the branch's Managed Auth OTP service and retains existing application account/document IDs. Existing users must sign in with their current password and enter the emailed code.
 
+Enable project OIDC and redeploy. Build-time `VERCEL_OIDC_TOKEN` is not the runtime credential source for Functions: `@vercel/oidc` reads the current request context for every AI request, with no shared token cache. An explicit server `AI_GATEWAY_API_KEY` takes precedence. Self-hosted clients cannot supply a header to activate this platform credential path.
+
+For a one-time provider smoke check, set preview-branch `VERITAS_AI_DEPLOY_CHECK=1` before the intended deployment. Build logs show writing and grounded-search status without user text or credentials. Set it back to `0` after inspection; do not create another deployment only to clear the flag. A `customer_verification_required` or exhausted allowance requires the project owner's provider account action.
+
 Configure a custom SMTP sender in Neon Auth. The preview currently uses the sender configured by its owner. The server derives the required Origin header from NEON_AUTH_BASE_URL rather than forwarding a browser-controlled header. Never copy the preview database or authentication audience into production unintentionally.

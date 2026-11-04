@@ -1,6 +1,118 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gatewayAnalysis } from "../server/gateway.js";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { gatewayAnalysis, gatewayConfigured, GatewayError, gatewayErrorMessage } from "../server/gateway.js";
+
+const contextSymbol = Symbol.for("@vercel/request-context");
+const requestContexts = new AsyncLocalStorage<{headers: Record<string, string>}>();
+const globals = globalThis as any;
+function tokenFor(label: string) {
+  const header = Buffer.from('{"alg":"none"}').toString("base64url");
+  const payload = Buffer.from(JSON.stringify({sub:label,exp:Math.floor(Date.now()/1000)+3600})).toString("base64url");
+  return `${header}.${payload}.test-signature`;
+}
+function preserveSettings() {
+  const envKeys = ["VERCEL", "AI_GATEWAY_API_KEY", "VERCEL_OIDC_TOKEN", "VERCEL_OIDC_TOKEN_FILE"];
+  const env = new Map(envKeys.map(key=>[key,process.env[key]]));
+  const context = globals[contextSymbol], originalFetch = globalThis.fetch;
+  for (const key of envKeys) delete process.env[key];
+  globals[contextSymbol] = {get:()=>requestContexts.getStore()};
+  return () => {
+    for (const [key,value] of env) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+    if (context === undefined) delete globals[contextSymbol]; else globals[contextSymbol] = context;
+    globalThis.fetch = originalFetch;
+  };
+}
+function modelReply(data: unknown) {
+  return Response.json({output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(data)}]}]});
+}
+
+test("deployed Functions use the current request OIDC token and isolate concurrent requests", async () => {
+  const restore = preserveSettings();
+  process.env.VERCEL = "1";
+  const tokens: Record<string,string> = {alice:tokenFor("alice"),bob:tokenFor("bob"),rotated:tokenFor("rotated")};
+  const received: string[] = [];
+  try {
+    globalThis.fetch = async (_url, options) => {
+      const input = JSON.parse(String(options?.body)).input;
+      const authorization = new Headers(options?.headers).get("authorization");
+      assert.equal(authorization, `Bearer ${tokens[input]}`);
+      received.push(input);
+      await Promise.resolve();
+      return modelReply({identity:input});
+    };
+    const invoke = (label: string) => requestContexts.run(
+      {headers:{"x-vercel-oidc-token":tokens[label]}},
+      async () => {
+        assert.equal(gatewayConfigured(),true);
+        return (await gatewayAnalysis(label)).data.identity;
+      },
+    );
+    assert.deepEqual(await Promise.all([invoke("alice"),invoke("bob")]),["alice","bob"]);
+    assert.equal(await invoke("rotated"),"rotated");
+    assert.equal(gatewayConfigured(),false);
+    assert.equal(received.length,3);
+  } finally { restore(); }
+});
+
+test("self-hosted requests cannot supply a platform header to enable AI access", async () => {
+  const restore = preserveSettings();
+  let calls = 0;
+  try {
+    globalThis.fetch = async () => { calls++; return modelReply({}); };
+    await requestContexts.run({headers:{"x-vercel-oidc-token":tokenFor("untrusted")}},async()=>{
+      assert.equal(gatewayConfigured(),false);
+      await assert.rejects(gatewayAnalysis("private document"),error=>error instanceof GatewayError && error.code==="missing_credentials");
+    });
+    assert.equal(calls,0);
+  } finally { restore(); }
+});
+
+test("explicit API credentials take priority over platform request credentials", async () => {
+  const restore = preserveSettings();
+  process.env.VERCEL = "1";
+  process.env.AI_GATEWAY_API_KEY = " owner-configured-test-key ";
+  try {
+    globalThis.fetch = async (_url,options) => {
+      assert.equal(new Headers(options?.headers).get("authorization"),"Bearer owner-configured-test-key");
+      return modelReply({ok:true});
+    };
+    const result = await requestContexts.run({headers:{"x-vercel-oidc-token":tokenFor("platform")}},()=>gatewayAnalysis("test"));
+    assert.equal(result.data.ok,true);
+  } finally { restore(); }
+});
+
+test("provider diagnostics retain safe categories and hide raw messages", async () => {
+  const restore = preserveSettings();
+  process.env.AI_GATEWAY_API_KEY = "do-not-expose-this-key";
+  try {
+    globalThis.fetch = async () => Response.json({error:{code:"private-content-do-not-log",message:"private document and do-not-expose-this-key"}},{status:502});
+    await assert.rejects(gatewayAnalysis("test"),error=>{
+      assert.ok(error instanceof GatewayError);
+      assert.equal(error.code,"provider_unavailable");
+      assert.ok(!String(error).includes("private"));
+      assert.ok(!gatewayErrorMessage(error).includes("do-not-expose"));
+      return true;
+    });
+    assert.match(gatewayErrorMessage(new GatewayError("customer_verification_required")),/account verification/);
+    assert.match(gatewayErrorMessage(new GatewayError("insufficient_funds")),/allowance is exhausted/);
+    assert.match(gatewayErrorMessage(new GatewayError("quota_for_entity_exceeded")),/allowance is exhausted/);
+    assert.match(gatewayErrorMessage(new GatewayError("rate_limit_exceeded")),/wait/);
+  } finally { restore(); }
+});
+
+test("malformed provider responses cannot become successful tool output", async () => {
+  const restore = preserveSettings();
+  process.env.AI_GATEWAY_API_KEY = "unit-test-key";
+  try {
+    for (const body of [{output:{}},{output:[{type:"message",content:[{type:"output_text",text:"private non-JSON text"}]}]}]) {
+      globalThis.fetch = async () => Response.json(body);
+      await assert.rejects(gatewayAnalysis("test"),error=>error instanceof GatewayError && error.code==="invalid_response");
+    }
+  } finally { restore(); }
+});
 test("gateway parses model JSON and retains only actual cited source URLs", async () => {
   const original = globalThis.fetch,
     token = process.env.AI_GATEWAY_API_KEY;

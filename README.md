@@ -1,6 +1,6 @@
 # Veritas — writing integrity workspace
 
-A responsive writing studio with AI signal analysis, plagiarism source checks, a four-tone writing rewrite tool, and a private server document library.
+A responsive writing studio with seven tools and a private server document library: AI writing signals, plagiarism web sources, voice-aware rewriting, grammar and clarity review, summaries, two-document comparison, and citation drafts.
 
 ## Run locally
 
@@ -60,6 +60,17 @@ Apply the versioned migration in server/migrations/001_email_verification.sql. I
 
 ## Live analysis configuration
 
-Gemini keys remain supported. Vercel deployments also use AI Gateway through their short-lived VERCEL_OIDC_TOKEN; AI_GATEWAY_MODEL selects a model, currently openai/gpt-5.4-mini. Web similarity uses actual provider web search and returns only URLs present in source metadata. Provider account/credit requirements still apply. Results identify local fallback estimates if the AI service is unavailable; fallback scores are never proof of authorship or originality.
+Gemini keys remain supported. Vercel deployments also use AI Gateway through short-lived OIDC tokens. Enable OIDC for the Vercel project; runtime Functions receive tokens through request context, so the server uses `@vercel/oidc` for each request rather than relying on the build-time environment. AI_GATEWAY_MODEL selects a model, currently openai/gpt-5.4-mini. Web similarity uses actual provider web search and returns only URLs present in source metadata. Provider account/credit requirements still apply. Results identify local fallback estimates if the AI service is unavailable; fallback scores are never proof of authorship or originality.
 
-Choose **Humanize & rewrite** for Natural, Professional, Academic, or Concise edits. Review the original and rewritten drafts side by side, copy or download the output, and save the result with its source draft. **Use in editor** applies the new text and clears scans made against the old text. Rewrites require a working model; provider failures return an error and preserve the original. The app does not fabricate a successful rewrite or promise a detector score.
+Choose **Humanize & rewrite** for Natural, Professional, Academic, or Concise edits. Set audience and length, supply an optional voice sample, and list terms to preserve. Mechanical warnings flag missing numbers, citation markers, quotations, and protected terms; these checks do not establish semantic accuracy. Review the original and rewritten drafts side by side, copy or download the output, and save the result with its source draft. **Use in editor** applies the new text and clears scans made against the old text. Rewrites require a working model; provider failures return an error and preserve the original. The app does not fabricate a successful rewrite or promise a detector score.
+
+## Writing tools
+
+- **Grammar & clarity** combines contextual AI proofreading with explained suggestions. Without a model, it labels its limited punctuation, repeated-word, and wordiness rules. Word and sentence counts use Unicode segmentation; Flesch reading ease is an approximate English-only estimate.
+- **Summarizer** returns a summary, key points, and outline from the supplied document. It requires a model; verify important qualifications before sharing.
+- **Compare documents** finds phrases of at least five normalized segmented words in two supplied documents. It highlights actual passages, measures directional word coverage, and can exclude quoted text and labeled reference sections. This runs on the app server without a third-party AI provider or web search; it is not an internet-wide plagiarism check.
+- **Citation builder** formats manually supplied webpage metadata into APA, MLA, Chicago, and BibTeX drafts. Missing data is disclosed and never invented. Check author order and institutional style requirements.
+
+All tool results can be saved with the draft and reopened from the private library. Copy and TXT download are available. See [tool design and research](docs/TOOLS.md) for scope, sources, and limitations.
+
+An optional deployment diagnostic runs only when `VERITAS_AI_DEPLOY_CHECK=1`: two small non-sensitive writing/search canaries use the build token and log only safe status categories. Set the branch flag back to `0` after the intended build. Failures are diagnostic, so independent tools can still deploy.

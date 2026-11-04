@@ -81,7 +81,23 @@ export interface WritingRewriteResult {
   engine: string;
   changes?: string[];
   style: RewriteStyle;
+  warnings?: string[];
 }
+
+export interface ProofreadResult {
+  correctedText: string;
+  summary: string;
+  issues: { original: string; suggestion: string; category: string; explanation: string }[];
+  engine: string;
+  insights: { words: number; sentences: number; paragraphs: number; readingMinutes: number; averageSentenceWords: number; longSentences: number; readingEase: number | null; readingLabel: string };
+}
+export interface SummaryResult { summary: string; keyPoints: string[]; outline: string[]; engine: string }
+export interface ComparisonResult {
+  similarityScore: number; matchedWords: number; totalWords: number;
+  matches: { text: string; sourceText: string; start: number; end: number; sourceStart: number; sourceEnd: number }[];
+  engine: string; scope: string;
+}
+export interface CitationResult { apa: string; mla: string; chicago: string; bibtex: string; notes: string[]; engine: string }
 
 export interface ComprehensiveReport {
   compositeAuthenticity: number;

@@ -1237,6 +1237,82 @@ textarea {
   gap: 12px;
   margin-bottom: 22px;
 }
+.tool-picker.tool-suite {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.tool-suite .tool-tab {
+  min-height: 76px;
+  padding: 16px 13px;
+  align-items: center;
+  gap: 10px;
+}
+.tool-suite .tool-tab strong { font-size: 14px; line-height: 1.5; }
+.tool-suite .tool-tab small { display: none; }
+.tool-suite .tool-tab > svg:last-child:not(:first-child) { width: 14px; }
+.tool-form { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
+.tool-form > label { display: block; margin-bottom: 15px; color: #405f4b; font-size: 14px; font-weight: 600; }
+.tool-form label > span { font-weight: 400; color: #778577; font-size: 12px; }
+.tool-form input:not([type="checkbox"]), .tool-form select, .tool-form textarea {
+  display: block; width: 100%; box-sizing: border-box; margin-top: 7px;
+  border: 1px solid #d8e1d7; border-radius: 8px; background: #fff; color: #364f40;
+  padding: 11px 12px; font-size: 14px; line-height: 1.65; font-family: inherit;
+}
+.tool-form textarea { resize: vertical; min-height: 90px; }
+.tool-form textarea[rows="8"] { min-height: 180px; }
+.analysis-column.has-tool-form .tip-card { display: none; }
+.tool-form input:focus, .tool-form select:focus, .tool-form textarea:focus { outline: 2px solid #87ac8d; outline-offset: 2px; }
+.tool-form .inline-check { display: flex; gap: 9px; align-items: center; margin-top: 13px; margin-bottom: 0; font-weight: 400; }
+.inline-check input { width: 16px; height: 16px; margin: 0; accent-color: #285d49; flex-shrink: 0; }
+.field-help, .tool-form .field-help { font-size: 12px; color: #72816f; font-weight: 400; line-height: 1.8; margin: 8px 0 0; }
+.advanced-writing { border-top: 1px solid #e2e9de; margin-top: 18px; padding-top: 16px; color: #3c614a; font-size: 14px; }
+.advanced-writing > summary { cursor: pointer; font-weight: 600; }
+.extended-result { grid-column: 1 / -1; min-width: 0; }
+.extended-result h4 { color: #47634b; font-size: 14px; margin: 0 0 9px; }
+.writing-insights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 22px 0; }
+.writing-insights > div { background: #f4f7f0; border-radius: 9px; padding: 15px; }
+.writing-insights strong { display: block; font-size: 22px; color: #315d45; line-height: 1.4; }
+.writing-insights span { display: block; font-size: 12px; color: #71816d; line-height: 1.7; }
+.suggestion-details { margin-top: 22px; }
+.suggestion-details > summary { cursor: pointer; color: #365c43; font-size: 14px; font-weight: 600; }
+.writing-suggestion { padding: 18px 0; border-bottom: 1px solid #e9eee5; }
+.issue-category { display: inline-block; color: #557253; background: #eff4e9; padding: 4px 8px; border-radius: 5px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.suggestion-change { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; font-size: 15px; line-height: 1.75; overflow-wrap: anywhere; }
+.suggestion-change > span:first-child { color: #8a6058; background: #fbf3ef; padding: 10px 12px; border-radius: 6px; }
+.suggestion-change > span:last-child { color: #386245; background: #eff6eb; padding: 10px 12px; border-radius: 6px; }
+.writing-suggestion p { margin: 9px 0 0; font-size: 13px; }
+.summary-copy { white-space: pre-wrap; font-size: 17px !important; line-height: 1.9 !important; }
+.summary-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+.summary-columns section { border: 1px solid #e2e9de; border-radius: 10px; padding: 20px; background: #fafbf7; }
+.summary-columns ul, .summary-columns ol { padding-left: 21px; color: #60745d; font-size: 15px; line-height: 1.85; margin-bottom: 0; }
+.summary-columns li + li { margin-top: 9px; }
+.comparison-overview { display: flex; gap: 24px; align-items: center; }
+.comparison-overview > strong { font-family: Georgia, serif; font-size: 54px; color: #2d6247; line-height: 1.2; white-space: nowrap; }
+.comparison-overview > strong small { font-family: inherit; font-size: 25px; }
+.comparison-overview p { max-width: 380px; }
+.comparison-document { border: 1px solid #e0e8db; border-radius: 10px; margin-top: 22px; overflow: hidden; }
+.comparison-document > h4 { padding: 14px 17px; margin: 0; background: #f2f6ed; border-bottom: 1px solid #e0e8db; }
+.compare-highlight mark { background: #f4e5a9; color: #574f2b; padding: 1px 0; border-radius: 2px; }
+.matched-passage { margin-top: 22px; }
+.matched-passage .rewrite-comparison p { padding: 15px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font-size: 14px; }
+.citation-output { margin-top: 18px; border: 1px solid #e0e8dc; border-radius: 9px; overflow: hidden; }
+.citation-output > div { display: flex; align-items: center; justify-content: space-between; padding: 10px 17px; background: #f4f7ef; border-bottom: 1px solid #e0e8dc; }
+.citation-output h4 { margin: 0; }
+.citation-output > p { margin: 0; padding: 17px; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 15px; line-height: 1.85; }
+.citation-code { font-family: ui-monospace, monospace; font-size: 13px !important; }
+.verification-notes { padding: 16px; border: 1px solid #e7debb; background: #fcfaef; border-radius: 8px; }
+@media (max-width: 1150px) { .tool-picker.tool-suite { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 800px) { .tool-picker.tool-suite { grid-template-columns: repeat(2, minmax(0, 1fr)); } .summary-columns { grid-template-columns: 1fr; } }
+@media (max-width: 500px) {
+  .tool-suite .tool-tab { padding: 12px 10px; min-height: 70px; gap: 7px; }
+  .tool-suite .tool-tab strong { font-size: 13px; }
+  .tool-suite .tool-tab > svg:first-child { width: 18px; }
+  .tool-suite .tool-tab > svg:last-child:not(:first-child) { display: none; }
+  .writing-insights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .suggestion-change { grid-template-columns: 1fr; gap: 8px; }
+  .comparison-overview { gap: 16px; }
+  .comparison-overview > strong { font-size: 44px; }
+}
 .tool-tab {
   min-width: 0;
   display: flex;
@@ -1413,6 +1489,7 @@ textarea {
   margin: 22px 0 17px;
 }
 @media (max-width: 1100px) {
+  .analysis-column.has-tool-form { display: block; }
   .workspace-grid {
     grid-template-columns: 1fr;
   }
