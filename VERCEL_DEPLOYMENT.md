@@ -11,6 +11,8 @@
 
 Remove `VITE_ADMIN_PASSWORD` from all environments and rotate any password ever configured there, including reuse elsewhere. VITE-prefixed configuration is frontend-visible. Rebuild/redeploy and remove older deployments containing sensitive values; this revision cannot retract previously published assets.
 
+For the read-only owner dashboard, set server-only `OWNER_ACCOUNT_ID` to the verified owner's immutable account ID in the same database. Scope it to the intended Vercel project/environment and branch before deploying. The owner signs in normally and opens `/admin`; no shared admin password is used. A missing or mismatched value denies access. Dashboard requests recheck session verification and the exact account ID, and never return password hashes, sessions, provider keys, or document text.
+
 This revision does not provision a database or deploy production. Hosted PostgreSQL, live Gemini, production HTTPS cookies, and function limits need smoke testing with your deployment credentials. Local SQLite, API security regression tests, build, and type checks were validated.
 
 ## Sign-up troubleshooting

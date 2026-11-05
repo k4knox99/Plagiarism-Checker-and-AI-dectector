@@ -8,6 +8,7 @@ import { preservationWarnings } from "./edits.js";
 import { assessEmail } from "./email-policy.js";
 import { dailyToolAllowance, referralProfile, ReferralError } from "./referrals.js";
 import { outputBudget, type WritingTask } from "./token-budget.js";
+import { adminRouter } from "./admin.js";
 import { createHash } from "node:crypto";
 import {
   accountRouter,
@@ -31,6 +32,7 @@ app.use("/api", sameOrigin);
 app.use(express.json({ limit: "3mb" }));
 app.use("/api/auth", accountRouter);
 app.use("/api/documents", documentRouter);
+app.use("/api/admin", adminRouter);
 app.post("/api/referrals/me", requireUser, rateLimit("referral-profile", 30), async (req: UserRequest, res) => {
   try { return res.json({ referral: await referralProfile(req.userId!) }); }
   catch (error) {

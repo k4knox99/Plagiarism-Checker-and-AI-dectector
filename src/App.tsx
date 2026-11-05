@@ -37,7 +37,16 @@ import type {
 import { readApiResponse } from "./utils/apiResponse";
 import ExtendedToolResults from "./components/ExtendedToolResults";
 import ReferralPanel from "./components/ReferralPanel";
-type Account = { id: string; email: string; verified: boolean };
+import AdminPanel from "./components/AdminPanel";
+type Account = { id: string; email: string; verified: boolean; isAdmin?: boolean };
+function readAccount(value: unknown): Account {
+  if (!value || typeof value !== "object" || !("id" in value) || typeof value.id !== "string" ||
+    !("email" in value) || typeof value.email !== "string" || !("verified" in value) || typeof value.verified !== "boolean") {
+    throw new Error("The account server sent an incomplete response. Please reload and try again.");
+  }
+  return { id: value.id, email: value.email, verified: value.verified, isAdmin: "isAdmin" in value && value.isAdmin === true };
+}
+function isAdminPath() { return window.location.pathname.replace(/\/+$/, "") === "/admin"; }
 type Invitation = { code: string; invalid: boolean };
 function readInvitation(): Invitation {
   const values = new URLSearchParams(window.location.search).getAll("ref");
@@ -151,6 +160,7 @@ export default function App() {
     [search, setSearch] = useState("");
   const [invitation, setInvitation] = useState<Invitation>(readInvitation),
     [referralsOpen, setReferralsOpen] = useState(false);
+  const [adminRequested, setAdminRequested] = useState(isAdminPath);
   const input = useRef<HTMLInputElement>(null),
     controller = useRef<AbortController | null>(null);
   const words = React.useMemo(() => [...wordCounter.segment(text)].filter((part) => part.isWordLike).length, [text]);
@@ -175,7 +185,7 @@ export default function App() {
       /* Storage can be blocked; server sessions still work. */
     }
     api("/auth/me")
-      .then((data) => { setUser(data.user); clearInvitation(); })
+      .then((data) => { setUser(readAccount(data.user)); clearInvitation(); })
       .catch(() => {})
       .finally(() => setChecking(false));
     return () => controller.current?.abort();
@@ -184,6 +194,14 @@ export default function App() {
     if (user?.verified) refreshDocuments().catch((e) => setError(e.message));
     else setDocuments([]);
   }, [user?.id, user?.verified]);
+  useEffect(() => {
+    const handleNavigation = () => setAdminRequested(isAdminPath());
+    window.addEventListener("popstate", handleNavigation);
+    return () => window.removeEventListener("popstate", handleNavigation);
+  }, []);
+  useEffect(() => {
+    if (adminRequested && !checking && !user) setAuth("login");
+  }, [adminRequested, checking, user?.id]);
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (dirty) {
@@ -472,6 +490,15 @@ export default function App() {
     setError("");
     setNotice("");
   }
+  function openAdmin() {
+    setReferralsOpen(false);
+    setAdminRequested(true);
+    if (!isAdminPath()) window.history.pushState(window.history.state, "", "/admin");
+  }
+  function closeAdmin() {
+    setAdminRequested(false);
+    if (isAdminPath()) window.history.replaceState(window.history.state, "", "/");
+  }
   async function logout() {
     if (dirty && !window.confirm("Sign out and discard unsaved changes?"))
       return;
@@ -480,6 +507,7 @@ export default function App() {
       await api("/auth/logout", "POST", {});
       setUser(null);
       setReferralsOpen(false);
+      closeAdmin();
       clearInvitation();
       reset(true);
       setNotice("Signed out.");
@@ -616,6 +644,7 @@ export default function App() {
               Focus mode
             </span>
             {user?.verified && <button className="button secondary small invite-button" disabled={!!busy} onClick={() => setReferralsOpen(true)}><Gift size={16} />Invite friends</button>}
+            {user?.verified && user.isAdmin && <button className="button secondary small" disabled={!!busy} onClick={openAdmin}><ShieldCheck size={16} />Admin Dashboard</button>}
             {user && (
               <button
                 className="button secondary small"
@@ -639,6 +668,7 @@ export default function App() {
           </div>
         </header>
         <main>
+          {adminRequested && !checking && !(user?.verified && user.isAdmin) && <div className="admin-access-notice" role="status"><ShieldCheck size={22} /><div><strong>Owner dashboard access</strong><p>{!user ? "Sign in with the site owner account to view the dashboard." : !user.verified ? "Confirm your email, then sign in with the site owner account to view the dashboard." : "This account does not have administrator access. The dashboard is reserved for the site owner."}</p></div>{(!user || !user.verified) && <button className="button small" onClick={() => setAuth("login")}>{user ? "Confirm email" : "Sign in"}</button>}<button className="button secondary small" onClick={closeAdmin}>Return to studio</button></div>}
           {!checking && !user && (invitation.code || invitation.invalid) && <div className="invitation-banner" role="status"><Gift size={22} /><div><strong>{invitation.invalid ? "This invitation link needs attention." : "You’ve been invited to Veritas."}</strong><p>{invitation.invalid ? "Ask your friend for a new link, or choose to continue without an invitation when creating your account." : "Create a new account and confirm your permanent email address to complete your friend’s invitation."}</p></div><button className="button small" onClick={() => setAuth("register")}>Create account<ArrowRight size={16} /></button></div>}
           {user && !user.verified && (
             <div className="verification-banner" role="status">
@@ -1113,15 +1143,17 @@ export default function App() {
           onDiscardInvitation={clearInvitation}
           mode={auth}
           onMode={setAuth}
-          onClose={() => setAuth(null)}
-          onSuccess={(account) => {
-            setUser(account);
+          onClose={() => { setAuth(null); if (adminRequested && !user) closeAdmin(); }}
+          onSuccess={async () => {
+            const data = await api("/auth/me");
+            setUser(readAccount(data.user));
             clearInvitation();
             setAuth(null);
           }}
         />
       )}
       {referralsOpen && user?.verified && <ReferralPanel key={user.id} onClose={() => setReferralsOpen(false)} />}
+      {adminRequested && user?.verified && user.isAdmin && <AdminPanel key={user.id} onClose={closeAdmin} />}
     </div>
   );
 }
@@ -1138,7 +1170,7 @@ function AuthDialog({
   mode: "login" | "register";
   onMode: (m: "login" | "register") => void;
   onClose: () => void;
-  onSuccess: (u: Account) => void;
+  onSuccess: (u: Account) => Promise<void>;
   onPending: (u: Account) => void;
   initialAccount: Account | null;
   invitation: Invitation;
@@ -1162,27 +1194,20 @@ function AuthDialog({
     const timer = setTimeout(() => setCooldown((value) => value - 1), 1000);
     return () => clearTimeout(timer);
   }, [cooldown]);
-  function accept(data: any) {
-    if (
-      typeof data.user?.id !== "string" ||
-      typeof data.user?.email !== "string" ||
-      typeof data.user?.verified !== "boolean"
-    )
-      throw new Error(
-        "The account server sent an incomplete response. Please reload and try again.",
-      );
-    if (!data.user.verified) {
+  async function accept(data: any) {
+    const account = readAccount(data.user);
+    if (!account.verified) {
       setVerifying(true);
-      setEmail(data.user.email);
+      setEmail(account.email);
       setPassword("");
       setCooldown(60);
-      onPending(data.user);
+      onPending(account);
       if (data.verificationSent)
         setMessage(
           "Your confirmation email was accepted for delivery. Check your inbox; it may take a few minutes to arrive.",
         );
       else setError(data.message || "Request a confirmation code to continue.");
-    } else onSuccess(data.user);
+    } else await onSuccess(account);
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -1194,7 +1219,7 @@ function AuthDialog({
     setError("");
     setMessage("");
     try {
-      accept(
+      await accept(
         await api(
           verifying ? "/auth/verify-email" : `/auth/${mode}`,
           "POST",

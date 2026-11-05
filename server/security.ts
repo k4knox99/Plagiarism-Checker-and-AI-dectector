@@ -21,6 +21,7 @@ import {
   VerificationError,
 } from "./verification.js";
 import { trustedOrigins } from "./origins.js";
+import { isOwnerAccount } from "./owner.js";
 
 const derive = (password: string, salt: string) =>
   new Promise<Buffer>((resolve, reject) => {
@@ -272,7 +273,7 @@ accountRouter.post(
             message,
           });
       }
-      res.json({ user: { id: user.id, email: user.email, verified: true } });
+      res.json({ user: { id: user.id, email: user.email, verified: true, isAdmin: isOwnerAccount(user.id, true) } });
     } catch (error) {
       if (error instanceof EmailPolicyError) return res.status(400).json({ error: error.message, code: error.code });
       if (error instanceof ReferralError) return res.status(error.status).json({ error: error.message, code: error.code });
@@ -296,6 +297,7 @@ accountRouter.get(
           id: user.id,
           email: user.email,
           verified: Boolean(user.verified_at),
+          isAdmin: isOwnerAccount(user.id, Boolean(user.verified_at)),
         },
       });
     } catch (e) {
@@ -331,13 +333,13 @@ accountRouter.post(
   async (req: UserRequest, res) => {
     if (req.emailVerified)
       return res.json({
-        user: { id: req.userId, email: req.userEmail, verified: true },
+        user: { id: req.userId, email: req.userEmail, verified: true, isAdmin: isOwnerAccount(req.userId, true) },
       });
     try {
       await confirmVerification(req.userId!, req.userEmail!, req.body?.code);
       await issueSession(req, res, req.userId!);
       res.json({
-        user: { id: req.userId, email: req.userEmail, verified: true },
+        user: { id: req.userId, email: req.userEmail, verified: true, isAdmin: isOwnerAccount(req.userId, true) },
       });
     } catch (error) {
       res

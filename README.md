@@ -35,7 +35,13 @@ Documents and reports live in the configured database. Recent scan results are c
 
 AI scores are estimates, not proof of authorship. Similarity is not a plagiarism verdict. Search coverage is incomplete; manually check suggested sources. Unavailable web search reports **Not checked**, never a certificate of originality.
 
-The old browser-only subscriptions, payment receipts, admin/demo accounts, bearer sign-in, certificates, and guaranteed detector-evasion features are retired. Old browser credentials and sessions are cleared on first load and are not migrated. Create a new server account. Email confirmation is required. Password reset, MFA, billing, and an administrator interface are not implemented.
+The old browser-only subscriptions, payment receipts, admin/demo accounts, bearer sign-in, certificates, and guaranteed detector-evasion features are retired. Old browser credentials and sessions are cleared on first load and are not migrated. Create a new server account. Email confirmation is required. Password reset, MFA, and billing are not implemented.
+
+## Owner dashboard
+
+Set server-only `OWNER_ACCOUNT_ID` to the immutable ID of the verified owner account in the deployment's database, then deploy. Sign in with that account's existing email and password and choose **Admin Dashboard**, or open `/admin`. There is no separate admin password. The server authorizes every dashboard request against the current verified session and exact configured account ID; email domains and browser role claims grant no access. A missing setting disables admin access.
+
+The dashboard shows account/document totals, referral and bonus-credit totals, the latest 50 accounts, and provider configuration flags. It does not expose document text, password hashes, sessions, or provider keys. It is read-only; user/credit editing and account deletion are not available. Provider configuration flags do not confirm provider verification, available credits, or successful AI requests. Keep this setting scoped to the intended deployment and database; changing it revokes the previous owner's dashboard access immediately.
 
 ## Validation
 

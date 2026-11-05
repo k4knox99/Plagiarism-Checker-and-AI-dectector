@@ -23,7 +23,7 @@ Use HTTPS, a private durable database, verified database TLS, restricted databas
 
 This is a source review and local regression testing, not a penetration-test certification.
 
-- Registration is open, but email confirmation is required before protected tools or documents are accessible. There is no password reset, MFA, account recovery, billing, enterprise authorization, or administrator interface. Email domains must never establish organizational membership.
+- Registration is open, but email confirmation is required before protected tools or documents are accessible. There is no password reset, MFA, account recovery, billing, or enterprise authorization. Email domains must never establish organizational membership. A read-only owner dashboard requires a verified session matching server-only `OWNER_ACCOUNT_ID` on every request; it grants no account or document editing privileges.
 - Proxy configuration determines IP rate-limit identity. Vercel trusts one platform proxy; self-hosting trusts no proxies by default. Configure only known reverse proxies deliberately.
 - Rate windows are shared in the database; cache/concurrency limits are per process. Public installations still need edge bot controls, global provider quotas, admission controls, and monitoring. Multiple accounts/IPs can exhaust provider budgets.
 - File-size limits do not fully stop compressed-document resource attacks. PDF parsing remains in-process. Hostile/high-volume environments should isolate parsing in constrained workers/services and add file scanning.
