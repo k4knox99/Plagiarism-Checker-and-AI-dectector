@@ -1,6 +1,8 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { Pool } from "pg";
+import { assessEmail } from "./email-policy.js";
+import { referralSchemaStatements } from "./referral-schema.js";
 
 let ready: Promise<void> | undefined;
 let pool: Pool | undefined;
@@ -29,7 +31,7 @@ async function initialize() {
     try {
       const applied = await queryRaw(
         "SELECT version FROM schema_migrations WHERE version=$1",
-        ["001_email_verification"],
+        ["002_referrals"],
       );
       if (applied.length) return;
     } catch (error: any) {
@@ -82,13 +84,64 @@ async function initialize() {
     "INSERT INTO schema_migrations (version,applied_at) VALUES ($1,$2) ON CONFLICT(version) DO NOTHING",
     ["001_email_verification", new Date().toISOString()],
   );
+  for (const sql of referralSchemaStatements) await queryRaw(sql);
+  // Preserve legacy accounts and documents. One mailbox owner is selected in
+  // creation order when historical Gmail aliases share an inbox.
+  const existing = await queryRaw("SELECT id,email,created_at FROM accounts ORDER BY created_at,id");
+  for (const account of existing) {
+    try {
+      const identity = assessEmail(account.email);
+      await queryRaw("INSERT INTO account_mailboxes (mailbox_key,user_id,created_at) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", [identity.mailboxKey, account.id, account.created_at]);
+    } catch (error: any) {
+      if (error?.code !== "INVALID_EMAIL") throw error;
+    }
+  }
+  await queryRaw("INSERT INTO schema_migrations (version,applied_at) VALUES ($1,$2) ON CONFLICT(version) DO NOTHING", ["002_referrals", new Date().toISOString()]);
 }
 
-export async function query(sql: string, params: any[] = []) {
+async function ensureReady() {
   ready ||= initialize().catch((error) => {
     ready = undefined;
     throw error;
   });
   await ready;
-  return queryRaw(sql, params);
+}
+export type Query = (sql: string, params?: any[]) => Promise<any[]>;
+let sqliteQueue: Promise<void> = Promise.resolve();
+async function serialized<T>(work: () => Promise<T>): Promise<T> {
+  const preceding = sqliteQueue;
+  let release!: () => void;
+  sqliteQueue = new Promise<void>((resolve) => { release = resolve; });
+  await preceding;
+  try { return await work(); } finally { release(); }
+}
+export async function query(sql: string, params: any[] = []) {
+  await ensureReady();
+  return pool ? queryRaw(sql, params) : serialized(() => queryRaw(sql, params));
+}
+export async function transaction<T>(work: (query: Query) => Promise<T>): Promise<T> {
+  await ensureReady();
+  if (pool) {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await work(async (sql, params = []) => (await client.query(sql, params)).rows);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw error;
+    } finally { client.release(); }
+  }
+  return serialized(async () => {
+    sqlite.exec("BEGIN IMMEDIATE");
+    try { const result = await work(queryRaw); sqlite.exec("COMMIT"); return result; }
+    catch (error) { sqlite.exec("ROLLBACK"); throw error; }
+  });
+}
+// Maintenance scripts close their own process-local connection after migration.
+export async function closeStorage() {
+  if (pool) { await pool.end(); pool = undefined; }
+  if (sqlite) { sqlite.close(); sqlite = undefined; }
+  ready = undefined;
 }

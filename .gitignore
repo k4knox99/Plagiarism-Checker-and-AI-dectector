@@ -8,5 +8,8 @@ coverage/
 !.env.example
 
 data/
+!server/data/
+server/data/*
+!server/data/disposable-domains.txt
 work/
 *.sqlite*

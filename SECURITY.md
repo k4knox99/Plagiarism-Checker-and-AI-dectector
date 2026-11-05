@@ -27,7 +27,7 @@ This is a source review and local regression testing, not a penetration-test cer
 - Proxy configuration determines IP rate-limit identity. Vercel trusts one platform proxy; self-hosting trusts no proxies by default. Configure only known reverse proxies deliberately.
 - Rate windows are shared in the database; cache/concurrency limits are per process. Public installations still need edge bot controls, global provider quotas, admission controls, and monitoring. Multiple accounts/IPs can exhaust provider budgets.
 - File-size limits do not fully stop compressed-document resource attacks. PDF parsing remains in-process. Hostile/high-volume environments should isolate parsing in constrained workers/services and add file scanning.
-- Hosted PostgreSQL and live Gemini were not exercised with deployment credentials. Smoke-test production routing, database permissions, TLS cookies, provider outputs, and function time limits before launch.
+- PostgreSQL schema changes and reward uniqueness were checked on an isolated Neon branch. Local application tests use SQLite. Protected live-preview flows, provider outputs, TLS cookies, and function time limits still require deployment-level validation; live Gemini is not configured.
 - Documents are stored in the configured database without application-level encryption. Document deletion removes the active row, not backups, cache, or prior provider submissions. There is no self-service account deletion yet.
 - Saved reports are user-controlled data, not signed certificates. AI signals cannot prove authorship. Search coverage is incomplete and similarity is not a plagiarism verdict.
 
@@ -41,6 +41,14 @@ Preview-origin handling also accepts only the exact VERCEL_URL supplied by Verce
 
 The preview now requires email confirmation for every account, including pre-update users. Existing passwords, IDs, and documents are retained; old sessions cannot bypass the verification gate. App passwords are not sent to the OTP provider. The provider consumes single-use codes; local challenges enforce expiry, per-account binding, a 60-second resend cooldown, five-attempt limit and shared database rate limits. Case-insensitive unique email indexing and conflict-safe insertion prevent concurrent duplicate application accounts.
 
-Neon shared SMTP is used for preview email delivery. Configure custom SMTP for a broad production launch. Provider inbox delivery must be tested with a real mailbox; integration tests use an isolated provider stub. Password reset and MFA remain outside this revision.
+The owner configured custom SMTP in Neon Auth and confirmed a test email arrived in the inbox. This does not guarantee inbox placement for every recipient. Automated verification tests use an isolated provider stub. Password reset and MFA remain outside this revision.
 
 Live AI Gateway/web-search calls use the deployment OIDC token or a server-only gateway key. Requests are bounded and source links are filtered against actual provider source metadata. Provider credits/payment verification can affect availability. The UI labels local fallback output rather than hiding outages.
+
+## Disposable email and referral controls
+
+Registration rejects known disposable email domains and their subdomains using a pinned, bundled CC0 dataset; no external lookup runs per request. Missing/invalid policy data fails closed. Consumer Gmail dot/plus/googlemail variants share one hashed mailbox identity. Historical duplicate accounts are preserved, but only the original identity owner can create reward-eligible invitations. Other providers' alias semantics are not assumed, and a domain list cannot establish a person's identity or identify every new disposable service.
+
+Referral attribution is accepted only during creation of a new account. Both mailboxes must be permanent, distinct, and eligible. Email confirmation and reward insertion occur in one database transaction. A unique referred-user key prevents replay, a wallet-row lock serializes monthly awards, and rewards stop at 100 credits per UTC calendar month. Referrers see counts and their balance, never invitees' email addresses.
+
+Bonus credits are atomically reserved after the free daily allowance. Authenticated, account-separated cache hits are served without consuming the daily allowance or bonus balance; the per-minute limit still applies. JSON responses settle or refund reservations before writing the response, with no negative wallet balance or double spending. Failed requests and unavailable source checks are refunded; a model-controlled result label cannot request a refund from another tool. A canceled request can consume its reserved check once work starts. Bonus credits do not remove per-minute limits or enable provider billing. Legacy disposable accounts retain access to their own library, but writing tools and referral rewards require a permanent email.

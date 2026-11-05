@@ -172,6 +172,19 @@ test("summary API uses the configured model, reuses only the owner's cache, and 
   });
 });
 
+test("proofreading uses a bounded short-text budget and reuses only its owner's model result", async () => {
+  const draft = "This private proofreading sample should use a small output allowance and avoid repeated model calls.";
+  await withGateway({ correctedText: draft, summary: "No contextual changes suggested.", issues: [] }, async (requests) => {
+    const first = await call("/api/tools/proofread", "POST", { text: draft }, alice);
+    assert.equal(first.response.status, 200);
+    assert.ok(requests[0].max_output_tokens < 8192);
+    assert.equal((await call("/api/tools/proofread", "POST", { text: draft }, alice)).data.fromCache, true);
+    assert.equal(requests.length, 1);
+    assert.equal((await call("/api/tools/proofread", "POST", { text: draft }, bob)).response.status, 200);
+    assert.equal(requests.length, 2);
+  });
+});
+
 test("a missing AI provider still permits an explicitly extractive summary and saving its scope", async () => {
   const draft = "Solar panels provide power during the day. Batteries store that power for the evening. Schools can use stored power after sunset.";
   const result = await call("/api/tools/summarize", "POST", { text: draft }, alice);

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { query } from "./storage.js";
+import { query, transaction } from "./storage.js";
+import { awardVerifiedReferral } from "./referrals.js";
 
 export class VerificationError extends Error {
   constructor(
@@ -198,7 +199,8 @@ export async function confirmVerification(
       "This code has expired or reached its attempt limit. Request a new code.",
     );
   await provider.verify(email, code);
-  const rows = await query(
+  await transaction(async (q) => {
+  const rows = await q(
     "UPDATE accounts SET verified_at=$1 WHERE id=$2 AND EXISTS (SELECT 1 FROM verification_requests WHERE user_id=$3 AND request_id=$4 AND expires_at>$5) RETURNING id",
     [
       new Date().toISOString(),
@@ -212,8 +214,10 @@ export async function confirmVerification(
     throw new VerificationError(
       "The verification request changed. Please use the latest code.",
     );
-  await query(
+  await q(
     "DELETE FROM verification_requests WHERE user_id=$1 AND request_id=$2",
     [userId, challenge.request_id],
   );
+  await awardVerifiedReferral(q, userId);
+  });
 }

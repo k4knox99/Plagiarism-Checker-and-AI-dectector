@@ -22,6 +22,7 @@ import {
   Trash2,
   Upload,
   X,
+  Gift,
 } from "lucide-react";
 import type {
   AIDetectionResult,
@@ -35,7 +36,15 @@ import type {
 } from "./types";
 import { readApiResponse } from "./utils/apiResponse";
 import ExtendedToolResults from "./components/ExtendedToolResults";
+import ReferralPanel from "./components/ReferralPanel";
 type Account = { id: string; email: string; verified: boolean };
+type Invitation = { code: string; invalid: boolean };
+function readInvitation(): Invitation {
+  const values = new URLSearchParams(window.location.search).getAll("ref");
+  if (!values.length) return { code: "", invalid: false };
+  if (values.length !== 1 || !/^[A-Za-z0-9_-]{16}$/.test(values[0])) return { code: "", invalid: true };
+  return { code: values[0], invalid: false };
+}
 type SavedDocument = { id: string; title: string; updated_at: string };
 type Report = {
   ai?: AIDetectionResult;
@@ -140,6 +149,8 @@ export default function App() {
     [dirty, setDirty] = useState(false);
   const [auth, setAuth] = useState<"login" | "register" | null>(null),
     [search, setSearch] = useState("");
+  const [invitation, setInvitation] = useState<Invitation>(readInvitation),
+    [referralsOpen, setReferralsOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null),
     controller = useRef<AbortController | null>(null);
   const words = React.useMemo(() => [...wordCounter.segment(text)].filter((part) => part.isWordLike).length, [text]);
@@ -164,7 +175,7 @@ export default function App() {
       /* Storage can be blocked; server sessions still work. */
     }
     api("/auth/me")
-      .then((data) => setUser(data.user))
+      .then((data) => { setUser(data.user); clearInvitation(); })
       .catch(() => {})
       .finally(() => setChecking(false));
     return () => controller.current?.abort();
@@ -201,6 +212,14 @@ export default function App() {
     setDirty(false);
     setError("");
     setNotice("");
+  }
+  function clearInvitation() {
+    setInvitation({ code: "", invalid: false });
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("ref")) {
+      url.searchParams.delete("ref");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
   }
   async function load(documentId: string) {
     if (
@@ -315,11 +334,13 @@ export default function App() {
         originalText: text,
       }));
       setDirty(true);
-      setNotice(
-        mode === "rewrite"
-          ? "Your rewrite is ready. Review it below, then copy, download, or use it in your document."
-          : "Analysis complete. Save to keep this result.",
-      );
+      setNotice(data.fromCache ? "Reused your cached result. No new AI request or bonus credit was used." : mode === "rewrite"
+        ? /no AI/i.test(data.engine || "")
+          ? data.rewrittenText === text
+            ? "Basic review found no changes. Advanced AI rewriting requires site-owner setup."
+            : "Basic English clarity edits are ready. Review the changes below; advanced voice rewriting requires the AI service."
+          : "Your rewrite is ready. Review it below, then copy, download, or use it in your document."
+        : "Analysis complete. Save to keep this result.");
     } catch (e: any) {
       setError(
         e.name === "AbortError"
@@ -458,6 +479,8 @@ export default function App() {
     try {
       await api("/auth/logout", "POST", {});
       setUser(null);
+      setReferralsOpen(false);
+      clearInvitation();
       reset(true);
       setNotice("Signed out.");
     } catch (e: any) {
@@ -592,6 +615,7 @@ export default function App() {
               <span className="status-dot" />
               Focus mode
             </span>
+            {user?.verified && <button className="button secondary small invite-button" disabled={!!busy} onClick={() => setReferralsOpen(true)}><Gift size={16} />Invite friends</button>}
             {user && (
               <button
                 className="button secondary small"
@@ -615,6 +639,7 @@ export default function App() {
           </div>
         </header>
         <main>
+          {!checking && !user && (invitation.code || invitation.invalid) && <div className="invitation-banner" role="status"><Gift size={22} /><div><strong>{invitation.invalid ? "This invitation link needs attention." : "You’ve been invited to Veritas."}</strong><p>{invitation.invalid ? "Ask your friend for a new link, or choose to continue without an invitation when creating your account." : "Create a new account and confirm your permanent email address to complete your friend’s invitation."}</p></div><button className="button small" onClick={() => setAuth("register")}>Create account<ArrowRight size={16} /></button></div>}
           {user && !user.verified && (
             <div className="verification-banner" role="status">
               <ShieldCheck size={20} />
@@ -1083,16 +1108,20 @@ export default function App() {
       {auth && (
         <AuthDialog
           initialAccount={user && !user.verified ? user : null}
-          onPending={setUser}
+          onPending={(account) => { setUser(account); clearInvitation(); }}
+          invitation={invitation}
+          onDiscardInvitation={clearInvitation}
           mode={auth}
           onMode={setAuth}
           onClose={() => setAuth(null)}
           onSuccess={(account) => {
             setUser(account);
+            clearInvitation();
             setAuth(null);
           }}
         />
       )}
+      {referralsOpen && user?.verified && <ReferralPanel key={user.id} onClose={() => setReferralsOpen(false)} />}
     </div>
   );
 }
@@ -1103,6 +1132,8 @@ function AuthDialog({
   onSuccess,
   onPending,
   initialAccount,
+  invitation,
+  onDiscardInvitation,
 }: {
   mode: "login" | "register";
   onMode: (m: "login" | "register") => void;
@@ -1110,6 +1141,8 @@ function AuthDialog({
   onSuccess: (u: Account) => void;
   onPending: (u: Account) => void;
   initialAccount: Account | null;
+  invitation: Invitation;
+  onDiscardInvitation: () => void;
 }) {
   const [email, setEmail] = useState(initialAccount?.email || ""),
     [password, setPassword] = useState(""),
@@ -1153,6 +1186,10 @@ function AuthDialog({
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!verifying && mode === "register" && invitation.invalid) {
+      setError("This invitation link is invalid. Ask your friend for a new link or choose to continue without an invitation.");
+      return;
+    }
     setBusy(true);
     setError("");
     setMessage("");
@@ -1161,7 +1198,7 @@ function AuthDialog({
         await api(
           verifying ? "/auth/verify-email" : `/auth/${mode}`,
           "POST",
-          verifying ? { code } : { email, password },
+          verifying ? { code } : { email, password, ...(mode === "register" && invitation.code ? { referralCode: invitation.code } : {}) },
         ),
       );
     } catch (e: any) {
@@ -1220,6 +1257,7 @@ function AuthDialog({
             ? "Sign in to your private writing workspace."
             : "Create an account, then confirm your email to unlock your private workspace."}
       </p>
+      {!verifying && mode === "register" && (invitation.code || invitation.invalid) && <div className={`signup-invitation ${invitation.invalid ? "invalid" : ""}`}><strong>{invitation.invalid ? "Invalid invitation" : "You’re signing up with an invitation."}</strong><p>{invitation.invalid ? "This link cannot be used for a referral. Get a new link from your friend, or continue without an invitation." : "Referral credit is awarded only after an eligible new account confirms its email. Existing accounts cannot claim an invitation."}</p><button type="button" disabled={busy} onClick={() => { onDiscardInvitation(); setError(""); }}>Continue without invitation</button></div>}
       <form onSubmit={submit}>
         {verifying ? (
           <label>
@@ -1272,6 +1310,7 @@ function AuthDialog({
               Use 12–128 characters. Your password is never stored in the
               browser.
             </small>
+            {mode === "register" && <small className="permanent-email-note">Use a permanent email address. Temporary mail services cannot be used to create an account.</small>}
           </>
         )}
         {message && (
@@ -1284,7 +1323,7 @@ function AuthDialog({
             {error}
           </p>
         )}
-        <button className="button" disabled={busy}>
+        <button className="button" disabled={busy || (!verifying && mode === "register" && invitation.invalid)}>
           {busy
             ? "Please wait…"
             : verifying

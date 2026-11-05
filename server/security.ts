@@ -11,7 +11,9 @@ import {
   scrypt,
   timingSafeEqual,
 } from "node:crypto";
-import { query, StorageConfigurationError } from "./storage.js";
+import { query, transaction, StorageConfigurationError } from "./storage.js";
+import { assessEmail, EmailPolicyError } from "./email-policy.js";
+import { attachReferral, ReferralError } from "./referrals.js";
 import { validReport } from "./validation.js";
 import {
   sendVerification,
@@ -215,10 +217,12 @@ accountRouter.post(
           error: "Enter a valid email and a password of 12–128 characters.",
         });
       }
-      const cleanEmail = email.trim().toLowerCase();
-      let [user] = await query("SELECT * FROM accounts WHERE email=$1", [
-        cleanEmail,
-      ]);
+      const identity = assessEmail(email);
+      if (req.path === "/register" && identity.isDisposable)
+        return res.status(400).json({ error: "Temporary email addresses are not supported. Use a permanent email address.", code: "DISPOSABLE_EMAIL" });
+      const cleanEmail = identity.email;
+      let [user] = await query("SELECT * FROM accounts WHERE email=$1", [req.path === "/login" ? email.trim().toLowerCase() : cleanEmail]);
+      if (!user && req.path === "/login") [user] = await query("SELECT accounts.* FROM accounts JOIN account_mailboxes ON accounts.id=account_mailboxes.user_id WHERE mailbox_key=$1", [identity.mailboxKey]);
       if (req.path === "/register") {
         if (user)
           return res
@@ -227,17 +231,14 @@ accountRouter.post(
         const salt = randomBytes(16).toString("hex");
         const hash = ((await derive(password, salt)) as Buffer).toString("hex");
         user = { id: randomUUID(), email: cleanEmail };
-        const created = await query(
-          "INSERT INTO accounts (id,email,password_hash,created_at) VALUES ($1,$2,$3,$4) ON CONFLICT(email) DO NOTHING RETURNING id",
-          [user.id, cleanEmail, `${salt}:${hash}`, new Date().toISOString()],
-        );
-        if (!created.length)
-          return res
-            .status(409)
-            .json({
-              error:
-                "An account already exists. Please sign in to verify your email.",
-            });
+        await transaction(async (q) => {
+          const timestamp = new Date().toISOString();
+          const created = await q("INSERT INTO accounts (id,email,password_hash,created_at) VALUES ($1,$2,$3,$4) ON CONFLICT(email) DO NOTHING RETURNING id", [user.id, cleanEmail, `${salt}:${hash}`, timestamp]);
+          if (!created.length) throw new ReferralError("An account already exists for this email. Please sign in.", 409, "ACCOUNT_EXISTS");
+          const claimed = await q("INSERT INTO account_mailboxes (mailbox_key,user_id,created_at) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING RETURNING user_id", [identity.mailboxKey, user.id, timestamp]);
+          if (!claimed.length) throw new ReferralError("An account already exists for this mailbox. Please sign in.", 409, "ACCOUNT_EXISTS");
+          await attachReferral(q, user.id, identity.mailboxKey, req.body?.referralCode);
+        });
       } else {
         // Derive even for unknown accounts to reduce timing differences.
         const [salt, hash] = (
@@ -272,7 +273,9 @@ accountRouter.post(
           });
       }
       res.json({ user: { id: user.id, email: user.email, verified: true } });
-    } catch {
+    } catch (error) {
+      if (error instanceof EmailPolicyError) return res.status(400).json({ error: error.message, code: error.code });
+      if (error instanceof ReferralError) return res.status(error.status).json({ error: error.message, code: error.code });
       res
         .status(503)
         .json({ error: "Account service is unavailable. Please try again." });

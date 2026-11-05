@@ -27,4 +27,10 @@ Enable project OIDC and redeploy. Build-time `VERCEL_OIDC_TOKEN` is not the runt
 
 For a one-time provider smoke check, set preview-branch `VERITAS_AI_DEPLOY_CHECK=1` before the intended deployment. Build logs show writing and grounded-search status without user text or credentials. Set it back to `0` after inspection; do not create another deployment only to clear the flag. A `customer_verification_required` or exhausted allowance requires the project owner's provider account action.
 
+## Referral migration and email policy data
+
+Test `server/migrations/002_referrals.sql` on an isolated Neon branch, then apply its additive schema to the intended preview database. Existing accounts and documents stay in place. Set `VERITAS_DB_MIGRATE_ON_BUILD=1` for the release build to normalize existing mailbox identities and finalize migration `002_referrals`; reset the branch flag to `0` after success without another deployment. The script prints only migration status and aggregate counts.
+
+`vercel.json` explicitly includes `server/data/**` in API Functions. The pinned disposable-domain dataset must be packaged: account operations fail closed when the data is absent or invalid. Updates use a reviewed upstream commit and include the upstream CC0 notice. Credits extend app request quotas only; they do not resolve AI Gateway account verification or provider billing. Protected previews also restrict who can open invitation links.
+
 Configure a custom SMTP sender in Neon Auth. The preview currently uses the sender configured by its owner. The server derives the required Origin header from NEON_AUTH_BASE_URL rather than forwarding a browser-controlled header. Never copy the preview database or authentication audience into production unintentionally.

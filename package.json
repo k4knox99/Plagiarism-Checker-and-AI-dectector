@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && node scripts/check-ai.mjs",
+    "build": "vite build && node scripts/check-ai.mjs && node --import tsx scripts/migrate-database.ts",
     "start": "tsx server/start.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
