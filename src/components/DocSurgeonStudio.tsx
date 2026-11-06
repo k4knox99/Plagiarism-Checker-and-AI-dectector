@@ -942,7 +942,7 @@ export const DocSurgeonStudio: React.FC<DocSurgeonStudioProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] font-pixel font-bold text-rose-400 flex items-center gap-1.5">
-                    <PixelCorgi state="needs-fix" size={32} />
+                    <PixelCorgi state="needs_fix" size={32} />
                     Original Flagged Text (Needs Fix)
                   </span>
                   <span className="text-[10px] text-rose-400 font-pixel font-bold">

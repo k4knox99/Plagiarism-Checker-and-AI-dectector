@@ -1,1167 +1,1445 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ShieldCheck, 
-  Sparkles, 
-  FileSearch, 
-  Wand2, 
-  Upload, 
-  Clipboard, 
-  Trash2, 
-  RefreshCw, 
-  FileDown,
-  Layers,
-  Binary,
-  RotateCw,
-  FileCheck,
-  FileCheck2,
-  CheckCircle2,
-  Lock,
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ArrowDownToLine,
   ArrowRight,
-  Award,
-  Zap,
-  Globe,
-  Sliders,
   Check,
-  LayoutDashboard,
-  Home
-} from 'lucide-react';
-
-import { 
-  ScannerMode, 
-  ComprehensiveReport, 
-  SentenceAnalysis, 
-  AIDetectionResult, 
-  PlagiarismResult
-} from './types';
-import { SAMPLE_TEXTS, SampleText } from './data/samples';
-import { SAMPLE_REPORTS } from './data/sampleReports';
-import { parseUploadedDocument, extractTextFromRawDocxString } from './utils/fileParser';
-import { analyzeStatisticalLinguistics, extractShingles, LinguisticMetrics, ShingleMatch } from './utils/linguisticAnalyzer';
-import { exportForensicReportPDF } from './utils/pdfExport';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { safeApiFetch } from './utils/safeApiFetch';
-import { runClientSideScan, runClientSideHumanize } from './utils/clientForensicEngine';
-
-import { Header } from './components/Header';
-import { ScoreGauge } from './components/ScoreGauge';
-import { MetricsGrid } from './components/MetricsGrid';
-import { SentenceHeatmap } from './components/SentenceHeatmap';
-import { SentenceInspectorModal } from './components/SentenceInspectorModal';
-import { PlagiarismSourcesList } from './components/PlagiarismSourcesList';
-import { HumanizerFixerStudio } from './components/HumanizerFixerStudio';
-import { CertificateReportModal } from './components/CertificateReportModal';
-import { ScanHistoryDrawer } from './components/ScanHistoryDrawer';
-import { ThreeCoreScanner, Scanner3DStatus } from './components/ThreeCoreScanner';
-import { PerspectiveTiltCard } from './components/PerspectiveTiltCard';
-import { TechnicalLinguisticModal } from './components/TechnicalLinguisticModal';
-import { AuthModal } from './components/AuthModal';
-import { WordCountGoal } from './components/WordCountGoal';
-import { DocSurgeonStudio } from './components/DocSurgeonStudio';
-import { 
-  PixelRobot, 
-  PixelDoc, 
-  PixelHeart, 
-  PixelSparkle, 
-  PixelSearch, 
-  PixelBandAid, 
-  PixelShield,
-  PixelFloppy,
-  PixelCrown,
-  PixelFire,
-  PixelPotion,
-  PixelStickerBadge 
-} from './components/PixelStickers';
-
-function VeritasAIWorkspace() {
-  const { session, incrementQuotaUsage } = useAuth();
-
-  // Navigation View State: 'workspace' or 'landing'
-  const [activeView, setActiveView] = useState<'workspace' | 'landing'>('workspace');
-
-  // Primary Workspace state (starts completely clean, no auto-populated sample text)
-  const [inputText, setInputText] = useState<string>('');
-  const [mode, setMode] = useState<ScannerMode>('comprehensive');
-  const [isScanning, setIsScanning] = useState<boolean>(false);
-  const [scanStep, setScanStep] = useState<string>('');
-
-  // 3D Engine & Animation state
-  const [is3DCoreVisible, setIs3DCoreVisible] = useState<boolean>(true);
-
-  // File parsing states
-  const [isParsingFile, setIsParsingFile] = useState<boolean>(false);
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-
-  // Active Report state (null until user scans a document)
-  const [activeReport, setActiveReport] = useState<ComprehensiveReport | null>(null);
-  const [isDocumentRepaired, setIsDocumentRepaired] = useState<boolean>(false);
-
-  // Modals & Drawers state
-  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
-  const [isCertificateOpen, setIsCertificateOpen] = useState<boolean>(false);
-  const [isLinguisticsOpen, setIsLinguisticsOpen] = useState<boolean>(false);
-  const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
-  const [inspectedSentence, setInspectedSentence] = useState<SentenceAnalysis | null>(null);
-
-  // Saved history in localStorage
-  const [history, setHistory] = useState<ComprehensiveReport[]>(() => {
-    try {
-      const saved = localStorage.getItem('veritas_scan_history');
-      if (saved) return JSON.parse(saved);
-      return [];
-    } catch {
-      return [];
-    }
+  ChevronRight,
+  Copy,
+  FileText,
+  FolderOpen,
+  LoaderCircle,
+  LogOut,
+  Plus,
+  PenLine,
+  ListChecks,
+  AlignLeft,
+  Files,
+  BookOpen,
+  Save,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Upload,
+  X,
+  Gift,
+} from "lucide-react";
+import type {
+  AIDetectionResult,
+  PlagiarismResult,
+  RewriteStyle,
+  WritingRewriteResult,
+  ProofreadResult,
+  SummaryResult,
+  ComparisonResult,
+  CitationResult,
+} from "./types";
+import { readApiResponse } from "./utils/apiResponse";
+import ExtendedToolResults from "./components/ExtendedToolResults";
+import ReferralPanel from "./components/ReferralPanel";
+import AdminPanel from "./components/AdminPanel";
+type Account = { id: string; email: string; verified: boolean; isAdmin?: boolean };
+function readAccount(value: unknown): Account {
+  if (!value || typeof value !== "object" || !("id" in value) || typeof value.id !== "string" ||
+    !("email" in value) || typeof value.email !== "string" || !("verified" in value) || typeof value.verified !== "boolean") {
+    throw new Error("The account server sent an incomplete response. Please reload and try again.");
+  }
+  return { id: value.id, email: value.email, verified: value.verified, isAdmin: "isAdmin" in value && value.isAdmin === true };
+}
+function isAdminPath() { return window.location.pathname.replace(/\/+$/, "") === "/admin"; }
+type Invitation = { code: string; invalid: boolean };
+function readInvitation(): Invitation {
+  const values = new URLSearchParams(window.location.search).getAll("ref");
+  if (!values.length) return { code: "", invalid: false };
+  if (values.length !== 1 || !/^[A-Za-z0-9_-]{16}$/.test(values[0])) return { code: "", invalid: true };
+  return { code: values[0], invalid: false };
+}
+type SavedDocument = { id: string; title: string; updated_at: string };
+type Report = {
+  ai?: AIDetectionResult;
+  plagiarism?: PlagiarismResult;
+  rewrite?: WritingRewriteResult;
+  proofread?: ProofreadResult;
+  summarize?: SummaryResult;
+  compare?: ComparisonResult;
+  citations?: CitationResult;
+  scannedAt: string;
+  originalText: string;
+};
+type ToolMode = "ai" | "plagiarism" | "rewrite" | "proofread" | "summarize" | "compare" | "citations";
+const wordCounter = new Intl.Segmenter(undefined, { granularity: "word" });
+const writingTools = [
+  {
+    id: "ai",
+    title: "AI detector",
+    description: "Explore writing patterns and sentence signals.",
+    action: "Check AI signals",
+    icon: Sparkles,
+  },
+  {
+    id: "plagiarism",
+    title: "Plagiarism checker",
+    description: "Search the web for possible source matches.",
+    action: "Check for source matches",
+    icon: Search,
+  },
+  {
+    id: "rewrite",
+    title: "Humanize & rewrite",
+    description: "Get a clearer, more natural version of your draft.",
+    action: "Rewrite my draft",
+    icon: PenLine,
+  },
+  { id: "proofread", title: "Grammar & clarity", description: "Review corrections, explanations, and reading insights.", action: "Review my writing", icon: ListChecks },
+  { id: "summarize", title: "Summarizer", description: "Turn your document into a summary, key points, and outline.", action: "Summarize my draft", icon: AlignLeft },
+  { id: "compare", title: "Compare documents", description: "Find shared passages in two documents without an AI provider.", action: "Compare these documents", icon: Files },
+  { id: "citations", title: "Citation builder", description: "Format the source details you provide in four citation styles.", action: "Build citations", icon: BookOpen },
+] as const;
+const rewriteStyles: { id: RewriteStyle; label: string; description: string }[] = [
+  {
+    id: "natural",
+    label: "Natural",
+    description: "Clear, conversational wording",
+  },
+  {
+    id: "professional",
+    label: "Professional",
+    description: "Polished and direct",
+  },
+  { id: "academic", label: "Academic", description: "Formal, precise language" },
+  { id: "concise", label: "Concise", description: "Fewer words, same meaning" },
+];
+async function api(
+  path: string,
+  method = "GET",
+  body?: unknown,
+  signal?: AbortSignal,
+) {
+  const response = await fetch(`/api${path}`, {
+    method,
+    credentials: "same-origin",
+    headers: body === undefined ? {} : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
   });
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Save history on changes
+  return readApiResponse(response);
+}
+const safeLink = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    return ["http:", "https:"].includes(parsed.protocol)
+      ? parsed.href
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+export default function App() {
+  const [user, setUser] = useState<Account | null>(null),
+    [checking, setChecking] = useState(true);
+  const [documents, setDocuments] = useState<SavedDocument[]>([]);
+  const [id, setId] = useState<string>(() => crypto.randomUUID()),
+    [title, setTitle] = useState("Untitled document"),
+    [text, setText] = useState("");
+  const [report, setReport] = useState<Report | null>(null),
+    [mode, setMode] = useState<ToolMode>("ai");
+  const [rewriteStyle, setRewriteStyle] = useState<RewriteStyle>("natural");
+  const [audience, setAudience] = useState("general"),
+    [rewriteLength, setRewriteLength] = useState("preserve"),
+    [voiceSample, setVoiceSample] = useState(""),
+    [preserveTerms, setPreserveTerms] = useState("");
+  const [comparisonText, setComparisonText] = useState(""),
+    [excludeQuotes, setExcludeQuotes] = useState(false),
+    [excludeReferences, setExcludeReferences] = useState(false);
+  const [citation, setCitation] = useState({ title: "", author: "", year: "", url: "", accessed: "" });
+  const [busy, setBusy] = useState(""),
+    [error, setError] = useState(""),
+    [notice, setNotice] = useState(""),
+    [dirty, setDirty] = useState(false);
+  const [auth, setAuth] = useState<"login" | "register" | null>(null),
+    [search, setSearch] = useState("");
+  const [invitation, setInvitation] = useState<Invitation>(readInvitation),
+    [referralsOpen, setReferralsOpen] = useState(false);
+  const [adminRequested, setAdminRequested] = useState(isAdminPath);
+  const input = useRef<HTMLInputElement>(null),
+    controller = useRef<AbortController | null>(null);
+  const account = useRef<Account | null>(null),
+    accountRevision = useRef(0),
+    libraryController = useRef<AbortController | null>(null),
+    documentController = useRef<AbortController | null>(null);
+  const words = React.useMemo(() => [...wordCounter.segment(text)].filter((part) => part.isWordLike).length, [text]);
+  const activeTool = writingTools.find((tool) => tool.id === mode)!;
+  function updateAccount(next: Account | null) {
+    const previous = account.current;
+    if (previous?.id !== next?.id || previous?.verified !== next?.verified) {
+      accountRevision.current++;
+      libraryController.current?.abort();
+      libraryController.current = null;
+      documentController.current?.abort();
+      documentController.current = null;
+      setDocuments([]);
+      setBusy((value) => value === "Loading" ? "" : value);
+      if (previous && previous.id !== next?.id) reset(true);
+    }
+    account.current = next;
+    setUser(next);
+  }
+  async function refreshDocuments() {
+    if (!account.current?.verified) return;
+    const revision = accountRevision.current;
+    const request = new AbortController();
+    libraryController.current?.abort();
+    libraryController.current = request;
+    try {
+      const data = await api("/documents", "GET", undefined, request.signal);
+      if (!request.signal.aborted && accountRevision.current === revision)
+        setDocuments(data.documents);
+    } catch (error) {
+      if (!request.signal.aborted && accountRevision.current === revision) throw error;
+    } finally {
+      if (libraryController.current === request) libraryController.current = null;
+    }
+  }
   useEffect(() => {
     try {
-      localStorage.setItem('veritas_scan_history', JSON.stringify(history.slice(0, 20)));
-    } catch (e) {
-      console.warn('Could not save history to localStorage:', e);
-    }
-  }, [history]);
-
-  // Word Count Goal State
-  const [wordGoal, setWordGoal] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('veritas_word_goal');
-      return saved ? parseInt(saved, 10) : 500;
+      for (const key of [
+        "veritas_saas_users",
+        "veritas_current_user",
+        "veritas_secure_session",
+        "veritas_payment_submissions",
+        "veritas_dbs_settings",
+        "veritas_scan_history",
+      ]) {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      }
     } catch {
-      return 500;
+      /* Storage can be blocked; server sessions still work. */
     }
-  });
-
-  const handleSetWordGoal = (newGoal: number) => {
-    setWordGoal(newGoal);
+    api("/auth/me")
+      .then((data) => { updateAccount(readAccount(data.user)); clearInvitation(); })
+      .catch(() => {})
+      .finally(() => setChecking(false));
+    return () => {
+      controller.current?.abort();
+      libraryController.current?.abort();
+      documentController.current?.abort();
+    };
+  }, []);
+  useEffect(() => {
+    if (user?.verified) refreshDocuments().catch((e) => setError(e.message));
+    else setDocuments([]);
+  }, [user?.id, user?.verified]);
+  useEffect(() => {
+    const handleNavigation = () => setAdminRequested(isAdminPath());
+    window.addEventListener("popstate", handleNavigation);
+    return () => window.removeEventListener("popstate", handleNavigation);
+  }, []);
+  useEffect(() => {
+    if (adminRequested && !checking && !user) setAuth("login");
+  }, [adminRequested, checking, user?.id]);
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+  function reset(force = false) {
+    if (
+      !force &&
+      dirty &&
+      !window.confirm("Discard unsaved changes and start a new document?")
+    )
+      return;
+    setId(crypto.randomUUID());
+    setTitle("Untitled document");
+    setText("");
+    setComparisonText("");
+    setVoiceSample("");
+    setPreserveTerms("");
+    setCitation({ title: "", author: "", year: "", url: "", accessed: "" });
+    setReport(null);
+    setDirty(false);
+    setError("");
+    setNotice("");
+  }
+  function clearInvitation() {
+    setInvitation({ code: "", invalid: false });
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("ref")) {
+      url.searchParams.delete("ref");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  }
+  async function load(documentId: string) {
+    if (
+      dirty &&
+      !window.confirm("Discard unsaved changes and open this document?")
+    )
+      return;
+    if (!account.current?.verified) return;
+    const revision = accountRevision.current;
+    const request = new AbortController();
+    documentController.current?.abort();
+    documentController.current = request;
+    setBusy("Loading");
+    setError("");
+    setNotice("");
     try {
-      localStorage.setItem('veritas_word_goal', newGoal.toString());
-    } catch (e) {
-      console.warn('Could not save word goal to localStorage:', e);
+      const { document: d } = await api(`/documents/${documentId}`, "GET", undefined, request.signal);
+      if (request.signal.aborted || accountRevision.current !== revision) return;
+      setId(d.id);
+      setTitle(d.title);
+      setText(d.content);
+      setReport(d.report);
+      setDirty(false);
+    } catch (e: any) {
+      if (!request.signal.aborted && accountRevision.current === revision) setError(e.message);
+    } finally {
+      if (documentController.current === request) {
+        documentController.current = null;
+        if (accountRevision.current === revision) setBusy("");
+      }
     }
-  };
-
-  // Derived input metrics
-  const wordCount = inputText.trim() ? inputText.trim().split(/\s+/).length : 0;
-  const charCount = inputText.length;
-  const sentenceCount = inputText.trim() ? inputText.split(/(?<=[.?!])\s+/).filter(Boolean).length : 0;
-  const paragraphCount = inputText.trim() ? inputText.split(/\n\s*\n/).filter(p => p.trim().length > 0).length : 0;
-
-  // Compute live statistical linguistics & 5-gram shingles
-  const linguistics: LinguisticMetrics = React.useMemo(() => {
-    return analyzeStatisticalLinguistics(inputText);
-  }, [inputText]);
-
-  const shingles: ShingleMatch[] = React.useMemo(() => {
-    return extractShingles(inputText, 5);
-  }, [inputText]);
-
-  // Real-time synchronization for Pixel Corgi:
-  // 1. input document ထဲ စာမရှိရင် ပြေးနေမယ် (hasDocumentText === false)
-  // 2. စာထည့်ပြီး fix ရန်ရှိရင် need to fix ဆိုတဲ့ပုံကိုပြမယ် (documentNeedsFix === true)
-  // 3. မလိုရင် fixed ဆိုတာကိုပြမယ် (documentNeedsFix === false)
-  // 4. ပြင်ပြီးရင် လည်း fixedဆိုတာကိုလည်းပြရန် (isDocumentRepaired === true)
-  const hasDocumentText = Boolean(inputText.trim());
-
-  const documentNeedsFix = React.useMemo(() => {
-    if (!hasDocumentText) return false;
-    if (activeReport) {
-      return activeReport.aiAnalysis.overallAiScore >= 45 || activeReport.compositeAuthenticity < 65;
-    }
-    // Instant heuristic check for un-scanned text
-    const words = inputText.trim().split(/\s+/).length;
-    if (words < 10) return false;
-    const lower = inputText.toLowerCase();
-    const hasCliches = /delve into|testament to|beacon of|tapestry|furthermore|moreover|in conclusion|realm of|pivotal role|vital role|crucial role/i.test(lower);
-    return hasCliches || linguistics.burstinessCoefficient < 42 || linguistics.syntacticUniformityScore > 65;
-  }, [hasDocumentText, inputText, activeReport, linguistics]);
-
-  // 3D Scanner status derived state
-  const scannerStatus: Scanner3DStatus = isScanning ? 'scanning' : activeReport ? 'completed' : 'idle';
-
-  // Switch to a sample: instantly load its cached baseline
-  const handleLoadSample = (sample: SampleText) => {
-    setIsDocumentRepaired(false);
-    setInputText(sample.content);
-    setUploadedFileName(null);
-    if (SAMPLE_REPORTS[sample.id]) {
-      setActiveReport(SAMPLE_REPORTS[sample.id]);
-    } else {
-      handleRunScan(sample.content, mode);
-    }
-    setActiveView('workspace');
-  };
-
-  // Run Scan Handler with Safe Fetch and Client-Side Engine Fallback (Zero "Unexpected token 'A'" errors)
-  const handleRunScan = async (overrideText?: string, targetMode?: ScannerMode) => {
-    const textToScan = (overrideText ?? inputText).trim();
-    const effectiveMode = targetMode ?? mode;
-
-    if (!textToScan || textToScan.length < 20) {
+  }
+  async function save() {
+    if (!user?.verified) {
+      setAuth("login");
       return;
     }
-
-    // Check if it matches an exact pre-computed sample
-    const matchedSample = SAMPLE_TEXTS.find(s => s.content.trim() === textToScan);
-    if (matchedSample && SAMPLE_REPORTS[matchedSample.id]) {
-      setActiveReport(SAMPLE_REPORTS[matchedSample.id]);
-      incrementQuotaUsage();
+    setBusy("Saving");
+    setError("");
+    setNotice("");
+    try {
+      await api(`/documents/${id}`, "PUT", { title, content: text, report });
+      setDirty(false);
+      setNotice("Saved to your private library.");
+      await refreshDocuments();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy("");
+    }
+  }
+  async function remove(documentId: string) {
+    if (!window.confirm("Permanently delete this saved document?")) return;
+    setBusy("Deleting");
+    setError("");
+    try {
+      await api(`/documents/${documentId}`, "DELETE", {});
+      await refreshDocuments();
+      if (documentId === id) reset(true);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy("");
+    }
+  }
+  async function scan() {
+    if (!user?.verified) {
+      setAuth("login");
       return;
     }
-
-    setIsScanning(true);
-    setScanStep('Computing N-gram entropy, burstiness variance & syntax tokens...');
-
+    if (busy || (mode !== "citations" && text.trim().length < 20)) return;
+    if (mode === "compare" && comparisonText.trim().length < 20) {
+      setError("Add at least 20 characters to the comparison document.");
+      return;
+    }
+    setBusy(mode === "rewrite" ? "Rewriting" : "Analyzing");
+    setError("");
+    setNotice("");
+    controller.current = new AbortController();
+    const timer = setTimeout(() => controller.current?.abort(), 90000);
     try {
-      let endpoint = '/api/detect/comprehensive';
-      if (effectiveMode === 'ai') endpoint = '/api/detect/ai';
-      if (effectiveMode === 'plagiarism') endpoint = '/api/detect/plagiarism';
-
-      const res = await safeApiFetch(endpoint, {
-        method: 'POST',
-        body: JSON.stringify({ text: textToScan })
-      }, 7000);
-
-      let report: ComprehensiveReport;
-
-      if (res.success && res.data) {
-        const data = res.data;
-        if (effectiveMode === 'ai') {
-          const aiAnalysis: AIDetectionResult = data.analysis;
-          report = {
-            compositeAuthenticity: Math.max(0, 100 - aiAnalysis.overallAiScore),
-            aiAnalysis,
-            plagiarismAnalysis: {
-              similarityScore: 0,
-              verdict: 'Not requested in AI-only scan',
-              summary: 'Plagiarism check was bypassed in AI Detector mode.',
-              matchedSources: [],
-              flaggedPassages: []
-            },
-            localMetrics: data.localMetrics,
-            scannedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            originalText: textToScan
-          };
-        } else if (effectiveMode === 'plagiarism') {
-          const plagiarismAnalysis: PlagiarismResult = data.analysis;
-          report = {
-            compositeAuthenticity: Math.max(0, 100 - plagiarismAnalysis.similarityScore),
-            aiAnalysis: {
-              overallAiScore: 0,
-              verdict: 'Not requested in Plagiarism-only scan',
-              confidence: 'Low',
-              metrics: {
-                perplexityScore: 50,
-                burstinessScore: 50,
-                repetitionScore: 0,
-                syntacticUniformity: 0,
-                clicheCount: 0
-              },
-              overallSummary: 'AI detection was bypassed in Plagiarism mode.',
-              flaggedCliches: [],
-              sentenceAnalysis: []
-            },
-            plagiarismAnalysis,
-            localMetrics: {
-              sentenceCount,
-              wordCount,
-              avgSentenceLength: Math.round(wordCount / (sentenceCount || 1)),
-              burstinessScore: 50,
-              lexicalDiversity: 0.5
-            },
-            scannedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            originalText: textToScan
-          };
-        } else {
-          report = {
-            compositeAuthenticity: data.compositeAuthenticity,
-            aiAnalysis: data.aiAnalysis,
-            plagiarismAnalysis: data.plagiarismAnalysis,
-            localMetrics: data.localMetrics,
-            scannedAt: data.scannedAt,
-            originalText: data.originalText
-          };
-        }
+      const data = await api(
+        mode === "rewrite" ? "/fix/humanize" : ["ai", "plagiarism"].includes(mode) ? `/detect/${mode}` : `/tools/${mode}`,
+        "POST",
+        mode === "rewrite" ? { text, style: rewriteStyle, audience, length: rewriteLength, voiceSample, preserveTerms }
+          : mode === "compare" ? { text, comparisonText, excludeQuotes, excludeReferences }
+          : mode === "citations" ? { text, ...citation } : { text },
+        controller.current.signal,
+      );
+      let result: AIDetectionResult | PlagiarismResult | WritingRewriteResult | ProofreadResult | SummaryResult | ComparisonResult | CitationResult;
+      if (mode === "rewrite") {
+        if (
+          typeof data.rewrittenText !== "string" ||
+          !data.rewrittenText.trim() ||
+          data.rewrittenText.length > 15000
+        )
+          throw new Error("The rewrite could not be completed. Please try again.");
+        result = {
+          rewrittenText: data.rewrittenText,
+          engine:
+            typeof data.engine === "string" ? data.engine : "Writing rewrite",
+          changes: Array.isArray(data.changes)
+            ? data.changes
+                .filter(
+                  (change: unknown): change is string =>
+                    typeof change === "string",
+                )
+                .slice(0, 12)
+            : [],
+          style: rewriteStyle,
+          warnings: Array.isArray(data.warnings) ? data.warnings.filter((warning: unknown) => typeof warning === "string").slice(0, 12) : [],
+        };
       } else {
-        // Deterministic Client-Side Gemini 4 Argon Forensic Engine Fallback
-        const fallbackScanMode: 'comprehensive' | 'ai' | 'plagiarism' = (effectiveMode === 'fixer' || effectiveMode === 'surgeon') ? 'comprehensive' : effectiveMode;
-        report = runClientSideScan(textToScan, fallbackScanMode);
+        if (!data.analysis || typeof data.analysis !== "object") throw new Error("The tool returned an incomplete result. Please try again.");
+        result = data.analysis;
       }
-
-      setActiveReport(report);
-      setIsDocumentRepaired(report.aiAnalysis.overallAiScore < 40);
-      setHistory(prev => [report, ...prev.filter(h => h.originalText !== report.originalText)].slice(0, 20));
-      incrementQuotaUsage();
-    } catch (err: any) {
-      console.warn('Network scan exception, switching smoothly to client engine:', err);
-      const fallbackScanMode: 'comprehensive' | 'ai' | 'plagiarism' = (effectiveMode === 'fixer' || effectiveMode === 'surgeon') ? 'comprehensive' : effectiveMode;
-      const fallbackReport = runClientSideScan(textToScan, fallbackScanMode);
-      setActiveReport(fallbackReport);
-      setIsDocumentRepaired(fallbackReport.aiAnalysis.overallAiScore < 40);
-      setHistory(prev => [fallbackReport, ...prev.filter(h => h.originalText !== fallbackReport.originalText)].slice(0, 20));
-    } finally {
-      setIsScanning(false);
-      setScanStep('');
-    }
-  };
-
-  // One-Click Humanize All Flagged Sentences (Invoked from 3D Reactor Core)
-  const handleOneClickHumanizeAll = () => {
-    const humanizeRes = runClientSideHumanize(inputText, 'academic', 'moderate');
-    const newText = humanizeRes.rewrittenText;
-    setInputText(newText);
-
-    if (activeReport) {
-      const updatedSentences: SentenceAnalysis[] = activeReport.aiAnalysis.sentenceAnalysis.map(s => ({
-        ...s,
-        aiProbability: Math.floor(Math.random() * 3) + 2, // 2-4% AI
-        category: 'human',
-        reasons: ['Humanized with Gemini 4 Argon Cadence Engine'],
-        suggestedRewrite: s.sentence
+      setReport((previous) => ({
+        ...(previous?.originalText === text ? previous : {}),
+        [mode]: result,
+        scannedAt: new Date().toISOString(),
+        originalText: text,
       }));
-
-      const newReport: ComprehensiveReport = {
-        ...activeReport,
-        compositeAuthenticity: 96,
-        originalText: newText,
-        aiAnalysis: {
-          ...activeReport.aiAnalysis,
-          overallAiScore: 4,
-          verdict: 'Likely Human-Authored',
-          sentenceAnalysis: updatedSentences
-        }
-      };
-      setActiveReport(newReport);
-    }
-    setIsDocumentRepaired(true);
-  };
-
-  // Replace single sentence with rewritten version
-  const handleApplySingleRewrite = (originalSentence: string, rewrittenSentence: string) => {
-    const updated = inputText.replace(originalSentence, rewrittenSentence);
-    setInputText(updated);
-
-    if (activeReport) {
-      const updatedSentences = activeReport.aiAnalysis.sentenceAnalysis.map(s => {
-        if (s.sentence.trim() === originalSentence.trim()) {
-          return {
-            ...s,
-            sentence: rewrittenSentence,
-            aiProbability: 4,
-            category: 'human' as const,
-            reasons: ['Humanized and naturalized with Gemini 4 Argon']
-          };
-        }
-        return s;
-      });
-
-      const newAiScore = Math.round(
-        updatedSentences.reduce((acc, s) => acc + s.aiProbability, 0) / (updatedSentences.length || 1)
+      setDirty(true);
+      setNotice(data.fromCache ? "Reused your cached result. No new AI request or bonus credit was used." : mode === "rewrite"
+        ? /no AI/i.test(data.engine || "")
+          ? data.rewrittenText === text
+            ? "Basic review found no changes. Advanced AI rewriting requires site-owner setup."
+            : "Basic English clarity edits are ready. Review the changes below; advanced voice rewriting requires the AI service."
+          : "Your rewrite is ready. Review it below, then copy, download, or use it in your document."
+        : "Analysis complete. Save to keep this result.");
+    } catch (e: any) {
+      setError(
+        e.name === "AbortError"
+          ? "Request stopped. Your document is still here."
+          : e.message,
       );
-
-      setActiveReport({
-        ...activeReport,
-        compositeAuthenticity: Math.max(0, 100 - newAiScore),
-        originalText: updated,
-        aiAnalysis: {
-          ...activeReport.aiAnalysis,
-          overallAiScore: newAiScore,
-          sentenceAnalysis: updatedSentences
-        }
-      });
-      if (newAiScore < 45) {
-        setIsDocumentRepaired(true);
-      }
-    }
-  };
-
-  // Replace entire paragraph with humanized version
-  const handleApplyParagraphRewrite = async (originalParagraph: string, rewrittenParagraph: string) => {
-    const updated = inputText.replace(originalParagraph, rewrittenParagraph);
-    setInputText(updated);
-
-    if (activeReport) {
-      const updatedSentences = activeReport.aiAnalysis.sentenceAnalysis.map(s => {
-        if (originalParagraph.toLowerCase().includes(s.sentence.trim().slice(0, 25).toLowerCase())) {
-          return {
-            ...s,
-            aiProbability: 4,
-            category: 'human' as const,
-            reasons: ['Paragraph humanized with Gemini 4 Argon cadence re-engineering']
-          };
-        }
-        return s;
-      });
-
-      const newAiScore = Math.round(
-        updatedSentences.reduce((acc, s) => acc + s.aiProbability, 0) / (updatedSentences.length || 1)
-      );
-
-      setActiveReport({
-        ...activeReport,
-        compositeAuthenticity: Math.max(0, 100 - newAiScore),
-        originalText: updated,
-        aiAnalysis: {
-          ...activeReport.aiAnalysis,
-          overallAiScore: newAiScore,
-          sentenceAnalysis: updatedSentences
-        }
-      });
-      if (newAiScore < 45) {
-        setIsDocumentRepaired(true);
-      }
-    }
-  };
-
-  // Document processing for .docx, .doc, .pdf, .txt, .md
-  const processUploadedFile = async (file: File) => {
-    setIsParsingFile(true);
-    try {
-      const cleanText = await parseUploadedDocument(file);
-      if (cleanText && cleanText.trim().length > 0) {
-        setInputText(cleanText);
-        setUploadedFileName(file.name);
-        handleRunScan(cleanText, mode === 'surgeon' ? 'comprehensive' : mode);
-      }
-    } catch (err: any) {
-      console.error('Error parsing uploaded document:', err);
     } finally {
-      setIsParsingFile(false);
+      clearTimeout(timer);
+      controller.current = null;
+      setBusy("");
     }
-  };
-
-  // File upload input change
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  }
+  async function importFile(file?: File) {
     if (!file) return;
-    await processUploadedFile(file);
-    e.target.value = '';
-  };
-
-  // Drag and drop handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      await processUploadedFile(file);
+    if (!/\.(txt|md|docx|pdf)$/i.test(file.name) || file.size > 2_000_000) {
+      setError("Choose a TXT, Markdown, DOCX, or PDF file under 2 MB.");
+      return;
     }
-  };
-
-  // Handle direct text paste
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setIsDocumentRepaired(false);
-    const val = e.target.value;
-    if (val.startsWith('PK\x03\x04') || val.includes('[Content_Types].xml')) {
-      const extracted = extractTextFromRawDocxString(val);
-      setInputText(extracted);
-      setUploadedFileName('Pasted Word Document');
-    } else {
-      setInputText(val);
-    }
-  };
-
-  // Paste from clipboard
-  const handlePasteClipboard = async () => {
+    setBusy("Importing");
+    setError("");
     try {
-      const text = await navigator.clipboard.readText();
-      if (text) {
-        setIsDocumentRepaired(false);
-        if (text.startsWith('PK\x03\x04') || text.includes('[Content_Types].xml')) {
-          const extracted = extractTextFromRawDocxString(text);
-          setInputText(extracted);
-          setUploadedFileName('Pasted Word Document');
-        } else {
-          setInputText(text);
-        }
-      }
-    } catch (e) {
-      console.warn('Clipboard read permission denied', e);
+      let value: string;
+      if (/\.pdf$/i.test(file.name)) {
+        if (!user?.verified)
+          throw new Error(
+            "Sign in before importing a PDF. PDFs are processed by the server.",
+          );
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        value = (
+          await api("/parse/pdf", "POST", {
+            fileBase64: btoa(binary),
+            fileName: file.name,
+          })
+        ).text;
+      } else if (/\.docx$/i.test(file.name)) {
+        const mammoth = await import("mammoth");
+        value = (
+          await mammoth.extractRawText({
+            arrayBuffer: await file.arrayBuffer(),
+          })
+        ).value;
+      } else value = await file.text();
+      if (!value.trim())
+        throw new Error("No readable text found in this file.");
+      if (value.length > 15000)
+        throw new Error(
+          "This document exceeds the 15,000-character limit. Import a shorter excerpt.",
+        );
+      if (
+        dirty &&
+        !window.confirm("Replace your unsaved document with this file?")
+      )
+        return;
+      setId(crypto.randomUUID());
+      setText(value);
+      setTitle(file.name.replace(/\.[^.]+$/, "").slice(0, 120));
+      setReport(null);
+      setDirty(true);
+      setNotice("Document imported. Review it before analyzing.");
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy("");
+      if (input.current) input.current.value = "";
     }
-  };
-
-  // Trigger PDF Export
-  const handleExportPDF = () => {
-    if (!activeReport) return;
-    exportForensicReportPDF({
-      report: activeReport,
-      linguistics,
-      documentTitle: uploadedFileName || (inputText.slice(0, 50).trim() || 'VeritasAI Document Audit')
-    });
-  };
-
+  }
+  function download() {
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify({ title, content: text, report }, null, 2)], {
+        type: "application/json",
+      }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/[^a-z0-9_-]/gi, "_") || "document"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  async function copyRewrite() {
+    if (!report?.rewrite) return;
+    setError("");
+    try {
+      await navigator.clipboard.writeText(report.rewrite.rewrittenText);
+      setNotice("Rewritten text copied.");
+    } catch {
+      setError(
+        "Copy is unavailable in this browser. Select the rewritten text or download it instead.",
+      );
+    }
+  }
+  function downloadRewrite() {
+    if (!report?.rewrite) return;
+    const url = URL.createObjectURL(
+      new Blob([report.rewrite.rewrittenText], {
+        type: "text/plain;charset=utf-8",
+      }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${title.replace(/[^a-z0-9_-]/gi, "_") || "document"}_rewritten.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  function applyRewrite() {
+    if (!report?.rewrite) return;
+    setText(report.rewrite.rewrittenText);
+    setReport(null);
+    setDirty(true);
+    setError("");
+    setNotice(
+      "Rewrite applied to your document. Save to keep it, or run a fresh check.",
+    );
+    document.getElementById("editor")?.focus();
+  }
+  async function copyResult(value: string) {
+    setError("");
+    try { await navigator.clipboard.writeText(value); setNotice("Result copied."); }
+    catch { setError("Copy is unavailable. Select and copy the result text instead."); }
+  }
+  function applyResult(value: string) {
+    setText(value); setReport(null); setDirty(true); setError("");
+    setNotice("Updated text applied. Save it or run a fresh check.");
+    document.getElementById("editor")?.focus();
+  }
+  function chooseTool(nextMode: ToolMode) {
+    setMode(nextMode);
+    setError("");
+    setNotice("");
+  }
+  function openAdmin() {
+    setReferralsOpen(false);
+    setAdminRequested(true);
+    if (!isAdminPath()) window.history.pushState(window.history.state, "", "/admin");
+  }
+  function closeAdmin() {
+    setAdminRequested(false);
+    if (isAdminPath()) window.history.replaceState(window.history.state, "", "/");
+  }
+  async function logout() {
+    if (dirty && !window.confirm("Sign out and discard unsaved changes?"))
+      return;
+    setBusy("Signing out");
+    try {
+      await api("/auth/logout", "POST", {});
+      updateAccount(null);
+      setReferralsOpen(false);
+      closeAdmin();
+      clearInvitation();
+      setNotice("Signed out.");
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy("");
+    }
+  }
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-indigo-500/25 selection:text-indigo-200">
-      {/* Top Navigation Bar */}
-      <Header
-        currentMode={mode}
-        onSelectMode={(m) => {
-          setMode(m);
-          setActiveView('workspace');
-        }}
-        onSelectSample={handleLoadSample}
-        onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenCertificate={() => setIsCertificateOpen(true)}
-        onOpenLinguistics={() => setIsLinguisticsOpen(true)}
-        onExportPDF={handleExportPDF}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        hasActiveReport={Boolean(activeReport)}
-        historyCount={history.length}
-        is3DCoreVisible={is3DCoreVisible}
-        onToggle3DCore={() => setIs3DCoreVisible(!is3DCoreVisible)}
-        activeView={activeView}
-        onToggleView={() => setActiveView(activeView === 'landing' ? 'workspace' : 'landing')}
-      />
-
-      {/* 1. INTERACTIVE 3D HERO LANDING PAGE VIEW (PixelPop Aesthetic) */}
-      {activeView === 'landing' && (
-        <section className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16 animate-in fade-in duration-300 relative bg-pixel-dots">
-          {/* Cute Floating Pixel Stickers (PixelPop vibe) */}
-          <div className="absolute top-6 left-6 hidden xl:block pointer-events-none transform -rotate-12 animate-pulse">
-            <div className="p-2 bg-indigo-950/80 border-2 border-black shadow-[3px_3px_0px_#000] rounded-xl flex items-center gap-1.5">
-              <PixelRobot size={28} />
-              <span className="font-pixel text-[10px] text-indigo-300 font-bold">Argon AI</span>
-            </div>
-          </div>
-          <div className="absolute top-8 right-8 hidden xl:block pointer-events-none transform rotate-12">
-            <div className="p-2 bg-pink-950/80 border-2 border-black shadow-[3px_3px_0px_#000] rounded-xl flex items-center gap-1.5 animate-bounce">
-              <PixelSparkle size={26} />
-              <span className="font-pixel text-[10px] text-pink-300 font-bold">Zero AI &lt;5%</span>
-            </div>
-          </div>
-
-          {/* Hero Banner Headline */}
-          <div className="text-center max-w-4xl mx-auto space-y-5">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-zinc-900 border-2 border-black text-indigo-300 text-xs font-pixel font-bold shadow-[3px_3px_0px_#000000]">
-              <PixelShield size={16} />
-              <span>VeritasAI Enterprise · Retro Stylometry &amp; Doc Surgeon</span>
-              <span className="px-1.5 py-0.2 rounded bg-pink-500 text-black font-pixel font-bold text-[9px]">POP!</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
-              Forensic AI Detection &amp; Plagiarism Audit.{' '}
-              <span className="block mt-1 font-pixel bg-gradient-to-r from-indigo-400 via-pink-400 to-emerald-300 bg-clip-text text-transparent">
-                Humanize Without Changing Format.
-              </span>
-            </h1>
-
-            <p className="text-sm sm:text-base text-zinc-300 leading-relaxed max-w-3xl mx-auto">
-              Upload original Word (<span className="text-white font-semibold">.docx</span>) or PDF (<span className="text-white font-semibold">.pdf</span>) documents. Our surgical engine identifies only AI clichés and plagiarized passages, rewriting them to sound 100% human while preserving your original formatting, headings, bullet points, and authentic text.
-            </p>
-
-            {/* Primary Action Buttons (PixelPop Neo-Brutalist Sticker Buttons) */}
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
-              <button
-                onClick={() => setActiveView('workspace')}
-                className="pixel-btn px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-pixel font-bold text-xs sm:text-sm flex items-center gap-2"
+    <div className="app-shell">
+      <aside className="sidebar">
+        <a className="brand" href="#workspace">
+          <span className="brand-mark">
+            <ShieldCheck size={23} />
+          </span>
+          veritas<span className="brand-dot">.</span>
+        </a>
+        <div className="space-label">YOUR WORKSPACE</div>
+        <button
+          className="nav-item selected"
+          onClick={() => document.getElementById("editor")?.focus()}
+        >
+          <FileText size={18} />
+          Writing studio
+          <ChevronRight size={15} />
+        </button>
+        <div className="library-heading">
+          <span>DOCUMENT LIBRARY</span>
+          <button
+            className="icon-button"
+            disabled={!!busy}
+            onClick={() => reset()}
+            aria-label="New document"
+          >
+            <Plus size={17} />
+          </button>
+        </div>
+        <label className="library-search">
+          <Search size={15} />
+          <input
+            aria-label="Search saved documents"
+            placeholder="Find a document…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+        <div className="document-list">
+          {documents
+            .filter((d) => d.title.toLowerCase().includes(search.toLowerCase()))
+            .map((d) => (
+              <div
+                key={d.id}
+                className={`document-row ${d.id === id ? "active" : ""}`}
               >
-                <PixelShield size={18} />
-                <span>Launch Full Workspace</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={() => {
-                  setMode('surgeon');
-                  setActiveView('workspace');
-                }}
-                className="pixel-btn px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-pixel font-bold text-xs sm:text-sm flex items-center gap-2"
-              >
-                <PixelBandAid size={18} />
-                <span>Doc Surgeon (.docx &amp; .pdf)</span>
-              </button>
-
-              <button
-                onClick={() => setIsAuthOpen(true)}
-                className="pixel-btn px-5 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-pixel font-bold text-xs sm:text-sm flex items-center gap-2"
-              >
-                <PixelSparkle size={18} />
-                <span>Start Free Trial</span>
-              </button>
-            </div>
-
-            {/* Trust Badges Strip with Cute Pixel Stickers */}
-            <div className="pt-4 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-zinc-300 font-medium">
-              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
-                <PixelHeart size={14} />
-                <span>100% Format Preservation</span>
-              </span>
-              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
-                <PixelRobot size={14} />
-                <span>&lt; 5% Target AI Threshold</span>
-              </span>
-              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
-                <PixelShield size={14} />
-                <span>Zero Document Retention</span>
-              </span>
-              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
-                <PixelFloppy size={14} />
-                <span>Word (.docx) &amp; PDF Exports</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Interactive 3D Hero Viewport with Orbiting Tool Satellites */}
-          <div className="relative space-y-3">
-            <div className="flex items-center justify-between px-2 text-xs text-zinc-400">
-              <span className="font-pixel text-[11px] text-zinc-400 flex items-center gap-1.5">
-                <PixelRobot size={14} />
-                <span>Interactive Quantum Core · Click any orbital node to launch</span>
-              </span>
-              <span className="font-pixel text-[11px] text-indigo-400 hidden sm:inline flex items-center gap-1">
-                <PixelDoc size={14} />
-                <span>Drop .docx or .pdf directly onto canvas</span>
-              </span>
-            </div>
-
-            <div className="relative pixel-border rounded-3xl overflow-hidden bg-zinc-950">
-              <ThreeCoreScanner
-                variant="hero"
-                status={scannerStatus}
-                hasText={hasDocumentText}
-                isRepaired={isDocumentRepaired}
-                needsFix={documentNeedsFix}
-                authenticityScore={activeReport?.compositeAuthenticity}
-                aiScore={activeReport?.aiAnalysis.overallAiScore}
-                metrics={activeReport?.aiAnalysis.metrics}
-                onSelectMode={(m) => setMode(m)}
-                onLaunchWorkspace={() => setActiveView('workspace')}
-                onFileDrop={processUploadedFile}
-              />
-            </div>
-          </div>
-
-          {/* 3-Step Walkthrough: How Format-Preserving Surgery Works */}
-          <div className="p-8 rounded-3xl bg-zinc-900/60 border-2 border-black shadow-[6px_6px_0px_#000] space-y-6">
-            <div className="text-center max-w-xl mx-auto space-y-1">
-              <span className="text-xs font-pixel font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1">
-                <PixelSparkle size={16} />
-                <span>Precision Workflow</span>
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold font-pixel text-white tracking-tight">
-                How Format-Preserving Document Surgery Works
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-              <div className="p-5 rounded-2xl bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#000] space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                  <PixelDoc size={22} />
-                </div>
-                <h3 className="text-sm font-bold font-pixel text-white">01. Upload Word or PDF</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Ingests <span className="text-zinc-200">.docx</span> or <span className="text-zinc-200">.pdf</span> files. The engine maps headings, paragraph indentation, margins, and bullet structures.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#000] space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                  <PixelSearch size={22} />
-                </div>
-                <h3 className="text-sm font-bold font-pixel text-white">02. Surgical Flagging</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Detects statistical perplexity, burstiness uniformity, and plagiarism shingles. Authentic human sentences are locked and kept 100% untouched.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-zinc-950 border-2 border-black shadow-[4px_4px_0px_#000] space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                  <PixelBandAid size={22} />
-                </div>
-                <h3 className="text-sm font-bold font-pixel text-white">03. Export Clean Document</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Rewrites only flagged sentences below 5% AI risk, then exports back to Word (<span className="text-zinc-200">.docx</span>) or PDF (<span className="text-zinc-200">.pdf</span>) with zero format distortion.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 4 Core Pillars Grid with Pixel Stickers */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="p-6 rounded-2xl bg-zinc-900/80 border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_#000] transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                <PixelBandAid size={22} />
-              </div>
-              <h3 className="text-sm font-bold font-pixel text-white">Doc Surgeon</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                Repairs flagged segments inside Word and PDF files without altering headings, fonts, bullet lists, or layout margins.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-zinc-900/80 border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_#000] transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                <PixelShield size={22} />
-              </div>
-              <h3 className="text-sm font-bold font-pixel text-white">Stylometrics</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                Evaluates perplexity entropy, sentence burstiness, and coefficient of variation without relying on black-box heuristics.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-zinc-900/80 border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_#000] transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                <PixelSearch size={22} />
-              </div>
-              <h3 className="text-sm font-bold font-pixel text-white">5-Gram Audit</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                Matches syntactic shingles against academic and web corpora with automated APA, MLA, and Chicago citation generation.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-zinc-900/80 border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_#000] transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                <PixelSparkle size={22} />
-              </div>
-              <h3 className="text-sm font-bold font-pixel text-white">Cadence Humanizer</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                Transforms robotic cadence across 5 persona styles, eliminates LLM clichés, and lowers AI risk below 5% with zero hallucination.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 2. PRODUCTION FORENSIC WORKSPACE VIEW */}
-      {activeView === 'workspace' && (
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-          {/* Functional 3D AI Core in Workspace (Drag-and-Drop + Interactive Sentence Beads + Clickable Reactor) */}
-          {is3DCoreVisible && (
-            <div className="animate-in fade-in duration-300">
-              <ThreeCoreScanner
-                variant="workspace"
-                status={scannerStatus}
-                hasText={hasDocumentText}
-                isRepaired={isDocumentRepaired}
-                needsFix={documentNeedsFix}
-                authenticityScore={activeReport?.compositeAuthenticity}
-                aiScore={activeReport?.aiAnalysis.overallAiScore}
-                metrics={activeReport?.aiAnalysis.metrics}
-                sentenceAnalysis={activeReport?.aiAnalysis.sentenceAnalysis}
-                onSelectSentence={(s) => setInspectedSentence(s)}
-                onTriggerScan={() => handleRunScan()}
-                onOneClickHumanize={handleOneClickHumanizeAll}
-                onFileDrop={processUploadedFile}
-              />
-            </div>
-          )}
-
-          {/* Sample Quick Selector Pills */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000000]">
-            <div className="flex items-center gap-2 text-xs text-zinc-300 font-pixel">
-              <PixelCrown size={14} />
-              <span>Corpus Benchmark Samples:</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {SAMPLE_TEXTS.map((sample) => (
-                <button
-                  key={sample.id}
-                  onClick={() => handleLoadSample(sample)}
-                  className="pixel-btn px-3 py-1 rounded-xl text-xs font-pixel font-bold bg-zinc-900 hover:bg-zinc-850 border-2 border-black text-zinc-300 hover:text-white transition flex items-center gap-1.5 shadow-[2px_2px_0px_#000]"
-                >
-                  <span>{sample.category === 'ai' ? '🤖' : sample.category === 'plagiarism' ? '🔍' : '✍️'}</span>
-                  <span>{sample.title}</span>
-                  <span className="text-[10px] text-amber-400 font-pixel">({sample.badge})</span>
+                <button disabled={!!busy} onClick={() => load(d.id)}>
+                  <FileText size={16} />
+                  <span>
+                    <strong>{d.title}</strong>
+                    <small>
+                      {new Date(d.updated_at).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </small>
+                  </span>
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Primary Editor & Gauges Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Column (Editor & Word Count Goal Tracker) */}
-            <div className="lg:col-span-6 space-y-4">
-              <WordCountGoal
-                currentWords={wordCount}
-                currentChars={charCount}
-                currentSentences={sentenceCount}
-                currentParagraphs={paragraphCount}
-                goal={wordGoal}
-                onSetGoal={handleSetWordGoal}
-              />
-
-              <PerspectiveTiltCard maxTilt={5}>
-                <div 
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`relative rounded-3xl bg-zinc-950 border-2 border-black p-5 sm:p-6 shadow-[5px_5px_0px_#000000] flex flex-col h-full transition-all ${
-                    isDragging ? 'border-indigo-400 ring-2 ring-indigo-500/40' : ''
-                  }`}
+                <button
+                  className="icon-button"
+                  disabled={!!busy}
+                  onClick={() => remove(d.id)}
+                  aria-label={`Delete ${d.title}`}
                 >
-                  {/* Drag & Drop Overlay */}
-                  {isDragging && (
-                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950/95 rounded-3xl border-2 border-dashed border-indigo-400 pointer-events-none animate-in fade-in">
-                      <PixelDoc size={36} className="animate-bounce mb-2" />
-                      <span className="text-sm font-bold font-pixel text-white">Drop Word (.docx) or PDF (.pdf) file here</span>
-                      <span className="text-xs text-zinc-400 mt-1 font-pixel">Automatic text extraction and format-preserving surgery</span>
-                    </div>
-                  )}
-
-                  {/* Textarea Toolbar */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b-2 border-zinc-800 text-xs font-pixel text-zinc-400">
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-white flex items-center gap-1.5">
-                        <PixelDoc size={16} />
-                        Input Document
-                      </span>
-                      <div className="flex items-center gap-2 font-pixel text-[11px] text-zinc-400">
-                        <span>{wordCount} words</span>
-                        <span>·</span>
-                        <span>{charCount} chars</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        accept=".docx,.doc,.pdf,.txt,.md"
-                        className="hidden"
-                      />
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isParsingFile}
-                        className="pixel-btn px-2.5 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white border-2 border-black text-[11px] font-pixel font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] transition"
-                        title="Upload .docx, .doc, .pdf, .txt, or .md"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{isParsingFile ? 'Extracting...' : 'Upload Doc'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => setMode('surgeon')}
-                        className="pixel-btn px-2.5 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black border-2 border-black text-[11px] font-pixel font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] transition"
-                        title="Launch Format-Preserving Word & PDF Surgeon"
-                      >
-                        <PixelBandAid size={14} />
-                        <span>Doc Surgeon</span>
-                      </button>
-
-                      <button
-                        onClick={handlePasteClipboard}
-                        className="pixel-btn px-2.5 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white border-2 border-black text-[11px] font-pixel font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] transition"
-                        title="Paste from clipboard"
-                      >
-                        <Clipboard className="w-3.5 h-3.5" />
-                        <span>Paste</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setInputText('');
-                          setUploadedFileName(null);
-                          setActiveReport(null);
-                        }}
-                        className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 transition"
-                        title="Clear document & reset audit"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {uploadedFileName && (
-                    <div className="mt-3 px-3 py-1.5 rounded-xl bg-indigo-950/80 border-2 border-black text-indigo-300 text-xs font-pixel flex items-center justify-between">
-                      <span className="truncate">Loaded: {uploadedFileName}</span>
-                      <button 
-                        onClick={() => setUploadedFileName(null)}
-                        className="text-indigo-400 hover:text-white text-xs ml-2"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Document Textarea */}
-                  <textarea
-                    value={inputText}
-                    onChange={handleTextareaChange}
-                    placeholder="Paste or write document text here to inspect AI detection, perplexity entropy, and shingle plagiarism..."
-                    rows={13}
-                    className="w-full mt-3 p-3.5 bg-zinc-900 text-zinc-200 placeholder-zinc-500 rounded-2xl border-2 border-zinc-800 focus:outline-none focus:border-indigo-400 text-sm leading-relaxed resize-y font-sans transition-all"
-                  />
-
-                  {/* Primary Scan Action Bar */}
-                  <div className="mt-4 pt-3 border-t-2 border-zinc-800 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-xs font-pixel text-zinc-400">
-                      <span>
-                        Mode: <strong className="text-amber-400 uppercase">{mode}</strong>
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleRunScan()}
-                        disabled={isScanning || wordCount < 5}
-                        className="pixel-btn px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-pixel font-bold text-xs sm:text-sm flex items-center gap-2 shadow-[4px_4px_0px_#000] disabled:opacity-50 disabled:cursor-not-allowed transition"
-                      >
-                        {isScanning ? (
-                          <>
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>{scanStep || 'Executing Argon Deep Scan...'}</span>
-                          </>
-                        ) : (
-                          <>
-                            <PixelSparkle size={18} />
-                            <span>Run {mode === 'ai' ? 'AI Detection' : mode === 'plagiarism' ? 'Plagiarism Check' : 'Comprehensive Scan'}</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </PerspectiveTiltCard>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          {!documents.length && (
+            <div className="library-empty">
+              <FolderOpen size={27} />
+              <p>
+                {user
+                  ? "A place for your next great idea."
+                  : "Your documents, in one place."}
+              </p>
+              <small>
+                {user
+                  ? "Save a document to find it here."
+                  : "Sign in to save and reopen your work."}
+              </small>
             </div>
-
-            {/* Right Column: Gauges, Forensic Metrics Grid & Telemetry Summary */}
-            <div className="lg:col-span-6 space-y-4">
-              <PerspectiveTiltCard maxTilt={5}>
-                {activeReport ? (
-                  <div className="rounded-3xl bg-zinc-950 border-2 border-black p-5 sm:p-6 shadow-[5px_5px_0px_#000000] space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b-2 border-zinc-800 text-xs font-pixel">
-                      <div className="flex items-center gap-2">
-                        <PixelShield size={16} />
-                        <span className="font-bold text-white uppercase tracking-wider">
-                          Forensic Telemetry
-                        </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-pixel font-bold bg-indigo-950 text-indigo-300 border border-black shadow-[1px_1px_0px_#000]">
-                          Gemini 4 Core
-                        </span>
-                      </div>
-                      <span className="text-[11px] font-pixel text-zinc-400">
-                        Confidence: <strong className="text-emerald-400">{activeReport.aiAnalysis.confidence}</strong>
-                      </span>
-                    </div>
-
-                    {/* 3 Circular Score Gauges */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <ScoreGauge
-                        score={activeReport.compositeAuthenticity}
-                        title="Authenticity Index"
-                        subtitle="Overall Originality"
-                        type="authenticity"
-                        inverted={true}
-                      />
-                      <ScoreGauge
-                        score={activeReport.aiAnalysis.overallAiScore}
-                        title="AI Detection"
-                        subtitle={activeReport.aiAnalysis.verdict}
-                        type="ai"
-                      />
-                      <ScoreGauge
-                        score={activeReport.plagiarismAnalysis.similarityScore}
-                        title="Web Plagiarism"
-                        subtitle={activeReport.plagiarismAnalysis.verdict}
-                        type="plagiarism"
-                      />
-                    </div>
-
-                    {/* 4 Clean Vertical Stacked Metrics Cards */}
-                    <MetricsGrid
-                      metrics={activeReport.aiAnalysis.metrics}
-                      avgSentenceLength={activeReport.localMetrics.avgSentenceLength}
-                      lexicalDiversity={activeReport.localMetrics.lexicalDiversity}
-                    />
-
-                    {/* Forensic Verdict Summary */}
-                    <div className="p-4 rounded-2xl bg-zinc-900 border-2 border-black shadow-[3px_3px_0px_#000] space-y-1.5 text-xs text-zinc-300">
-                      <div className="flex items-center justify-between text-zinc-400 font-pixel text-[11px]">
-                        <span className="font-bold text-amber-300 uppercase">★ Verdict Summary:</span>
-                        <span>Audited: {activeReport.scannedAt}</span>
-                      </div>
-                      <p className="leading-relaxed font-sans">{activeReport.aiAnalysis.overallSummary}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-3xl border-2 border-black bg-zinc-950 p-12 text-center flex flex-col items-center justify-center space-y-3 min-h-[400px] shadow-[4px_4px_0px_#000]">
-                    <PixelSearch size={40} />
-                    <h3 className="text-base font-bold font-pixel text-white">No Document Scanned Yet</h3>
-                    <p className="text-xs text-zinc-400 max-w-sm">
-                      Paste your text in the editor or choose one of the pre-configured sample corpus texts above to inspect the audit results.
-                    </p>
-                  </div>
-                )}
-              </PerspectiveTiltCard>
-            </div>
+          )}
+        </div>
+        <div className="privacy-card">
+          <ShieldCheck size={20} />
+          <strong>Made for thoughtful writing</strong>
+          <p>
+            Your saved documents belong to your account. Run an analysis when
+            you’re ready to share text with the AI provider.
+          </p>
+        </div>
+        <div className="account-row">
+          <span className="avatar">
+            {user ? user.email[0].toUpperCase() : "G"}
+          </span>
+          <div>
+            <strong>{user ? user.email : "Guest workspace"}</strong>
+            <small>
+              {user ? "Private library" : "Explore before signing in"}
+            </small>
           </div>
-
-          {/* Mode-Specific Workspaces: Doc Surgeon Studio OR Fixer Studio OR Heatmap & Sources */}
-          {mode === 'surgeon' ? (
-            <DocSurgeonStudio
-              initialText={inputText}
-              onSendToWorkspace={(text: string) => {
-                setInputText(text);
-                setMode('comprehensive');
-                handleRunScan(text, 'comprehensive');
-              }}
-            />
-          ) : mode === 'fixer' ? (
-            <HumanizerFixerStudio
-              originalText={inputText}
-              initialAiScore={activeReport?.aiAnalysis.overallAiScore || 85}
-              onApplyFixedTextToMain={(newText: string) => setInputText(newText)}
-              onRequestReScan={(newText: string) => handleRunScan(newText, 'comprehensive')}
-            />
-          ) : (
-            activeReport && (
-              <div className="space-y-6">
-                {/* 1. Sentence-by-Sentence AI Heatmap */}
-                {(mode === 'comprehensive' || mode === 'ai') && (
-                  <SentenceHeatmap
-                    sentenceAnalysis={activeReport.aiAnalysis.sentenceAnalysis}
-                    flaggedPassages={activeReport.plagiarismAnalysis.flaggedPassages}
-                    originalText={inputText}
-                    onSelectSentence={(s) => setInspectedSentence(s)}
-                    onApplySingleRewrite={handleApplySingleRewrite}
-                    onApplyParagraphRewrite={handleApplyParagraphRewrite}
+          {user && (
+            <button
+              className="icon-button"
+              disabled={!!busy}
+              onClick={logout}
+              aria-label="Sign out"
+            >
+              <LogOut size={17} />
+            </button>
+          )}
+        </div>
+      </aside>
+      <div className="main-area" id="workspace">
+        <header className="topbar">
+          <span>
+            <span className="breadcrumb">Workspace</span>
+            <ChevronRight size={14} />
+            Writing studio
+          </span>
+          <div>
+            <span className="desktop-label">
+              <span className="status-dot" />
+              Focus mode
+            </span>
+            {user?.verified && <button className="button secondary small invite-button" disabled={!!busy} onClick={() => setReferralsOpen(true)}><Gift size={16} />Invite friends</button>}
+            {user?.verified && user.isAdmin && <button className="button secondary small" disabled={!!busy} onClick={openAdmin}><ShieldCheck size={16} />Admin Dashboard</button>}
+            {user && (
+              <button
+                className="button secondary small"
+                disabled={!!busy}
+                onClick={logout}
+              >
+                <LogOut size={15} />
+                Sign out
+              </button>
+            )}
+            {!user && (
+              <button
+                className="button small"
+                disabled={checking}
+                onClick={() => setAuth("login")}
+              >
+                {checking ? "Connecting…" : "Sign in"}
+                <ArrowRight size={15} />
+              </button>
+            )}
+          </div>
+        </header>
+        <main>
+          {adminRequested && !checking && !(user?.verified && user.isAdmin) && <div className="admin-access-notice" role="status"><ShieldCheck size={22} /><div><strong>Owner dashboard access</strong><p>{!user ? "Sign in with the site owner account to view the dashboard." : !user.verified ? "Confirm your email, then sign in with the site owner account to view the dashboard." : "This account does not have administrator access. The dashboard is reserved for the site owner."}</p></div>{(!user || !user.verified) && <button className="button small" onClick={() => setAuth("login")}>{user ? "Confirm email" : "Sign in"}</button>}<button className="button secondary small" onClick={closeAdmin}>Return to studio</button></div>}
+          {!checking && !user && (invitation.code || invitation.invalid) && <div className="invitation-banner" role="status"><Gift size={22} /><div><strong>{invitation.invalid ? "This invitation link needs attention." : "You’ve been invited to Veritas."}</strong><p>{invitation.invalid ? "Ask your friend for a new link, or choose to continue without an invitation when creating your account." : "Create a new account and confirm your permanent email address to complete your friend’s invitation."}</p></div><button className="button small" onClick={() => setAuth("register")}>Create account<ArrowRight size={16} /></button></div>}
+          {user && !user.verified && (
+            <div className="verification-banner" role="status">
+              <ShieldCheck size={20} />
+              <span>
+                <strong>Verify your email</strong>Confirm your email to save
+                documents and use analysis tools.
+              </span>
+              <button className="button small" onClick={() => setAuth("login")}>
+                Enter confirmation code
+              </button>
+            </div>
+          )}
+          <section className="page-intro">
+            <div>
+              <div className="eyebrow">A LITTLE CLARITY GOES A LONG WAY</div>
+              <h1>Make every word your own.</h1>
+              <p>
+                Check sources, improve clarity, and shape your draft in a voice
+                that feels like you. Seven tools, one private workspace.
+              </p>
+            </div>
+            <button
+              className="button secondary"
+              disabled={!!busy}
+              onClick={() => reset()}
+            >
+              <Plus size={17} />
+              New document
+            </button>
+          </section>
+          <div className="tool-picker tool-suite" role="group" aria-label="Writing tools">
+            {writingTools.map((tool) => (
+              <button
+                key={tool.id}
+                className={`tool-tab ${mode === tool.id ? "active" : ""}`}
+                disabled={!!busy}
+                onClick={() => chooseTool(tool.id)}
+                aria-pressed={mode === tool.id}
+                aria-controls="tool-settings"
+              >
+                <tool.icon size={21} aria-hidden="true" />
+                <span>
+                  <strong>{tool.title}</strong>
+                  <small>{tool.description}</small>
+                </span>
+                {mode === tool.id && <Check size={17} aria-hidden="true" />}
+              </button>
+            ))}
+          </div>
+          <div className="workspace-grid">
+            <section className="editor-card" aria-label="Document editor">
+              <div className="editor-heading">
+                <div className="document-icon">
+                  <FileText size={21} />
+                </div>
+                <div className="document-title">
+                  <label className="sr-only" htmlFor="title">
+                    Document title
+                  </label>
+                  <input
+                    id="title"
+                    maxLength={120}
+                    disabled={!!busy}
+                    value={title}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      setDirty(true);
+                    }}
                   />
+                  <span>
+                    {dirty ? "Unsaved changes" : "Ready when you are"}
+                  </span>
+                </div>
+                <button
+                  className="icon-button"
+                  disabled={!!busy || !text}
+                  onClick={download}
+                  aria-label="Export document and report"
+                >
+                  <ArrowDownToLine size={19} />
+                </button>
+              </div>
+              <div className="editor-toolbar">
+                <span>YOUR DOCUMENT</span>
+                <button
+                  disabled={!!busy}
+                  onClick={() => input.current?.click()}
+                >
+                  <Upload size={15} />
+                  Import file
+                </button>
+                <input
+                  ref={input}
+                  type="file"
+                  accept=".txt,.md,.docx,.pdf"
+                  className="sr-only"
+                  onChange={(e) => importFile(e.target.files?.[0])}
+                />
+              </div>
+              <label className="sr-only" htmlFor="editor">
+                Document text
+              </label>
+              <textarea
+                id="editor"
+                disabled={!!busy}
+                maxLength={15000}
+                value={text}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  setReport(null);
+                  setDirty(true);
+                  setNotice("");
+                }}
+                placeholder={
+                  "Start with your words.\n\nPaste your draft here, or import a document. We’ll help you take a closer look."
+                }
+              />
+              <div className="editor-footer">
+                <span>
+                  <strong>{words.toLocaleString()}</strong> words
+                  <span className="divider">·</span>
+                  {text.length.toLocaleString()} / 15,000 characters
+                </span>
+                <button
+                  className="save-button"
+                  disabled={!!busy || !title.trim()}
+                  onClick={save}
+                >
+                  <Save size={15} />
+                  {busy === "Saving" ? "Saving…" : "Save document"}
+                </button>
+              </div>
+            </section>
+            <aside className={`analysis-column ${["rewrite", "compare", "citations"].includes(mode) ? "has-tool-form" : ""}`}>
+              <section
+                className="analysis-card"
+                id="tool-settings"
+                aria-label={`${activeTool.title} settings`}
+              >
+                <div className="section-heading">
+                  <activeTool.icon size={19} />
+                  <h2>{activeTool.title}</h2>
+                </div>
+                <p>{activeTool.description}</p>
+                {mode === "rewrite" && (
+                  <>
+                  <fieldset className="rewrite-styles" disabled={!!busy}>
+                    <legend>Choose your tone</legend>
+                    {rewriteStyles.map((style) => (
+                      <label
+                        key={style.id}
+                        className={`rewrite-style ${rewriteStyle === style.id ? "chosen" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="rewrite-style"
+                          value={style.id}
+                          checked={rewriteStyle === style.id}
+                          onChange={() => setRewriteStyle(style.id)}
+                        />
+                        <span>
+                          <strong>{style.label}</strong>
+                          <small>{style.description}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </fieldset>
+                  <details className="advanced-writing">
+                    <summary>Voice & writing preferences</summary>
+                    <fieldset disabled={!!busy} className="tool-form">
+                      <label>Audience<select value={audience} onChange={(e) => setAudience(e.target.value)}><option value="general">General readers</option><option value="academic">Academic readers</option><option value="business">Business readers</option></select></label>
+                      <label>Length<select value={rewriteLength} onChange={(e) => setRewriteLength(e.target.value)}><option value="preserve">Keep a similar length</option><option value="shorter">Make it shorter</option><option value="expanded">Develop the explanation</option></select></label>
+                      <label>A sample of your voice <span>(optional)</span><textarea value={voiceSample} maxLength={1500} onChange={(e) => setVoiceSample(e.target.value)} placeholder="Paste a short example of your own writing." rows={4} /></label>
+                      <label>Terms to preserve <span>(optional)</span><textarea value={preserveTerms} maxLength={500} onChange={(e) => setPreserveTerms(e.target.value)} placeholder="Names, technical terms, or phrases to keep." rows={2} /></label>
+                      <p className="field-help">Custom voice, audience, and length preferences require the AI service. Basic mode provides limited English clarity edits. Review names, facts, and citations in either mode.</p>
+                    </fieldset>
+                  </details>
+                  </>
                 )}
-
-                {/* 2. Plagiarism Web Matches & Citation Generator */}
-                {(mode === 'comprehensive' || mode === 'plagiarism') && (
-                  <PlagiarismSourcesList
-                    similarityScore={activeReport.plagiarismAnalysis.similarityScore}
-                    verdict={activeReport.plagiarismAnalysis.verdict}
-                    summary={activeReport.plagiarismAnalysis.summary}
-                    matchedSources={activeReport.plagiarismAnalysis.matchedSources}
-                    flaggedPassages={activeReport.plagiarismAnalysis.flaggedPassages}
-                    liveWebSources={activeReport.plagiarismAnalysis.liveWebSources}
-                  />
-                )}
-
-                {/* 3. Bottom Banner: Call-to-action to Humanize & Fix & Export */}
-                <div className="p-6 sm:p-8 rounded-3xl bg-zinc-950 border-2 border-black shadow-[6px_6px_0px_#000000] flex flex-wrap items-center justify-between gap-4 bg-pixel-dots">
-                  <div className="space-y-1">
-                    <h3 className="text-base sm:text-lg font-bold font-pixel text-white flex items-center gap-2">
-                      <PixelBandAid size={22} />
-                      <span>Format-Preserving Doc Surgeon &amp; Humanizer Studio</span>
-                    </h3>
-                    <p className="text-xs text-zinc-400">
-                      Re-engineer cadence with Gemini, surgically repair flagged Word (.docx) &amp; PDF (.pdf) files without distorting layout, or export an official forensic audit PDF.
+                {(mode === "ai" || mode === "plagiarism") && (
+                  <div className="tool-explainer">
+                    <strong>
+                      {mode === "ai"
+                        ? "A second perspective on your writing"
+                        : "Web similarity & attribution review"}
+                    </strong>
+                    <p>
+                      {mode === "ai"
+                        ? "Review sentence patterns, repetition, and variation. Signals are estimates and cannot prove who wrote a text."
+                        : "Find possible source matches and open the linked pages to review them. Web search does not cover every publication or private database."}
                     </p>
+                    {mode === "plagiarism" && <div className="comparison-alternative"><p>Have a source document? Compare it directly with your draft, even when web search is unavailable.</p><button className="button secondary small" disabled={!!busy} onClick={() => chooseTool("compare")}><Files size={15} />Compare documents</button></div>}
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={() => setMode('surgeon')}
-                      className="pixel-btn px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-pixel font-bold flex items-center gap-2 shadow-[3px_3px_0px_#000] transition"
-                    >
-                      <PixelBandAid size={16} />
-                      <span>Doc Surgeon (.docx / .pdf)</span>
-                    </button>
-                    <button
-                      onClick={handleExportPDF}
-                      className="pixel-btn px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border-2 border-black text-xs font-pixel font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] transition"
-                    >
-                      <FileDown className="w-4 h-4" />
-                      <span>Audit PDF</span>
-                    </button>
-                    <button
-                      onClick={() => setMode('fixer')}
-                      className="pixel-btn px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-pixel font-bold flex items-center gap-2 shadow-[3px_3px_0px_#000] transition"
-                    >
-                      <PixelSparkle size={16} />
-                      <span>Humanizer Studio</span>
-                    </button>
-                  </div>
+                )}
+                {mode === "proofread" && <div className="tool-explainer"><strong>Corrections you can understand</strong><p>Review grammar, punctuation, clarity, and style suggestions with a reason for each edit. Reading insights help you find dense passages.</p></div>}
+                {mode === "summarize" && <div className="tool-explainer"><strong>Find the thread in your draft</strong><p>Get a concise summary, key points, and an outline using only the information in your document.</p></div>}
+                {mode === "compare" && <fieldset className="tool-form" disabled={!!busy}>
+                  <label>Comparison document<textarea value={comparisonText} onChange={(e) => setComparisonText(e.target.value)} maxLength={15000} rows={8} placeholder="Paste the second document. Minimum 20 characters." /></label>
+                  <span className="field-help">{comparisonText.length.toLocaleString()} / 15,000 characters</span>
+                  <label className="inline-check"><input type="checkbox" checked={excludeQuotes} onChange={(e) => setExcludeQuotes(e.target.checked)} />Exclude quoted text</label>
+                  <label className="inline-check"><input type="checkbox" checked={excludeReferences} onChange={(e) => setExcludeReferences(e.target.checked)} />Exclude reference sections</label>
+                  <p className="field-help">Compares these two documents on our server. No AI provider or web search is used.</p>
+                </fieldset>}
+                {mode === "citations" && <fieldset className="tool-form" disabled={!!busy}>
+                  <label>Source title<input value={citation.title} maxLength={300} onChange={(e) => setCitation({ ...citation, title: e.target.value })} placeholder="Article or page title" /></label>
+                  <label>Author <span>(optional)</span><input value={citation.author} maxLength={200} onChange={(e) => setCitation({ ...citation, author: e.target.value })} placeholder="Name or organization" /></label>
+                  <label>Year <span>(optional)</span><input value={citation.year} maxLength={4} inputMode="numeric" onChange={(e) => setCitation({ ...citation, year: e.target.value })} placeholder="2026" /></label>
+                  <label>Source URL <span>(optional)</span><input type="url" value={citation.url} maxLength={2000} onChange={(e) => setCitation({ ...citation, url: e.target.value })} placeholder="https://example.com/article" /></label>
+                  <label>Access date <span>(optional)</span><input type="date" value={citation.accessed} onChange={(e) => setCitation({ ...citation, accessed: e.target.value })} /></label>
+                  <p className="field-help">Uses the details you enter. Missing authors and dates are not invented. Verify formatting against your institution's requirements.</p>
+                </fieldset>}
+                <button
+                  className="button analyze-button"
+                  disabled={!!busy || checking || (mode === "citations" ? !citation.title.trim() : text.trim().length < 20) || (mode === "compare" && comparisonText.trim().length < 20)}
+                  onClick={scan}
+                >
+                  {busy === "Analyzing" || busy === "Rewriting" ? (
+                    <>
+                      <LoaderCircle className="spin" size={18} />
+                      {busy}…
+                    </>
+                  ) : (
+                    <>
+                      {user?.verified
+                        ? activeTool.action
+                        : user
+                          ? "Verify email to continue"
+                          : "Sign in to continue"}
+                      <ArrowRight size={17} />
+                    </>
+                  )}
+                </button>
+                {(busy === "Analyzing" || busy === "Rewriting") && (
+                  <button
+                    className="cancel-button"
+                    onClick={() => controller.current?.abort()}
+                  >
+                    Cancel request
+                  </button>
+                )}
+                <div className="analysis-footnote">
+                  <ShieldCheck size={14} />
+                  <span>
+                    {mode === "compare" || mode === "citations" ? "This tool runs on our server without an AI provider. Save the result to keep it in your account."
+                      : ["rewrite", "proofread", "summarize"].includes(mode) ? "Uses AI when available, with a labeled basic mode when the AI service is unavailable. Text is sent to our server and to the AI provider when it is used."
+                      : "This tool sends your text to our server and its configured AI provider when available. Review the result and its engine label before using it."}
+                  </span>
+                </div>
+              </section>
+              <section className="tip-card">
+                <span className="tip-symbol">“</span>
+                <div className="eyebrow">KEEP YOUR VOICE</div>
+                <h3>
+                  Good writing starts
+                  <br />
+                  with your perspective.
+                </h3>
+                <p>
+                  Rewrites help with clarity and flow. Check facts, keep your
+                  citations, and make the final wording your own.
+                </p>
+                <span className="tip-rule" />
+              </section>
+            </aside>
+          </div>
+          <div aria-live="polite" className="feedback">
+            {error && (
+              <div role="alert" className="error-message">
+                {error}
+                <button
+                  className="icon-button"
+                  onClick={() => setError("")}
+                  aria-label="Dismiss error"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+            {notice && (
+              <div className="success-message">
+                <Check size={16} />
+                {notice}
+              </div>
+            )}
+            {busy && busy !== "Analyzing" && busy !== "Rewriting" && (
+              <span>
+                <LoaderCircle size={16} className="spin" />
+                {busy}…
+              </span>
+            )}
+          </div>
+          <section
+            className="results-section"
+            id="tool-results"
+            aria-label="Tool results"
+          >
+            <div className="results-heading">
+              <div>
+                <div className="eyebrow">THE BIGGER PICTURE</div>
+                <h2>Your writing, a little clearer.</h2>
+              </div>
+              <span className="results-badge">
+                {report ? "Review your findings" : "Results appear here"}
+              </span>
+            </div>
+            {!report ? (
+              <div className="results-empty">
+                <span>
+                  <FileText size={25} />
+                </span>
+                <div>
+                  <h3>Room for your next discovery</h3>
+                  <p>
+                    Choose a tool above. Add your draft to check or improve it,
+                    or enter source details to build a citation.
+                  </p>
                 </div>
               </div>
-            )
-          )}
+            ) : (
+              <div className="report-grid">
+                <ExtendedToolResults report={report} busy={!!busy} copy={copyResult} apply={applyResult} save={save} canSave={!!title.trim()} />
+                {report.rewrite && (
+                  <article className="result-card rewrite-result">
+                    <div className="rewrite-result-heading">
+                      <div>
+                        <span className="eyebrow">
+                          HUMANIZE & REWRITE · {(report.rewrite.style || "natural").toUpperCase()}
+                        </span>
+                        <h3>Your rewritten draft</h3>
+                      </div>
+                      <span className="rewrite-engine">
+                        {report.rewrite.engine}
+                      </span>
+                    </div>
+                    <div className="rewrite-comparison">
+                      <div>
+                        <h4>Original</h4>
+                        <p className="rewrite-text original-text" tabIndex={0} aria-label="Original draft">
+                          {report.originalText}
+                        </p>
+                      </div>
+                      <div>
+                        <h4>Rewritten</h4>
+                        <p className="rewrite-text" tabIndex={0} aria-label="Rewritten draft">
+                          {report.rewrite.rewrittenText}
+                        </p>
+                      </div>
+                    </div>
+                    {!!report.rewrite.changes?.length && (
+                      <div className="rewrite-notes">
+                        <h4>What changed</h4>
+                        <ul>
+                          {report.rewrite.changes.map((change, index) => (
+                            <li key={index}>{change}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {!!report.rewrite.warnings?.length && <div className="rewrite-notes verification-notes"><h4>Review before using</h4><ul>{report.rewrite.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></div>}
+                    <div className="rewrite-actions">
+                      <button className="button" onClick={applyRewrite} disabled={!!busy}>
+                        <Check size={16} />Use in editor
+                      </button>
+                      <button className="button secondary" onClick={copyRewrite} disabled={!!busy}>
+                        <Copy size={16} />Copy text
+                      </button>
+                      <button className="button secondary" onClick={downloadRewrite} disabled={!!busy}>
+                        <ArrowDownToLine size={16} />Download TXT
+                      </button>
+                      <button className="button secondary" onClick={save} disabled={!!busy || !title.trim()}>
+                        <Save size={16} />Save result
+                      </button>
+                    </div>
+                    <small className="result-caution">
+                      {/no AI/i.test(report.rewrite.engine)
+                        ? "Basic mode applies limited English clarity edits. Custom voice, audience, and length preferences require the AI service. Review meaning, facts, and citations before using the draft."
+                        : "Review meaning, facts, and citations before using this draft. A rewrite does not guarantee a particular detector score or originality."}
+                    </small>
+                  </article>
+                )}
+                {report.ai && (
+                  <article className="result-card">
+                    <span className="eyebrow">
+                      AI WRITING SIGNALS · ESTIMATE
+                    </span>
+                    <div className="score">
+                      {Math.max(
+                        0,
+                        Math.min(100, Number(report.ai.overallAiScore) || 0),
+                      )}
+                      <small>/ 100</small>
+                    </div>
+                    <h3>{report.ai.verdict}</h3>
+                    <small>
+                      {report.ai.engine || "AI writing signal estimate"}
+                    </small>
+                    <p>{report.ai.overallSummary}</p>
+                    <small className="result-caution">
+                      This is a pattern-based estimate, not proof of authorship.
+                      Never use it alone for academic or employment decisions.
+                    </small>
+                    <details>
+                      <summary>Explore sentence signals</summary>
+                      {(report.ai.sentenceAnalysis || [])
+                        .slice(0, 100)
+                        .map((s, i) => (
+                          <div className="sentence-result" key={i}>
+                            <span>{s.aiProbability}% signal</span>
+                            <p>{s.sentence}</p>
+                            <small>{s.reasons?.join(" · ")}</small>
+                          </div>
+                        ))}
+                    </details>
+                  </article>
+                )}
+                {report.plagiarism && (
+                  <article className="result-card">
+                    <span className="eyebrow">PLAGIARISM CHECK · WEB SIMILARITY</span>
+                    <h3>
+                      {report.plagiarism.verdict === "Not checked"
+                        ? "Search unavailable"
+                        : "Possible source matches"}
+                    </h3>
+                    <p>{report.plagiarism.summary}</p>
+                    {report.plagiarism.verdict === "Not checked" && <div className="comparison-alternative"><p>If you have a source document, you can check for shared passages directly.</p><button className="button secondary" disabled={!!busy} onClick={() => chooseTool("compare")}><Files size={16} />Compare documents</button></div>}
+                    <small className="result-caution">
+                      Similarity is not a plagiarism verdict. Verify each source
+                      and its attribution. No matches do not establish
+                      originality.
+                    </small>
+                    {(report.plagiarism.matchedSources || [])
+                      .slice(0, 30)
+                      .map((s, i) => (
+                        <div className="source-result" key={i}>
+                          {safeLink(s.url) ? (
+                            <a
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              href={safeLink(s.url)}
+                            >
+                              {s.title}
+                              <ArrowRight size={14} />
+                            </a>
+                          ) : (
+                            <strong>{s.title}</strong>
+                          )}
+                          <p>{s.matchedExcerpt}</p>
+                        </div>
+                      ))}
+                  </article>
+                )}
+              </div>
+            )}
+          </section>
+          <footer className="page-footer">
+            <span>
+              veritas. <span>Clarity for the words that matter.</span>
+            </span>
+            <span>
+              <ShieldCheck size={13} />
+              Account-protected storage
+            </span>
+          </footer>
         </main>
-      )}
-
-      {/* Auxiliary Modals */}
-      {inspectedSentence && (
-        <SentenceInspectorModal
-          sentence={inspectedSentence}
-          onClose={() => setInspectedSentence(null)}
-          onApplyRewrite={(original, rewritten) => {
-            handleApplySingleRewrite(original, rewritten);
-            setInspectedSentence(null);
+      </div>
+      {auth && (
+        <AuthDialog
+          initialAccount={user && !user.verified ? user : null}
+          onPending={(account) => { updateAccount(account); clearInvitation(); }}
+          invitation={invitation}
+          onDiscardInvitation={clearInvitation}
+          mode={auth}
+          onMode={setAuth}
+          onClose={() => { setAuth(null); if (adminRequested && !user) closeAdmin(); }}
+          onSuccess={async () => {
+            const data = await api("/auth/me");
+            updateAccount(readAccount(data.user));
+            clearInvitation();
+            setAuth(null);
           }}
         />
       )}
-
-      {activeReport && isCertificateOpen && (
-        <CertificateReportModal
-          report={activeReport}
-          onClose={() => setIsCertificateOpen(false)}
-        />
-      )}
-
-      <ScanHistoryDrawer
-        history={history}
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        onSelectHistoryItem={(item) => {
-          setInputText(item.originalText);
-          setActiveReport(item);
-        }}
-        onClearHistory={() => {
-          setHistory([]);
-          localStorage.removeItem('veritas_scan_history');
-        }}
-      />
-
-      {activeReport && (
-        <TechnicalLinguisticModal
-          isOpen={isLinguisticsOpen}
-          onClose={() => setIsLinguisticsOpen(false)}
-          report={activeReport}
-          linguistics={linguistics}
-          shingles={shingles}
-          sourceText={inputText}
-        />
-      )}
-
-      {/* Production Confidential Authentication Modal */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={(_user) => {
-          setIsAuthOpen(false);
-        }}
-      />
-
-      {/* Footer */}
-      <footer className="mt-auto border-t border-zinc-900 bg-zinc-950 py-6 text-center text-xs text-zinc-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-zinc-400 font-mono">VeritasAI Enterprise</span>
-            <span>· 3D WebGL Neural Core &amp; Statistical Linguistics</span>
-          </div>
-          <div className="flex items-center gap-4 text-zinc-400 text-[11px]">
-            <span>Google Search Grounded</span>
-            <span>·</span>
-            <span>Rabin-Karp Shingle Fingerprints</span>
-            <span>·</span>
-            <span>Zero Data Storage Retention</span>
-          </div>
-        </div>
-      </footer>
+      {referralsOpen && user?.verified && <ReferralPanel key={user.id} onClose={() => setReferralsOpen(false)} />}
+      {adminRequested && user?.verified && user.isAdmin && <AdminPanel key={user.id} onClose={closeAdmin} />}
     </div>
   );
 }
-
-export default function App() {
+function AuthDialog({
+  mode,
+  onMode,
+  onClose,
+  onSuccess,
+  onPending,
+  initialAccount,
+  invitation,
+  onDiscardInvitation,
+}: {
+  mode: "login" | "register";
+  onMode: (m: "login" | "register") => void;
+  onClose: () => void;
+  onSuccess: (u: Account) => Promise<void>;
+  onPending: (u: Account) => void;
+  initialAccount: Account | null;
+  invitation: Invitation;
+  onDiscardInvitation: () => void;
+}) {
+  const [email, setEmail] = useState(initialAccount?.email || ""),
+    [password, setPassword] = useState(""),
+    [code, setCode] = useState(""),
+    [verifying, setVerifying] = useState(Boolean(initialAccount)),
+    [error, setError] = useState(""),
+    [message, setMessage] = useState(""),
+    [busy, setBusy] = useState(false),
+    [cooldown, setCooldown] = useState(0);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    dialog.current?.showModal();
+    return () => dialog.current?.close();
+  }, []);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((value) => value - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+  async function accept(data: any) {
+    const account = readAccount(data.user);
+    if (!account.verified) {
+      setVerifying(true);
+      setEmail(account.email);
+      setPassword("");
+      setCooldown(60);
+      onPending(account);
+      if (data.verificationSent)
+        setMessage(
+          "Your confirmation email was accepted for delivery. Check your inbox; it may take a few minutes to arrive.",
+        );
+      else setError(data.message || "Request a confirmation code to continue.");
+    } else await onSuccess(account);
+  }
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!verifying && mode === "register" && invitation.invalid) {
+      setError("This invitation link is invalid. Ask your friend for a new link or choose to continue without an invitation.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await accept(
+        await api(
+          verifying ? "/auth/verify-email" : `/auth/${mode}`,
+          "POST",
+          verifying ? { code } : { email, password, ...(mode === "register" && invitation.code ? { referralCode: invitation.code } : {}) },
+        ),
+      );
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function resend() {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await api("/auth/resend-verification", "POST", {});
+      setMessage("A new confirmation email was accepted for delivery. Use the latest code when it arrives.");
+      setCooldown(60);
+    } catch (e: any) {
+      setError(e.message);
+      setCooldown(60);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
-    <AuthProvider>
-      <VeritasAIWorkspace />
-    </AuthProvider>
+    <dialog
+      ref={dialog}
+      className="auth-dialog"
+      onCancel={(e) => {
+        if (busy) e.preventDefault();
+        else onClose();
+      }}
+      aria-labelledby="auth-heading"
+    >
+      <button
+        className="icon-button close-dialog"
+        disabled={busy}
+        onClick={onClose}
+        aria-label="Close sign in"
+      >
+        <X size={21} />
+      </button>
+      <span className="brand-mark">
+        <ShieldCheck size={25} />
+      </span>
+      <h2 id="auth-heading">
+        {verifying
+          ? "Confirm your email."
+          : mode === "login"
+            ? "Welcome back."
+            : "A space of your own."}
+      </h2>
+      <p>
+        {verifying
+          ? `Enter the latest 6-digit code for ${email}, or request a new code below.`
+          : mode === "login"
+            ? "Sign in to your private writing workspace."
+            : "Create an account, then confirm your email to unlock your private workspace."}
+      </p>
+      {!verifying && mode === "register" && (invitation.code || invitation.invalid) && <div className={`signup-invitation ${invitation.invalid ? "invalid" : ""}`}><strong>{invitation.invalid ? "Invalid invitation" : "You’re signing up with an invitation."}</strong><p>{invitation.invalid ? "This link cannot be used for a referral. Get a new link from your friend, or continue without an invitation." : "Referral credit is awarded only after an eligible new account confirms its email. Existing accounts cannot claim an invitation."}</p><button type="button" disabled={busy} onClick={() => { onDiscardInvitation(); setError(""); }}>Continue without invitation</button></div>}
+      <form onSubmit={submit}>
+        {verifying ? (
+          <label>
+            Confirmation code
+            <input
+              autoFocus
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              required
+              minLength={6}
+              maxLength={6}
+              className="otp-input"
+              disabled={busy}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            />
+          </label>
+        ) : (
+          <>
+            <label>
+              Email address
+              <input
+                autoFocus
+                type="email"
+                autoComplete="email"
+                required
+                maxLength={254}
+                disabled={busy}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                required
+                minLength={12}
+                maxLength={128}
+                autoComplete={
+                  mode === "login" ? "current-password" : "new-password"
+                }
+                disabled={busy}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+            <small>
+              Use 12–128 characters. Your password is never stored in the
+              browser.
+            </small>
+            {mode === "register" && <small className="permanent-email-note">Use a permanent email address. Temporary mail services cannot be used to create an account.</small>}
+          </>
+        )}
+        {message && (
+          <p className="auth-feedback" role="status">
+            {message}
+          </p>
+        )}
+        {error && (
+          <p className="error-message" role="alert">
+            {error}
+          </p>
+        )}
+        <button className="button" disabled={busy || (!verifying && mode === "register" && invitation.invalid)}>
+          {busy
+            ? "Please wait…"
+            : verifying
+              ? "Verify email"
+              : mode === "login"
+                ? "Sign in"
+                : "Create account"}
+          <ArrowRight size={16} />
+        </button>
+      </form>
+      {verifying ? (
+        <>
+          <button
+            className="switch-auth"
+            disabled={busy || cooldown > 0}
+            onClick={resend}
+          >
+            {cooldown > 0
+              ? `Resend code in ${cooldown}s`
+              : "Send a new confirmation code"}
+          </button>
+          <small className="auth-note">
+            Codes expire and can be used only once. Existing accounts also need
+            to verify their email before using tools. Your saved documents stay
+            with your account.
+          </small>
+        </>
+      ) : (
+        <>
+          <button
+            className="switch-auth"
+            disabled={busy}
+            onClick={() => {
+              onMode(mode === "login" ? "register" : "login");
+              setError("");
+            }}
+          >
+            {mode === "login"
+              ? "New here? Create an account"
+              : "Already have an account? Sign in"}
+          </button>
+          <small className="auth-note">
+            Email confirmation is required for all accounts. One account per
+            email address.
+          </small>
+        </>
+      )}
+    </dialog>
   );
 }

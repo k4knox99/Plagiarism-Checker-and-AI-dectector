@@ -315,7 +315,7 @@ export const HumanizerFixerStudio: React.FC<HumanizerFixerStudioProps> = ({
               <div className="rounded-2xl bg-zinc-950 border-2 border-black shadow-[3px_3px_0px_#000] p-5 space-y-3">
                 <div className="flex items-center justify-between text-xs text-zinc-400 font-pixel pb-2 border-b-2 border-zinc-800">
                   <div className="flex items-center gap-2">
-                    <PixelCorgi state="needs-fix" size={36} />
+                    <PixelCorgi state="needs_fix" size={36} />
                     <span className="text-rose-400 font-bold">Needs Fix (AI Flagged)</span>
                   </div>
                   <span className="text-rose-400 font-bold px-2 py-0.5 rounded bg-rose-950/60 border border-black">{humanizeResult.beforeAiScore}% AI Risk</span>

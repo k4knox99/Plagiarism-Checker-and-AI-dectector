@@ -1,52 +1,40 @@
-# Vercel Deployment Checklist & Guide
+# Vercel deployment
 
-This project is pre-configured for seamless zero-configuration deployment to **Vercel**.
+1. Import this repository into Vercel using Vite, build command `npm run build`, output `dist`, and Node 24 (22.13+ also supported).
+2. Provision persistent PostgreSQL and set `DATABASE_URL` server-side. Use your provider's pooler URL and verified TLS settings. Never disable certificate verification.
+3. Set `APP_ORIGIN` to the exact public origin, e.g. `https://your-project.vercel.app`, without a trailing slash. Previews need their own matching origin and preferably separate databases.
+4. Configure `GEMINI_API_KEY`, `AI_GATEWAY_API_KEY`, or Vercel OIDC for AI Gateway. Advanced rewrites and plagiarism web search require an eligible AI account with available credits. Without one, AI detection uses labeled local estimates, rewriting/proofreading use limited basic English rules, and summaries use original source sentences. Document comparison and manual citations work independently. Web search reports unavailable until its provider is ready.
+5. Deploy, register disposable test accounts, save a draft, refresh and reopen it, sign out, and verify account isolation.
+6. Configure database backups, encryption, restricted credentials, spending limits, bot controls, monitoring, and retention before broad public access.
 
-## 1. Key Configuration Files Created
+`vercel.json` routes API requests to Express and applies security headers to static pages. Sessions, rate limits, and documents use PostgreSQL to survive function restarts. SQLite fallback is intentionally unavailable on Vercel.
 
-- `vercel.json`: Defines the build command (`npm run build`), output directory (`dist`), and routing rewrites for both API serverless functions and SPA client-side routing.
-- `.vercelignore`: Prevents unnecessary local build caches and credentials from being uploaded.
-- `api/_app.ts`: Modular Express application containing all forensics, plagiarism detection, and humanizer routes, with automatic fallback when API keys are pending.
-- `api/index.ts`: Standard Vercel Serverless Function entry point for `/api`.
-- `api/[...path].ts`: Wildcard Vercel Serverless Function entry point ensuring all `/api/*` subroutes route seamlessly.
+Remove `VITE_ADMIN_PASSWORD` from all environments and rotate any password ever configured there, including reuse elsewhere. VITE-prefixed configuration is frontend-visible. Rebuild/redeploy and remove older deployments containing sensitive values; this revision cannot retract previously published assets.
 
-## 2. Deploying via Vercel Web Dashboard
+For the read-only owner dashboard, set server-only `OWNER_ACCOUNT_ID` to the verified owner's immutable account ID in the same database. Scope it to the intended Vercel project/environment and branch before deploying. The owner signs in normally and opens `/admin`; no shared admin password is used. A missing or mismatched value denies access. Dashboard requests recheck session verification and the exact account ID, and never return password hashes, sessions, provider keys, or document text.
 
-1. Push this repository to your GitHub account:
-   ```bash
-   git add .
-   git commit -m "Configure Vercel deployment"
-   git push origin main
-   ```
-2. Navigate to [https://vercel.com/new](https://vercel.com/new).
-3. Select your repository.
-4. Vercel automatically detects the Vite framework and settings.
-5. In the **Environment Variables** section:
-   - Name: `GEMINI_API_KEY`
-   - Value: `your_gemini_api_key`
-6. Click **Deploy**.
+This revision does not provision a database or deploy production. Hosted PostgreSQL, live Gemini, production HTTPS cookies, and function limits need smoke testing with your deployment credentials. Local SQLite, API security regression tests, build, and type checks were validated.
 
-## 3. Deploying via Vercel CLI
+## Sign-up troubleshooting
 
-```bash
-# Preview deployment
-npx vercel
+Real accounts require PostgreSQL. In the Vercel project, attach a Neon/PostgreSQL database and expose its pooled connection string as DATABASE_URL to Preview and Production, then redeploy. The app creates its tables automatically. Vercel's own VERCEL_URL and VERCEL_BRANCH_URL are accepted as exact HTTPS origins for this deployment and its stable branch alias; APP_ORIGIN remains the custom production origin. These values are read only on Vercel, never from caller-supplied Host or forwarded headers. Other vercel.app projects are not trusted. If a branch alias is not provided by the platform, set APP_ORIGIN to that exact HTTPS alias in the matching preview branch.
 
-# Production deployment
-npx vercel --prod
-```
+If the deployment is protected by Vercel Authentication, sign in through Vercel before testing. Do not disable protection just to hide an API error. Missing storage now returns a specific setup error. Server startup failures return JSON rather than an HTML error page where possible. The API module uses explicit ESM import paths and loads PDF parsing only when requested.
 
-## 4. Testing Your Deployed API
+## Confirmation-code configuration
 
-Once deployed, you can verify your Vercel deployment by requesting:
-`https://your-vercel-deployment.vercel.app/api/health`
+Set NEON_AUTH_BASE_URL on the same preview branch as DATABASE_URL. Apply server/migrations/001_email_verification.sql before deploying the updated server. Set AI_GATEWAY_MODEL to a catalog model; Vercel OIDC can authenticate Gateway without copying provider keys. AI Gateway still requires an eligible account/credits. Verification uses the branch's Managed Auth OTP service and retains existing application account/document IDs. Existing users must sign in with their current password and enter the emailed code.
 
-It should return:
-```json
-{
-  "status": "ok",
-  "service": "VeritasAI API",
-  "timestamp": "2026-10-15T...",
-  "hasApiKey": true
-}
-```
+Enable project OIDC and redeploy. Build-time `VERCEL_OIDC_TOKEN` is not the runtime credential source for Functions: `@vercel/oidc` reads the current request context for every AI request, with no shared token cache. An explicit server `AI_GATEWAY_API_KEY` takes precedence. Self-hosted clients cannot supply a header to activate this platform credential path.
+
+With `GEMINI_API_KEY` configured, direct Gemini is selected before Gateway. Optional server-only `GEMINI_MODEL` defaults to `gemini-3.5-flash-lite`; the runtime and deployment checks use the same model and bounded single-request settings. Set `VERITAS_AI_DEPLOY_CHECK=1` for one intended build to run two short synthetic checks, then reset it to `0`. Rewrite and grounded-search outcomes are independent: a working key or successful rewrite does not prove Google Search availability. Current Gemini 3.x Search grounding requires paid-tier availability; check the provider's quota/billing settings if the search check fails. No private document text, credentials or raw provider errors are logged.
+
+For a one-time provider smoke check, set preview-branch `VERITAS_AI_DEPLOY_CHECK=1` before the intended deployment. Build logs show writing and grounded-search status without user text or credentials. Set it back to `0` after inspection; do not create another deployment only to clear the flag. A `customer_verification_required` or exhausted allowance requires the project owner's provider account action.
+
+## Referral migration and email policy data
+
+Test `server/migrations/002_referrals.sql` on an isolated Neon branch, then apply its additive schema to the intended preview database. Existing accounts and documents stay in place. Set `VERITAS_DB_MIGRATE_ON_BUILD=1` for the release build to normalize existing mailbox identities and finalize migration `002_referrals`; reset the branch flag to `0` after success without another deployment. The script prints only migration status and aggregate counts.
+
+`vercel.json` explicitly includes `server/data/**` in API Functions. The pinned disposable-domain dataset must be packaged: account operations fail closed when the data is absent or invalid. Updates use a reviewed upstream commit and include the upstream CC0 notice. Credits extend app request quotas only; they do not resolve AI Gateway account verification or provider billing. Protected previews also restrict who can open invitation links.
+
+Configure a custom SMTP sender in Neon Auth. The preview currently uses the sender configured by its owner. The server derives the required Origin header from NEON_AUTH_BASE_URL rather than forwarding a browser-controlled header. Never copy the preview database or authentication audience into production unintentionally.

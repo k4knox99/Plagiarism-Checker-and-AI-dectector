@@ -16,15 +16,16 @@ export interface ClicheItem {
 export interface SentenceAnalysis {
   sentence: string;
   aiProbability: number;
-  category: 'human' | 'mixed' | 'ai';
+  category: "human" | "mixed" | "ai";
   reasons: string[];
   suggestedRewrite: string;
 }
 
 export interface AIDetectionResult {
+  engine?: string;
   overallAiScore: number;
   verdict: string;
-  confidence: 'High' | 'Medium' | 'Low';
+  confidence: "High" | "Medium" | "Low";
   metrics: MetricData;
   overallSummary: string;
   flaggedCliches: ClicheItem[];
@@ -73,6 +74,31 @@ export interface PlagiarismResult {
   liveWebSources?: Array<{ title: string; url: string }>;
 }
 
+export type RewriteStyle = "natural" | "professional" | "academic" | "concise";
+
+export interface WritingRewriteResult {
+  rewrittenText: string;
+  engine: string;
+  changes?: string[];
+  style: RewriteStyle;
+  warnings?: string[];
+}
+
+export interface ProofreadResult {
+  correctedText: string;
+  summary: string;
+  issues: { original: string; suggestion: string; category: string; explanation: string }[];
+  engine: string;
+  insights: { words: number; sentences: number; paragraphs: number; readingMinutes: number; averageSentenceWords: number; longSentences: number; readingEase: number | null; readingLabel: string };
+}
+export interface SummaryResult { summary: string; keyPoints: string[]; outline: string[]; engine: string; scope?: string }
+export interface ComparisonResult {
+  similarityScore: number; matchedWords: number; totalWords: number;
+  matches: { text: string; sourceText: string; start: number; end: number; sourceStart: number; sourceEnd: number }[];
+  engine: string; scope: string;
+}
+export interface CitationResult { apa: string; mla: string; chicago: string; bibtex: string; notes: string[]; engine: string }
+
 export interface ComprehensiveReport {
   compositeAuthenticity: number;
   aiAnalysis: AIDetectionResult;
@@ -108,13 +134,29 @@ export interface HumanizeResult {
   improvements?: string[];
 }
 
-export type ScannerMode = 'comprehensive' | 'ai' | 'plagiarism' | 'fixer' | 'surgeon';
-export type FixerStyle = 'academic' | 'conversational' | 'professional' | 'creative' | 'stealth';
+export type ScannerMode =
+  | "comprehensive"
+  | "ai"
+  | "plagiarism"
+  | "fixer"
+  | "surgeon";
+export type FixerStyle =
+  | "academic"
+  | "conversational"
+  | "professional"
+  | "creative"
+  | "stealth";
 
 // SaaS Subscription & Auth Types
-export type SubscriptionPlanId = 'trial' | '3_months' | '6_months' | '1_year' | 'lifetime' | 'expired';
-export type UserAccountStatus = 'active' | 'pending_payment' | 'blocked';
-export type UserRole = 'user' | 'admin';
+export type SubscriptionPlanId =
+  | "trial"
+  | "3_months"
+  | "6_months"
+  | "1_year"
+  | "lifetime"
+  | "expired";
+export type UserAccountStatus = "active" | "pending_payment" | "blocked";
+export type UserRole = "user" | "admin";
 
 export interface User {
   id: string;
@@ -136,9 +178,9 @@ export interface DBSBankSettings {
   payNowNumber: string;
   qrCodeUrl: string;
   prices: {
-    '3_months': number;
-    '6_months': number;
-    '1_year': number;
+    "3_months": number;
+    "6_months": number;
+    "1_year": number;
   };
   instructions: string;
 }
@@ -147,13 +189,13 @@ export interface PaymentSubmission {
   id: string;
   userId: string;
   userEmail: string;
-  planId: '3_months' | '6_months' | '1_year';
+  planId: "3_months" | "6_months" | "1_year";
   planName: string;
   amountSGD: number;
   transactionRef: string;
   receiptImageUrl: string;
   submittedAt: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   adminNote?: string;
   reviewedAt?: string;
 }
