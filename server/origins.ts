@@ -1,6 +1,7 @@
 export function trustedOrigins(options: {
   appOrigin?: string;
   vercelHost?: string;
+  vercelBranchHost?: string;
   production: boolean;
   localOrigin: string;
 }) {
@@ -12,12 +13,12 @@ export function trustedOrigins(options: {
       /* Invalid configuration fails closed. */
     }
   }
-  // VERCEL_URL is set by the platform for this deployment, never by a request.
-  if (
-    options.vercelHost &&
-    /^[a-z0-9-]+\.vercel\.app$/i.test(options.vercelHost)
-  )
-    origins.add(`https://${options.vercelHost.toLowerCase()}`);
+  // These exact deployment/branch hosts come from platform configuration,
+  // never request headers. Other projects' vercel.app hosts remain untrusted.
+  for (const host of [options.vercelHost, options.vercelBranchHost]) {
+    if (host && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.vercel\.app$/i.test(host))
+      origins.add(`https://${host.toLowerCase()}`);
+  }
   if (!options.production) origins.add(options.localOrigin);
   return origins;
 }

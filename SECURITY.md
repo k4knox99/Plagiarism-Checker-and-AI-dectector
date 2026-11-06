@@ -39,6 +39,8 @@ Preview-origin handling also accepts only the exact VERCEL_URL supplied by Verce
 
 ## Verification and tool update
 
+The stable Vercel branch alias is accepted only from the exact server/platform origin configuration, alongside the immutable deployment URL. Other projects' vercel.app origins, HTTP variants, malformed hosts and cross-site writes remain rejected. Account changes invalidate pending library/detail requests in the browser so an older account's delayed responses cannot repopulate document titles or editor content after logout.
+
 The preview now requires email confirmation for every account, including pre-update users. Existing passwords, IDs, and documents are retained; old sessions cannot bypass the verification gate. App passwords are not sent to the OTP provider. The provider consumes single-use codes; local challenges enforce expiry, per-account binding, a 60-second resend cooldown, five-attempt limit and shared database rate limits. Case-insensitive unique email indexing and conflict-safe insertion prevent concurrent duplicate application accounts.
 
 The owner configured custom SMTP in Neon Auth and confirmed a test email arrived in the inbox. This does not guarantee inbox placement for every recipient. Automated verification tests use an isolated provider stub. Password reset and MFA remain outside this revision.

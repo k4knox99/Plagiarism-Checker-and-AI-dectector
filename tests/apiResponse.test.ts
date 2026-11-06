@@ -67,6 +67,58 @@ test("exact Vercel deployment origin works alongside a custom domain", () => {
   assert.ok(origins.has("https://preview-123.vercel.app"));
   assert.ok(!origins.has("https://attacker.example"));
 });
+test("only the exact HTTPS Vercel branch alias is trusted alongside other origins", () => {
+  const origins = trustedOrigins({
+    production: true,
+    appOrigin: "https://writing.example/",
+    vercelHost: "preview-123.vercel.app",
+    vercelBranchHost: "Writing-Git-Preview-Team.vercel.app",
+    localOrigin: "https://attacker.example",
+  });
+  assert.deepEqual([...origins].sort(), [
+    "https://preview-123.vercel.app",
+    "https://writing-git-preview-team.vercel.app",
+    "https://writing.example",
+  ]);
+  assert.ok(!origins.has("http://writing-git-preview-team.vercel.app"));
+  assert.ok(!origins.has("https://unrelated.vercel.app"));
+});
+
+test("a valid Vercel branch alias can configure production without a custom domain", () => {
+  assert.deepEqual(
+    [...trustedOrigins({
+      production: true,
+      vercelBranchHost: "writing-git-preview-team.vercel.app",
+      localOrigin: "https://attacker.example",
+    })],
+    ["https://writing-git-preview-team.vercel.app"],
+  );
+});
+
+test("hostile and malformed Vercel branch hosts fail closed", () => {
+  for (const vercelBranchHost of [
+    "evil.example",
+    "writing.vercel.app.evil.example",
+    "https://writing.vercel.app",
+    "writing.vercel.app/path",
+    "writing.vercel.app?origin=evil",
+    "writing.vercel.app#evil",
+    "writing.vercel.app:443",
+    "writing.vercel.app@evil.example",
+    "evil.example@writing.vercel.app",
+  ]) {
+    assert.equal(
+      trustedOrigins({
+        production: true,
+        vercelBranchHost,
+        localOrigin: "https://attacker.example",
+      }).size,
+      0,
+      vercelBranchHost,
+    );
+  }
+});
+
 test("invalid preview hosts and missing production configuration fail closed", () => {
   assert.equal(
     trustedOrigins({

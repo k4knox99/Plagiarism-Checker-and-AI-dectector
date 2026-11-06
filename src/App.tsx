@@ -163,10 +163,42 @@ export default function App() {
   const [adminRequested, setAdminRequested] = useState(isAdminPath);
   const input = useRef<HTMLInputElement>(null),
     controller = useRef<AbortController | null>(null);
+  const account = useRef<Account | null>(null),
+    accountRevision = useRef(0),
+    libraryController = useRef<AbortController | null>(null),
+    documentController = useRef<AbortController | null>(null);
   const words = React.useMemo(() => [...wordCounter.segment(text)].filter((part) => part.isWordLike).length, [text]);
   const activeTool = writingTools.find((tool) => tool.id === mode)!;
+  function updateAccount(next: Account | null) {
+    const previous = account.current;
+    if (previous?.id !== next?.id || previous?.verified !== next?.verified) {
+      accountRevision.current++;
+      libraryController.current?.abort();
+      libraryController.current = null;
+      documentController.current?.abort();
+      documentController.current = null;
+      setDocuments([]);
+      setBusy((value) => value === "Loading" ? "" : value);
+      if (previous && previous.id !== next?.id) reset(true);
+    }
+    account.current = next;
+    setUser(next);
+  }
   async function refreshDocuments() {
-    setDocuments((await api("/documents")).documents);
+    if (!account.current?.verified) return;
+    const revision = accountRevision.current;
+    const request = new AbortController();
+    libraryController.current?.abort();
+    libraryController.current = request;
+    try {
+      const data = await api("/documents", "GET", undefined, request.signal);
+      if (!request.signal.aborted && accountRevision.current === revision)
+        setDocuments(data.documents);
+    } catch (error) {
+      if (!request.signal.aborted && accountRevision.current === revision) throw error;
+    } finally {
+      if (libraryController.current === request) libraryController.current = null;
+    }
   }
   useEffect(() => {
     try {
@@ -185,10 +217,14 @@ export default function App() {
       /* Storage can be blocked; server sessions still work. */
     }
     api("/auth/me")
-      .then((data) => { setUser(readAccount(data.user)); clearInvitation(); })
+      .then((data) => { updateAccount(readAccount(data.user)); clearInvitation(); })
       .catch(() => {})
       .finally(() => setChecking(false));
-    return () => controller.current?.abort();
+    return () => {
+      controller.current?.abort();
+      libraryController.current?.abort();
+      documentController.current?.abort();
+    };
   }, []);
   useEffect(() => {
     if (user?.verified) refreshDocuments().catch((e) => setError(e.message));
@@ -245,20 +281,29 @@ export default function App() {
       !window.confirm("Discard unsaved changes and open this document?")
     )
       return;
+    if (!account.current?.verified) return;
+    const revision = accountRevision.current;
+    const request = new AbortController();
+    documentController.current?.abort();
+    documentController.current = request;
     setBusy("Loading");
     setError("");
     setNotice("");
     try {
-      const { document: d } = await api(`/documents/${documentId}`);
+      const { document: d } = await api(`/documents/${documentId}`, "GET", undefined, request.signal);
+      if (request.signal.aborted || accountRevision.current !== revision) return;
       setId(d.id);
       setTitle(d.title);
       setText(d.content);
       setReport(d.report);
       setDirty(false);
     } catch (e: any) {
-      setError(e.message);
+      if (!request.signal.aborted && accountRevision.current === revision) setError(e.message);
     } finally {
-      setBusy("");
+      if (documentController.current === request) {
+        documentController.current = null;
+        if (accountRevision.current === revision) setBusy("");
+      }
     }
   }
   async function save() {
@@ -505,11 +550,10 @@ export default function App() {
     setBusy("Signing out");
     try {
       await api("/auth/logout", "POST", {});
-      setUser(null);
+      updateAccount(null);
       setReferralsOpen(false);
       closeAdmin();
       clearInvitation();
-      reset(true);
       setNotice("Signed out.");
     } catch (e: any) {
       setError(e.message);
@@ -1138,7 +1182,7 @@ export default function App() {
       {auth && (
         <AuthDialog
           initialAccount={user && !user.verified ? user : null}
-          onPending={(account) => { setUser(account); clearInvitation(); }}
+          onPending={(account) => { updateAccount(account); clearInvitation(); }}
           invitation={invitation}
           onDiscardInvitation={clearInvitation}
           mode={auth}
@@ -1146,7 +1190,7 @@ export default function App() {
           onClose={() => { setAuth(null); if (adminRequested && !user) closeAdmin(); }}
           onSuccess={async () => {
             const data = await api("/auth/me");
-            setUser(readAccount(data.user));
+            updateAccount(readAccount(data.user));
             clearInvitation();
             setAuth(null);
           }}

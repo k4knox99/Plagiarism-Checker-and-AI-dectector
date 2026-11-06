@@ -2,6 +2,16 @@
 // The branch flag is removed after the intended deployment to avoid recurring calls.
 if (process.env.VERITAS_AI_DEPLOY_CHECK !== "1") process.exit(0);
 
+// Match the app: an explicitly configured Gemini key takes priority over
+// Gateway. The shared module also enforces one request per check and safe logs.
+const { tsImport } = await import("tsx/esm/api");
+const { geminiConfigured } = await tsImport("../server/gemini.ts", import.meta.url);
+if (geminiConfigured()) {
+  const { runGeminiDeploymentChecks } = await tsImport("./check-gemini.ts", import.meta.url);
+  await runGeminiDeploymentChecks();
+  process.exit(0);
+}
+
 const endpoint = "https://ai-gateway.vercel.sh/v1/responses";
 const token = process.env.VERCEL_OIDC_TOKEN;
 const configuredModel = process.env.AI_GATEWAY_MODEL || "openai/gpt-5.4-mini";

@@ -73,6 +73,7 @@ export function sameOrigin(req: Request, res: Response, next: NextFunction) {
   const allowed = trustedOrigins({
     appOrigin: process.env.APP_ORIGIN,
     vercelHost: process.env.VERCEL ? process.env.VERCEL_URL : undefined,
+    vercelBranchHost: process.env.VERCEL ? process.env.VERCEL_BRANCH_URL : undefined,
     production,
     localOrigin: `${req.protocol}://${req.get("host")}`,
   });

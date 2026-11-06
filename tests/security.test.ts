@@ -215,6 +215,45 @@ test("cross-origin writes are rejected", async () => {
     403,
   );
 });
+test("Vercel branch writes require the exact platform alias and same-site requests", async () => {
+  const keys = ["VERCEL", "VERCEL_URL", "VERCEL_BRANCH_URL", "APP_ORIGIN"];
+  const saved = keys.map((key) => [key, process.env[key]] as const);
+  const branchOrigin = "https://writing-git-preview-team.vercel.app";
+  try {
+    process.env.VERCEL = "1";
+    process.env.VERCEL_URL = "preview-123.vercel.app";
+    process.env.VERCEL_BRANCH_URL = "writing-git-preview-team.vercel.app";
+    process.env.APP_ORIGIN = "https://writing.example";
+
+    const allowed = await call("/api/auth/logout", "POST", {}, undefined, {
+      origin: branchOrigin,
+      "sec-fetch-site": "same-origin",
+    });
+    assert.equal(allowed.response.status, 200);
+
+    const blockedHeaders: Record<string, string>[] = [
+      { origin: "https://unrelated.vercel.app" },
+      { origin: "https://writing-git-preview-team.vercel.app.evil.example" },
+      { origin: "http://writing-git-preview-team.vercel.app" },
+      { origin: branchOrigin, "sec-fetch-site": "cross-site" },
+    ];
+    for (const headers of blockedHeaders) {
+      const denied = await call("/api/auth/logout", "POST", {}, undefined, headers);
+      assert.equal(denied.response.status, 403, JSON.stringify(headers));
+      assert.equal(denied.data.error, "Request origin is not allowed.");
+    }
+
+    process.env.VERCEL = "";
+    const outsideVercel = await call("/api/auth/logout", "POST", {}, undefined, { origin: branchOrigin });
+    assert.equal(outsideVercel.response.status, 403);
+  } finally {
+    for (const [key, value] of saved) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
 test("malformed JSON is a generic 400", async () => {
   const r = await fetch(base + "/api/auth/login", {
     method: "POST",

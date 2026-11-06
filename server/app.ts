@@ -1,7 +1,7 @@
 import express, { Router, type Request, type Response } from "express";
 import dotenv from "dotenv";
-import { GoogleGenAI } from "@google/genai";
 import { gatewayConfigured, gatewayAnalysis, gatewayErrorMessage, GatewayError } from "./gateway.js";
+import { getAIClient, geminiConfigured, generateGemini, parseGeminiJson, geminiGroundedSources, geminiSourceSuggestions, GeminiError, geminiErrorMessage } from "./gemini.js";
 import { validAI, validPlagiarism, validRewrite, rewriteStyles, validProofread, validSummary } from "./validation.js";
 import { compareDocuments, formatCitations, basicProofread, writingInsights, localRewrite, extractiveSummary } from "./writing-tools.js";
 import { preservationWarnings } from "./edits.js";
@@ -40,46 +40,8 @@ app.post("/api/referrals/me", requireUser, rateLimit("referral-profile", 30), as
   }
 });
 
-// Helper to lazily and safely initialize Google Gen AI
-function getAIClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!apiKey || apiKey.trim() === "" || apiKey === "MY_GEMINI_API_KEY") {
-    return null;
-  }
-  return new GoogleGenAI({
-    apiKey: apiKey.trim(),
-    httpOptions: {
-      timeout: 35000,
-      headers: {
-        "User-Agent": "aistudio-build-vercel",
-      },
-    },
-  });
-}
-
-// Enterprise Model Fallback: Prioritize Gemini 2.5 Pro with Gemini 2.5 Flash fallback
-async function generateWithFallback(
-  ai: GoogleGenAI,
-  contents: string,
-  config: any,
-) {
-  try {
-    return await ai.models.generateContent({
-      model: "gemini-2.5-pro",
-      contents,
-      config,
-    });
-  } catch (err: any) {
-    console.warn(
-      "Gemini 2.5 Pro unavailable or rate-limited, invoking Gemini 2.5 Flash fallback:",
-      "Provider request failed.",
-    );
-    return await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents,
-      config,
-    });
-  }
+function modelErrorMessage(error: unknown): string {
+  return error instanceof GeminiError ? geminiErrorMessage(error) : gatewayErrorMessage(error);
 }
 
 // In-memory cache to save quota on repeated texts
@@ -365,9 +327,7 @@ router.get("/", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
     service: "VeritasAI API",
-    hasApiKey: Boolean(
-      process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
-    ),
+    hasApiKey: geminiConfigured(),
   });
 });
 
@@ -376,9 +336,7 @@ router.get("/health", (_req: Request, res: Response) => {
     status: "ok",
     service: "VeritasAI API",
     timestamp: new Date().toISOString(),
-    hasApiKey: Boolean(
-      process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
-    ),
+    hasApiKey: geminiConfigured(),
   });
 });
 
@@ -518,12 +476,11 @@ DOCUMENT: ${JSON.stringify(text)}`;
 
     try {
       if (ai) {
-        const response = await generateWithFallback(ai, prompt, {
-          responseMimeType: "application/json",
+        const response = await generateGemini(ai, prompt, {
           temperature: 0.1,
-          maxOutputTokens: Math.max(2048, outputBudget(text, "signals")),
+          maxOutputTokens: outputBudget(text, "signals"),
         });
-        resultJson = JSON.parse(response.text?.trim() || "");
+        resultJson = parseGeminiJson(response);
       } else resultJson = (await gatewayAnalysis(prompt, false, outputBudget(text, "signals"))).data;
       resultJson.engine = ai
         ? "Google Gemini analysis"
@@ -581,21 +538,14 @@ router.post("/detect/plagiarism", async (req: Request, res: Response) => {
       JSON.stringify(text);
     let result: any;
     let grounded: Set<string>;
+    let sourceSuggestions: ReturnType<typeof geminiSourceSuggestions> = [];
     if (ai) {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: { tools: [{ googleSearch: {} }], temperature: 0.1, maxOutputTokens: 2048 },
+      const response = await generateGemini(ai, prompt, {
+        search: true, temperature: 0.1, maxOutputTokens: outputBudget(text, "sources"),
       });
-      const raw = response.text || "";
-      result = JSON.parse(
-        raw.match(/\x60\x60\x60(?:json)?\s*([\s\S]*?)\x60\x60\x60/)?.[1] || raw,
-      );
-      grounded = new Set(
-        (response.candidates?.[0]?.groundingMetadata?.groundingChunks || [])
-          .map((c) => c.web?.uri)
-          .filter((url): url is string => Boolean(url)),
-      );
+      result = parseGeminiJson(response);
+      grounded = geminiGroundedSources(response);
+      sourceSuggestions = geminiSourceSuggestions(response);
     } else {
       const response = await gatewayAnalysis(prompt, true, outputBudget(text, "sources"));
       result = response.data;
@@ -611,19 +561,27 @@ router.post("/detect/plagiarism", async (req: Request, res: Response) => {
       } catch {
         return false;
       }
-    });
+    }).slice(0, 3);
+    const suggestionsOnly = result.matchedSources.length === 0 && sourceSuggestions.length > 0;
+    if (suggestionsOnly) {
+      // Search often supplies Google redirect URIs. Preserve those metadata
+      // links as suggestions without treating a model's direct URL as verified.
+      result.matchedSources = sourceSuggestions;
+      result.similarityScore = 0;
+    }
     result.flaggedPassages = [];
     if (!grounded.size)
       return res.json({ success: true, analysis: unavailable });
     result.verdict = "Possible source matches";
-    result.summary =
-      "Search completed. Review the linked sources for similarity and attribution; search coverage is incomplete.";
+    result.summary = suggestionsOnly
+      ? "Search returned source suggestions; no matching excerpt was verified. Review the linked sources manually. Search coverage is incomplete."
+      : "Search completed. Review the linked sources for similarity and attribution; search coverage is incomplete.";
     cacheResult(cacheKey, { timestamp: Date.now(), data: result });
     res.json({ success: true, analysis: result });
   } catch (error) {
     res.status(503).json({
       error:
-        `${gatewayErrorMessage(error)} No originality assessment was performed.`,
+        `${modelErrorMessage(error)} No originality assessment was performed.`,
     });
   }
 });
@@ -658,10 +616,10 @@ INPUT DATA: ${JSON.stringify({document:text,voiceSample,preserveTerms})}`;
   try {
     let result: any;
     if (ai) {
-      const response = await generateWithFallback(ai, prompt, {
-        responseMimeType: "application/json", temperature: 0.5, maxOutputTokens: Math.max(2048, outputBudget(text, "rewrite")),
+      const response = await generateGemini(ai, prompt, {
+        temperature: 0.5, maxOutputTokens: outputBudget(text, "rewrite"),
       });
-      result = JSON.parse(response.text?.trim() || "");
+      result = parseGeminiJson(response);
     } else result = (await gatewayAnalysis(prompt, false, outputBudget(text, "rewrite"))).data;
     // Construct an allowlisted response instead of passing arbitrary model fields to the client.
     const output = {
@@ -671,25 +629,25 @@ INPUT DATA: ${JSON.stringify({document:text,voiceSample,preserveTerms})}`;
       warnings: typeof result?.rewrittenText === "string" ? preservationWarnings(text, result.rewrittenText, preserveTerms) : [],
       engine: ai ? "Google Gemini writing edit" : "AI writing edit via Vercel gateway",
     };
-    if (!validRewrite(output)) throw new Error("INVALID_REWRITE_OUTPUT");
+    if (!validRewrite(output)) throw ai ? new GeminiError("invalid_response") : new Error("INVALID_REWRITE_OUTPUT");
     cacheResult(key, { timestamp: Date.now(), data: output });
     return res.json({ success: true, ...output });
   } catch (error) {
-    if (error instanceof GatewayError && error.code !== "invalid_response") {
+    if ((error instanceof GatewayError || error instanceof GeminiError) && !["invalid_response", "blocked_response"].includes(error.code)) {
       const fallback = localRewrite(text, style);
-      return res.json({ success: true, ...fallback, warnings: [...fallback.warnings, gatewayErrorMessage(error)].slice(0, 12) });
+      return res.json({ success: true, ...fallback, warnings: [...fallback.warnings, modelErrorMessage(error)].slice(0, 12) });
     }
     // Documents and model responses may contain private information; log only a safe category.
-    console.warn("Writing service failed", { code: error instanceof Error && error.message === "INVALID_REWRITE_OUTPUT" ? "INVALID_OUTPUT" : "PROVIDER_UNAVAILABLE" });
-    return res.status(503).json({ error: `${gatewayErrorMessage(error)} Your original text is unchanged.` });
+    console.warn("Writing service failed", { code: error instanceof GeminiError ? error.code : error instanceof Error && error.message === "INVALID_REWRITE_OUTPUT" ? "INVALID_OUTPUT" : "PROVIDER_UNAVAILABLE" });
+    return res.status(503).json({ error: `${modelErrorMessage(error)} Your original text is unchanged.` });
   }
 });
 
 async function writingModel(prompt: string, text: string, task: WritingTask) {
   const ai = getAIClient();
   if (ai) {
-    const response = await generateWithFallback(ai, prompt, { responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: Math.max(2048, outputBudget(text, task)) });
-    return { data: JSON.parse(response.text?.trim() || ""), engine: "Google Gemini writing review" };
+    const response = await generateGemini(ai, prompt, { temperature: 0.2, maxOutputTokens: outputBudget(text, task) });
+    return { data: parseGeminiJson(response), engine: "Google Gemini writing review" };
   }
   if (!gatewayConfigured()) throw new GatewayError("missing_credentials");
   return { data: (await gatewayAnalysis(prompt, false, outputBudget(text, task))).data, engine: "AI writing review via Vercel gateway" };
@@ -714,7 +672,7 @@ router.post("/tools/proofread", async (req: UserRequest, res) => {
     cacheResult(key, { timestamp: Date.now(), data: analysis });
     return res.json({ success: true, analysis });
   } catch (error) {
-    return res.json({ success: true, analysis: { ...baseline, summary: `${baseline.summary} ${gatewayErrorMessage(error)} Contextual review was not performed.` } });
+    return res.json({ success: true, analysis: { ...baseline, summary: `${baseline.summary} ${modelErrorMessage(error)} Contextual review was not performed.` } });
   }
 });
 
@@ -732,9 +690,9 @@ router.post("/tools/summarize", async (req: UserRequest, res) => {
     cacheResult(key, { timestamp: Date.now(), data: analysis });
     return res.json({ success: true, analysis });
   } catch (error) {
-    if (error instanceof GatewayError && error.code !== "invalid_response")
+    if ((error instanceof GatewayError || error instanceof GeminiError) && !["invalid_response", "blocked_response"].includes(error.code))
       return res.json({ success: true, analysis: extractiveSummary(text) });
-    return res.status(503).json({ error: gatewayErrorMessage(error) });
+    return res.status(503).json({ error: modelErrorMessage(error) });
   }
 });
 
